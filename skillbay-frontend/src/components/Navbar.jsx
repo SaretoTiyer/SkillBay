@@ -106,7 +106,7 @@ return (
                 className="relative group px-5 py-2.5 bg-white text-[#1E3A5F] rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-white/30 hover:scale-105 border border-white/20"
             >
                 <span className="relative z-10">Registrarse</span>
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-[#2B6CB0]/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-[#2B6CB0]/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             </button>
 
             <button
@@ -114,7 +114,7 @@ return (
                 className="relative group px-5 py-2.5 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-[#2B6CB0]/50 hover:scale-105"
             >
                 <span className="relative z-10">Iniciar Sesión</span>
-                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             </button>
             </div>
         </div>
@@ -148,7 +148,7 @@ return (
                 }}
                 className={`block w-full text-left px-5 py-3.5 rounded-xl transition-all duration-300 ${
                 currentView === item.view
-                    ? "bg-gradient-to-r from-[#2B6CB0] to-[#1e5a94] text-white shadow-lg shadow-[#2B6CB0]/30 transform scale-[1.02]"
+                    ? "bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white shadow-lg shadow-[#2B6CB0]/30 transform scale-[1.02]"
                     : "text-[#A0AEC0] hover:text-white hover:bg-white/5"
                 }`}
             >
@@ -177,7 +177,7 @@ return (
                 onNavigate("login");
                 setMobileMenuOpen(false);
             }}
-            className="block w-full px-5 py-4 bg-gradient-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-xl hover:shadow-lg hover:shadow-[#2B6CB0]/30 transition-all duration-300 text-center"
+            className="block w-full px-5 py-4 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-xl hover:shadow-lg hover:shadow-[#2B6CB0]/30 transition-all duration-300 text-center"
             >
             Iniciar Sesión
             </button>
@@ -186,7 +186,7 @@ return (
     </div>
 
     {/* Línea decorativa inferior */}
-    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2B6CB0]/50 to-transparent"></div>
+    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-[#2B6CB0]/50 to-transparent"></div>
     </nav>
 );
 };
