@@ -13,8 +13,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 // 🔹 Dashboard
-// import DashboardLayout from "./components/dashboard/DashboardLayout";
-// import ExploreOpportunities from "./components/dashboard/ExploreOpportunities";
+import DashboardLayout from "./components/DashboardLayout";
+import ExploreOpportunities from "./pages/dashboard/ExploreOpportunities";
 // import UserProfile from "./components/dashboard/UserProfile";
 // import UserServices from "./components/dashboard/UserServices";
 // import Applications from "./components/dashboard/Applications";
@@ -25,7 +25,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // ==============================
-  // 🔹 Autenticación
+  //  Autenticación
   // ==============================
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -38,7 +38,7 @@ function App() {
   };
 
   // ==============================
-  // 🔹 Render: Vistas del dashboard
+  //  Render: Vistas del dashboard
   // ==============================
   const renderDashboardView = () => {
     switch (currentView) {
@@ -58,7 +58,7 @@ function App() {
   };
 
   // ==============================
-  // 🔹 Render: Vistas públicas
+  //  Render: Vistas públicas
   // ==============================
   const renderPublicView = () => {
     switch (currentView) {
@@ -80,7 +80,7 @@ function App() {
   };
 
   // ==============================
-  // 🔹 Si el usuario está autenticado → Dashboard
+  // Si el usuario está autenticado → Dashboard
   // ==============================
   if (isAuthenticated) {
     return (
@@ -95,7 +95,7 @@ function App() {
   }
 
   // ==============================
-  // 🔹 Si NO está autenticado → Sitio público
+  //  Si NO está autenticado → Sitio público
   // ==============================
   const showNavAndFooter =
     currentView !== "login" && currentView !== "register";

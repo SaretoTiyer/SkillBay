@@ -1,20 +1,75 @@
 import { useState } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from '../components/ui/Label';
 import logoFull from '../assets/resources/Logos/LogoSkillBay.png';
 
-export default function Login({ onNavigate, onLogin }) {
+export default function Login({ onNavigate, onLogin}) {
 const [showPassword, setShowPassword] = useState(false);
 const [formData, setFormData] = useState({
     email: '',
     password: '',
 });
 
-const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onLogin) onLogin();
+
+    // Validación básica
+    if (!formData.email || !formData.password) {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Campos vacíos',
+        text: 'Por favor, completa todos los campos antes de continuar.',
+    });
+    return;
+    }
+
+    try {
+    const response = await fetch('http://127.0.0.1:8000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+        id_CorreoUsuario: formData.email,
+        password: formData.password,
+        }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        // Guardar token o datos si tu backend los devuelve
+        Swal.fire({
+        icon: 'success',
+        title: '¡Bienvenido!',
+        text: `Inicio de sesión exitoso.`,
+        timer: 2000,
+        showConfirmButton: false,
+        });
+
+        // Ejemplo de guardado en localStorage
+        localStorage.setItem('usuario', JSON.stringify(data.usuario || {}));
+
+        onLogin();
+
+        // Redirigir al home (o dashboard)
+        onNavigate('explore');
+    } else {
+        Swal.fire({
+        icon: 'error',
+        title: 'Error de autenticación',
+        text: data.message || 'Credenciales incorrectas.',
+        });
+    }
+    } catch (error) {
+    console.error(error);
+    Swal.fire({
+        icon: 'error',
+        title: 'Error del servidor',
+        text: 'No se pudo conectar con el servidor. Inténtalo de nuevo más tarde.',
+    });
+    }
 };
 
 const handleChange = (e) => {
@@ -27,20 +82,16 @@ const handleChange = (e) => {
 return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
     <div className="max-w-md w-full">
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
             <img src={logoFull} alt="SkillBay" className="h-16" />
         </div>
 
-        {/* Título */}
         <div className="text-center mb-8">
             <h2 className="text-[#1E3A5F] mb-2">Iniciar Sesión</h2>
             <p className="text-[#A0AEC0]">Bienvenido de nuevo a SkillBay</p>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-6">
             <div>
             <Label htmlFor="email" className="text-[#1E3A5F]">
@@ -108,14 +159,12 @@ return (
             </Button>
         </form>
 
-        {/* Divider */}
         <div className="my-8 flex items-center gap-4">
             <div className="flex-1 h-px bg-[#E2E8F0]" />
             <span className="text-[#A0AEC0]">o</span>
             <div className="flex-1 h-px bg-[#E2E8F0]" />
         </div>
 
-        {/* Registro */}
         <div className="mt-8 text-center">
             <p className="text-[#A0AEC0]">
             ¿No tienes una cuenta?{' '}

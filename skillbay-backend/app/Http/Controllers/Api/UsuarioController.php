@@ -9,44 +9,30 @@ use Illuminate\Support\Facades\Hash;
 
 class UsuarioController extends Controller
 {
-    
-    public function register(Request $request){ //Registrar un Usuario
-
-        $request->validate([
-            'id_CorreoUsuario' => 'required|email|unique:Usuario,id_CorreoUsuario',
-            'nombre'=>'required|string|max:255',
-            'password'=>'required|min:6'
+        // Registrar Usuario
+        public function register(Request $request){
+        $validated = $request->validate([
+            'id_CorreoUsuario' => 'required|email|unique:usuario,id_CorreoUsuario',
+            'nombre' => 'required|string',
+            'password' => 'required|min:6',
+            'rol' => 'nullable|string',
         ]);
 
-
-        
-        $rol = $request ->rol ?? 'ofertante';//Se asigna el 'ofertante' por defecto, si no se envia el rol 
-        $rolesPermitidos = ['ofertante','oferente','admin'];
-
-        if(!in_array($rol, $rolesPermitidos)){
-            return response()->json(['error' => 'Rol no valido'], 400);
-        }
-
-
-        $usuario = Usuario::create([
-            'id_CorreoUsuario' => $request->id_CorreoUsuario,
-            'nombre' => $request->nombre,
+        $user = Usuario::create([
+            'id_CorreoUsuario' => $validated['id_CorreoUsuario'],
+            'nombre' => $validated['nombre'],
             'genero' => $request->genero,
             'ubicacion' => $request->ubicacion,
-            'password' => $request->password,
-            'rol' => $request->rol,
-            'fechaRegistro' => $request->fechaRegistro,
-            'id_Plan' => $request->id_Plan,
+            'password' => bcrypt($validated['password']),
+            'rol' => $request->rol ?? 'ofertante',
+            'fechaRegistro' => now(),
         ]);
 
-        return response()->json([
-            'message' => 'Usuario registrado correctamente',
-            'usuario' => $usuario
-        ]);
-
+        return response()->json(['message' => 'Usuario registrado correctamente', 'data' => $user], 201);
     }
 
-    public function login(Request $request){ //  Verifica el Usuario y inicia sesión
+    //  Verifica el Usuario y inicia sesión
+    public function login(Request $request){ 
 
         $usuario = Usuario::where('id_CorreoUsuario', $request->id_CorreoUsuario)->first();
 
