@@ -9,7 +9,7 @@ class Usuario extends Model
 {
     use HasFactory;
 
-    protected $table = 'usuario' ;
+    protected $table = 'usuarios' ;
     protected $primaryKey = 'id_CorreoUsuario' ;
     public $incrementing = false;
     protected $keyType = 'string';
@@ -18,12 +18,14 @@ class Usuario extends Model
     protected $fillable = [
         'id_CorreoUsuario',
         'nombre',
+        'apellido',
         'genero',
-        'ubicacion',
+        'telefono',
+        'ciudad',
+        'departamento',
         'password',
         'rol',
         'fechaRegistro',
-        'id_Plan'
     ];
 
 

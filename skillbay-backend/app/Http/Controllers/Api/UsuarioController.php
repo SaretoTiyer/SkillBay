@@ -4,52 +4,171 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Usuario ;
+use App\Models\Usuario;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class UsuarioController extends Controller
 {
-        // Registrar Usuario
-        public function register(Request $request){
-        $validated = $request->validate([
-            'id_CorreoUsuario' => 'required|email|unique:usuario,id_CorreoUsuario',
-            'nombre' => 'required|string',
-            'password' => 'required|min:6',
-            'rol' => 'nullable|string',
-        ]);
+    /**
+     * Registrar un nuevo usuario
+     */
+    public function register(Request $request)
+    {
+        try {
+            // Validación reforzada
+            $validator = Validator::make($request->all(), [
+                'id_CorreoUsuario' => [
+                    'required',
+                    'email',
+                    'max:191',
+                    'unique:usuarios,id_CorreoUsuario',
+                    'regex:/^\S+$/', // sin espacios
+                ],
+                'nombre' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
+                'apellido' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
+                'genero' => 'nullable|string|in:Masculino,Femenino,Otro',
+                'telefono' => 'required|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono',
+                'ciudad' => 'nullable|string|max:100',
+                'departamento' => 'nullable|string|max:100',
+                'password' => [
+                    'required',
+                    'string',
+                    'min:6',
+                    'max:100',
+                    'regex:/^\S+$/', // sin espacios
+                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,15}$/' // Mínimo 8, máximo 15, 1 mayúscula, 1 minúscula, 1 número, 1 carácter especial
+                ],
+                'rol' => 'nullable|string|in:cliente,ofertante,admin',
+            ], [
+                'id_CorreoUsuario.required' => 'El correo electrónico es obligatorio.',
+                'id_CorreoUsuario.email' => 'Debe ser un correo válido.',
+                'id_CorreoUsuario.unique' => 'Este correo ya está registrado.',
+                'id_CorreoUsuario.regex' => 'El correo no puede contener espacios.',
+                'nombre.required' => 'El nombre es obligatorio.',
+                'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
+                'apellido.required' => 'El apellido es obligatorio.',
+                'apellido.regex' => 'El apellido solo puede contener letras y espacios.',
+                'telefono.required' => 'El teléfono es obligatorio.',
+                'telefono.unique' => 'Este número de teléfono ya está registrado.',
+                'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones o el símbolo +.',
+                'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+                'password.regex' => 'La contraseña no puede contener espacios.',
+            ]);
 
-        $user = Usuario::create([
-            'id_CorreoUsuario' => $validated['id_CorreoUsuario'],
-            'nombre' => $validated['nombre'],
-            'genero' => $request->genero,
-            'ubicacion' => $request->ubicacion,
-            'password' => bcrypt($validated['password']),
-            'rol' => $request->rol ?? 'ofertante',
-            'fechaRegistro' => now(),
-        ]);
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
 
-        return response()->json(['message' => 'Usuario registrado correctamente', 'data' => $user], 201);
-    }
+            $data = $validator->validated();
 
-    //  Verifica el Usuario y inicia sesión
-    public function login(Request $request){ 
+            $user = Usuario::create([
+                'id_CorreoUsuario' => strtolower(trim($data['id_CorreoUsuario'])),
+                'nombre' => strip_tags(trim($data['nombre'])),
+                'apellido' => strip_tags(trim($data['apellido'])),
+                'genero' => $data['genero'] ?? null,
+                'telefono' => strip_tags(trim($data['telefono'])),
+                'ciudad' => strip_tags(trim($data['ciudad'] ?? '')),
+                'departamento' => strip_tags(trim($data['departamento'] ?? '')),
+                'password' => Hash::make($data['password']),
+                'rol' => $data['rol'] ?? 'cliente',
+                'fechaRegistro' => now(),
+            ]);
 
-        $usuario = Usuario::where('id_CorreoUsuario', $request->id_CorreoUsuario)->first();
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario registrado exitosamente',
+                'usuario' => $user
+            ], 201);
 
-        if (!$usuario || !Hash::check($request->password, $usuario->password)){
-            return response ()->json(['error' => 'Credenciales incorrectas'], 401);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'message' => 'Inicio de Sesión exitoso',
-            'usuario' => $usuario 
-        ]);
-
     }
 
-    public function listar(){  //Muestra todos los usuarios 
-        return response()->json([Usuario::all()]);
+    /**
+     * Iniciar sesión
+     */
+    public function login(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'id_CorreoUsuario' => ['required','email','regex:/^\S+$/'],
+                'password' => ['required','string','min:6','regex:/^\S+$/'],
+            ], [
+                'id_CorreoUsuario.required' => 'El correo es obligatorio.',
+                'id_CorreoUsuario.email' => 'Debe ser un correo válido.',
+                'id_CorreoUsuario.regex' => 'El correo no puede contener espacios.',
+                'password.required' => 'La contraseña es obligatoria.',
+                'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+                'password.regex' => 'La contraseña no puede contener espacios.',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $data = $validator->validated();
+            $usuario = Usuario::where('id_CorreoUsuario', $data['id_CorreoUsuario'])->first();
+
+            if (!$usuario || !Hash::check($data['password'], $usuario->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales incorrectas.',
+                ], 401);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Inicio de sesión exitoso.',
+                'usuario' => $usuario
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
-
+    /**
+     * Listar todos los usuarios
+     */
+    public function listar()
+    {
+        try {
+            $usuarios = Usuario::all();
+            return response()->json([
+                'success' => true,
+                'total' => $usuarios->count(),
+                'usuarios' => $usuarios
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los usuarios',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
