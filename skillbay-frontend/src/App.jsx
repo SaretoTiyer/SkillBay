@@ -14,10 +14,10 @@ import Register from "./pages/Register";
 
 // 🔹 Dashboard
 import DashboardLayout from "./components/DashboardLayout";
-import ExploreOpportunities from "./pages/dashboard/ExploreOpportunities";
-// import UserProfile from "./components/dashboard/UserProfile";
-// import UserServices from "./components/dashboard/UserServices";
-// import Applications from "./components/dashboard/Applications";
+import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
+import UserProfile from "./dashboard-users/UserProfile";
+import UserServices from "./dashboard-users/UserServices";
+import Applications from "./dashboard-users/Applications";
 // import Messages from "./components/dashboard/Messages";
 
 function App() {
