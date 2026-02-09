@@ -8,7 +8,7 @@ Mail,
 Phone,
 MapPin,
 } from "lucide-react";
-import logoIcon from "../assets/resources/Logos/IconoSkillBay.png"; // ajusta si tu logo está en otro path
+import logoIcon from "../assets/IconoSkillBay.png"; // ajusta si tu logo está en otro path
 
 const Footer = ({ onNavigate }) => {
 return (

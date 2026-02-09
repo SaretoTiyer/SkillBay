@@ -1,12 +1,72 @@
-    import { useState, useMemo } from 'react';
+    import { useEffect,useState, useMemo } from 'react';
     import { Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
     import Swal from 'sweetalert2';
     import { API_URL } from '../config/api';
-    import logoFull from '../assets/resources/Logos/LogoSkillBay.png';
+    import { API_Departamentos } from '../config/api';
+    import logoFull from '../assets/IconoSkillBay.png';
+    import Loader  from '../components/Loader';
 
     export default function Register({ onNavigate }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [departments, setDepartments] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+    //Uso de API para cargar departamento de Colombia
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+            setLoadingDepartments(true);
+            const res = await fetch(API_Departamentos);
+            const data = await res.json();
+            setDepartments(data);
+            } catch (error) {
+            console.error('Error cargando departamentos', error);
+            Swal.fire('Error', 'No se pudieron cargar los departamentos', 'error');
+            } finally {
+            setLoadingDepartments(false);
+            }
+        };
+
+    fetchDepartments();
+    }, []);
+
+    const handleDepartmentChange = async (e) => {
+        const departmentName = e.target.value;
+
+        setFormData((prev) => ({
+            ...prev,
+            departamento: departmentName,
+            ciudad: '',
+        }));
+
+        const selected = departments.find((d) => d.name === departmentName);
+
+        if (!selected) {
+            setCities([]);
+            return;
+        }
+
+        try {
+            const res = await fetch(
+            `${API_Departamentos}/${selected.id}/cities`
+            );
+            const data = await res.json();
+
+            // Convertimos a array de strings
+            const cityNames = Array.isArray(data)
+            ? data.map((c) => c.name)
+            : [];
+
+            setCities(cityNames);
+        } catch (error) {
+            console.error('Error cargando ciudades', error);
+            Swal.fire('Error', 'No se pudieron cargar las ciudades', 'error');
+            setCities([]);
+        }
+    };
 
     const [formData, setFormData] = useState({
         nombre: '',
@@ -176,6 +236,8 @@
 
         if (!validate()) return;
 
+        setIsLoading(true); // ciclo de carga
+
         try {
         const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
@@ -222,6 +284,8 @@
         } catch (error) {
         console.error(error);
         Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+        } finally {
+            setIsLoading(false); // apaga ciclo de carga
         }
     };
 
@@ -229,248 +293,278 @@
         errors[field] ? <p className="text-red-600 text-sm mt-1">{errors[field]}</p> : null;
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 md:p-10">
-            <div className="flex justify-center mb-8">
-            <img src={logoFull} alt="SkillBay" className="h-16" />
-            </div>
+        <>
+        {isLoading && <Loader text="Creando cuenta..." />}
 
-            <div className="text-center mb-8">
-            <h2 className="text-[#1E3A5F] mb-2">Crear Cuenta</h2>
-            <p className="text-[#A0AEC0]">Únete a la comunidad de SkillBay</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            {/* Nombre */}
-            <div>
-                <label className="block text-[#1E3A5F]">Nombre</label>
-                <input
-                type="text"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                required
-                minLength={2}
-                maxLength={100}
-                className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                placeholder="Juan"
-                />
-                {renderError('nombre')}
-            </div>
-
-            {/* Apellido */}
-            <div>
-                <label className="block text-[#1E3A5F]">Apellido</label>
-                <input
-                type="text"
-                name="apellido"
-                value={formData.apellido}
-                onChange={handleChange}
-                required
-                minLength={2}
-                maxLength={100}
-                className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                placeholder="Pérez"
-                />
-                {renderError('apellido')}
-            </div>
-
-            {/* Email */}
-            <div>
-                <label className="block text-[#1E3A5F]">Correo electrónico</label>
-                <input
-                type="email"
-                name="id_CorreoUsuario"
-                value={formData.id_CorreoUsuario}
-                onChange={handleChange}
-                required
-                maxLength={191}
-                className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                placeholder="correo@ejemplo.com"
-                />
-                {renderError('id_CorreoUsuario')}
-            </div>
-
-            {/* Teléfono */}
-            <div>
-                <label className="block text-[#1E3A5F]">Teléfono</label>
-                <div className="relative mt-2">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]" size={18} />
-                <input
-                    type="tel"
-                    name="telefono"
-                    value={formData.telefono}
-                    onChange={handleChange}
-                    required
-                    pattern="[0-9+\-\s]{7,20}"
-                    className="pl-10 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                    placeholder="3001234567"
-                />
+            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md lg:max-w-4xl w-full bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+                <div className="flex justify-center mb-8">
+                <img src={logoFull} alt="SkillBay" className="h-16" />
                 </div>
-                {renderError('telefono')}
-            </div>
 
-            {/* Género */}
-            <div>
-                <label className="block text-[#1E3A5F]">Género</label>
-                <select
-                name="genero"
-                value={formData.genero}
-                onChange={handleChange}
-                required
-                className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                >
-                <option value="">Selecciona tu género</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Otro">Otro</option>
-                </select>
-                {renderError('genero')}
-            </div>
+                <div className="text-center mb-8">
+                <h2 className="text-[#1E3A5F] mb-2">Crear Cuenta</h2>
+                <p className="text-[#A0AEC0]">Únete a la comunidad de SkillBay</p>
+                </div>
 
-            {/* Departamento y ciudad */}
-            <div className="flex gap-3">
-                <div className="w-1/2">
-                <label className="block text-[#1E3A5F]">Departamento</label>
-                <input
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-5" noValidate>
+                {/* Nombre */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Nombre</label>
+                    <input
                     type="text"
-                    name="departamento"
-                    value={formData.departamento}
+                    name="nombre"
+                    value={formData.nombre}
                     onChange={handleChange}
                     required
+                    minLength={2}
                     maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                    placeholder="Cundinamarca"
-                />
-                {renderError('departamento')}
+                    placeholder="Juan"
+                    />
+                    {renderError('nombre')}
                 </div>
-                <div className="w-1/2">
-                <label className="block text-[#1E3A5F]">Ciudad</label>
-                <input
+
+                {/* Apellido */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Apellido</label>
+                    <input
                     type="text"
-                    name="ciudad"
-                    value={formData.ciudad}
+                    name="apellido"
+                    value={formData.apellido}
                     onChange={handleChange}
                     required
+                    minLength={2}
                     maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
-                    placeholder="Bogotá"
-                />
-                {renderError('ciudad')}
+                    placeholder="Pérez"
+                    />
+                    {renderError('apellido')}
                 </div>
-            </div>
 
-            {/* Contraseña */}
-            <div>
-                <label className="block text-[#1E3A5F]">Contraseña</label>
-                <div className="relative mt-2">
-                <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
+                {/* Email */}
+                <div className="lg:col-span-2">
+                    <label className="block text-[#1E3A5F]">Correo electrónico</label>
+                    <input
+                    type="email"
+                    name="id_CorreoUsuario"
+                    value={formData.id_CorreoUsuario}
                     onChange={handleChange}
                     required
-                    minLength={8}
-                    maxLength={15}
-                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]"
-                >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+                    maxLength={191}
+                    className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    placeholder="correo@ejemplo.com"
+                    />
+                    {renderError('id_CorreoUsuario')}
                 </div>
 
-                {/* Checklist dinámico */}
-                <div className="mt-3 text-sm space-y-1">
-                <div className={passwordChecks.length ? 'text-green-600' : 'text-red-600'}>
-                    {passwordChecks.length ? '✓' : '✗'} 8–15 caracteres
-                </div>
-                <div className={passwordChecks.lowercase ? 'text-green-600' : 'text-red-600'}>
-                    {passwordChecks.lowercase ? '✓' : '✗'} Al menos una minúscula
-                </div>
-                <div className={passwordChecks.uppercase ? 'text-green-600' : 'text-red-600'}>
-                    {passwordChecks.uppercase ? '✓' : '✗'} Al menos una mayúscula
-                </div>
-                <div className={passwordChecks.number ? 'text-green-600' : 'text-red-600'}>
-                    {passwordChecks.number ? '✓' : '✗'} Al menos un número
-                </div>
-                <div className={passwordChecks.special ? 'text-green-600' : 'text-red-600'}>
-                    {passwordChecks.special ? '✓' : '✗'} Al menos un carácter especial (@$!%*?&#)
-                </div>
+                {/* Teléfono */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Teléfono</label>
+                    <div className="flex gap-2 mt-2">
+                        <select
+                        disabled
+                        className="w-24 border border-[#E2E8F0] rounded-md px-2 py-2 bg-gray-100"
+                        >
+                        <option value="+57">+57</option>
+                        </select>
+
+                        <input
+                        type="tel"
+                        name="telefono"
+                        value={formData.telefono}
+                        onChange={handleChange}
+                        required
+                        pattern="[0-9]{7,10}"
+                        className="flex-1 border border-[#E2E8F0] rounded-md px-3 py-2"
+                        placeholder="3001234567"
+                        />
+                    </div>
+                    {renderError('telefono')}
                 </div>
 
-                {renderError('password')}
-            </div>
-
-            {/* Confirmar contraseña */}
-            <div>
-                <label className="block text-[#1E3A5F]">Confirmar contraseña</label>
-                <div className="relative mt-2">
-                <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
+                {/* Género */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Género</label>
+                    <select
+                    name="genero"
+                    value={formData.genero}
                     onChange={handleChange}
                     required
-                    minLength={8}
-                    maxLength={15}
-                    className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]"
-                >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+                    className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    >
+                    <option value="">Selecciona tu género</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Otro">Otro</option>
+                    </select>
+                    {renderError('genero')}
                 </div>
-                {renderError('confirmPassword')}
-            </div>
 
-            {/* Términos */}
-            <div className="flex items-center gap-2">
-                <input
-                type="checkbox"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={handleChange}
-                className="rounded text-[#2B6CB0]"
-                />
-                <span className="text-[#A0AEC0] text-sm">
-                Acepto los{' '}
-                <button type="button" className="text-[#2B6CB0] hover:underline">
-                    términos y condiciones
+                {/* Departamento */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Departamento</label>
+                    <select
+                        name="departamento"
+                        value={formData.departamento}
+                        onChange={handleDepartmentChange}
+                        required
+                        disabled={loadingDepartments}
+                        className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    >
+                        <option value="">
+                        {loadingDepartments ? 'Cargando...' : 'Selecciona un departamento'}
+                        </option>
+
+                        {departments.map((dep) => (
+                        <option key={dep.id} value={dep.name}>
+                            {dep.name}
+                        </option>
+                        ))}
+                    </select>
+                    {renderError('departamento')}
+                </div>
+
+                {/* Ciudad */}
+                <div>
+                    <label className="block text-[#1E3A5F]">Ciudad</label>
+                    <select
+                        name="ciudad"
+                        value={formData.ciudad}
+                        onChange={handleChange}
+                        required
+                        disabled={!Array.isArray(cities) || cities.length === 0}
+                        className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    >
+                        <option value="">
+                        {cities.length ? 'Selecciona una ciudad' : 'Selecciona un departamento primero'}
+                        </option>
+
+                        {Array.isArray(cities) &&
+                            cities.map((city, idx) => (
+                                <option key={idx} value={city}>
+                                {city}
+                                </option>
+                            ))}
+                    </select>
+                    {renderError('ciudad')}
+                </div>
+
+                {/* Contraseña */}
+                <div className="lg:col-span-2">
+                    <label className="block text-[#1E3A5F]">Contraseña</label>
+                    <div className="relative mt-2">
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        minLength={8}
+                        maxLength={15}
+                        className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]"
+                    >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                    </div>
+
+                    {/* Checklist dinámico */}
+                    <div className="mt-3 text-sm space-y-1">
+                    <div className={passwordChecks.length ? 'text-green-600' : 'text-red-600'}>
+                        {passwordChecks.length ? '✓' : '✗'} 8–15 caracteres
+                    </div>
+                    <div className={passwordChecks.lowercase ? 'text-green-600' : 'text-red-600'}>
+                        {passwordChecks.lowercase ? '✓' : '✗'} Al menos una minúscula
+                    </div>
+                    <div className={passwordChecks.uppercase ? 'text-green-600' : 'text-red-600'}>
+                        {passwordChecks.uppercase ? '✓' : '✗'} Al menos una mayúscula
+                    </div>
+                    <div className={passwordChecks.number ? 'text-green-600' : 'text-red-600'}>
+                        {passwordChecks.number ? '✓' : '✗'} Al menos un número
+                    </div>
+                    <div className={passwordChecks.special ? 'text-green-600' : 'text-red-600'}>
+                        {passwordChecks.special ? '✓' : '✗'} Al menos un carácter especial (@$!%*?&#)
+                    </div>
+                    </div>
+
+                    {renderError('password')}
+                </div>
+
+                {/* Confirmar contraseña */}
+                <div className="lg:col-span-2">
+                    <label className="block text-[#1E3A5F]">Confirmar contraseña</label>
+                    <div className="relative mt-2">
+                    <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        required
+                        minLength={8}
+                        maxLength={15}
+                        className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]"
+                    >
+                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                    </div>
+                    {renderError('confirmPassword')}
+                </div>
+
+                {/* Términos */}
+                <div className="flex items-center gap-2">
+                    <input
+                    type="checkbox"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={handleChange}
+                    className="rounded text-[#2B6CB0]"
+                    />
+                    <span className="text-[#A0AEC0] text-sm">
+                    Acepto los{' '}
+                    <button type="button" className="text-[#2B6CB0] hover:underline">
+                        términos y condiciones
+                    </button>
+                    </span>
+                </div>
+                {renderError('acceptTerms')}
+
+                {/* Botón */}
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="lg:col-span-2 w-full flex items-center justify-center gap-2 bg-[#2B6CB0] text-white py-3 rounded-lg hover:bg-[#2563a7]"
+                >
+                    {isLoading ? 'Procesando...' : <>
+                    <UserPlus size={18} />
+                    Crear Cuenta
+                    </>}
                 </button>
-                </span>
-            </div>
-            {renderError('acceptTerms')}
+                </form>
 
-            {/* Botón */}
-            <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-[#2B6CB0] text-white py-3 rounded-lg hover:bg-[#2563a7]"
-            >
-                <UserPlus size={18} />
-                Crear Cuenta
-            </button>
-            </form>
-
-            <div className="mt-6 text-center">
-            <p className="text-[#A0AEC0]">
-                ¿Ya tienes una cuenta?{' '}
-                <button onClick={() => onNavigate && onNavigate('login')} className="text-[#2B6CB0] hover:text-[#2563a7]">
-                Inicia Sesión
-                </button>
-            </p>
+                <div className="mt-6 text-center">
+                <p className="text-[#A0AEC0]">
+                    ¿Ya tienes una cuenta?{' '}
+                    <button onClick={() => onNavigate && onNavigate('login')} className="text-[#2B6CB0] hover:text-[#2563a7]">
+                    Inicia Sesión
+                    </button>
+                </p>
+                </div>
             </div>
-        </div>
-        </div>
+            </div>
+        </>
     );
     }

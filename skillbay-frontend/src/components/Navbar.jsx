@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import logoFull from "../assets/resources/Logos/LogoSkillBay.png"; 
+import logoFull from "../assets/IconoSkillBayLight.png"; 
 
 const Navbar = ({ currentView, onNavigate }) => {
 const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,7 +38,7 @@ return (
             <button
                 key={item.view}
                 onClick={() => onNavigate(item.view)}
-                className={`relative px-1 py-2 transition-all duration-300 group ${
+                className={`cursor-pointer relative px-1 py-2 transition-all duration-300 group ${
                 currentView === item.view
                     ? "text-white"
                     : "text-[#A0AEC0] hover:text-white"
@@ -79,7 +79,7 @@ return (
             <button
                 key={item.view}
                 onClick={() => onNavigate(item.view)}
-                className={`relative px-1 py-2 transition-all duration-300 group ${
+                className={`cursor-pointer relative px-1 py-2 transition-all duration-300 group ${
                 currentView === item.view
                     ? "text-white"
                     : "text-[#A0AEC0] hover:text-white"
@@ -103,7 +103,7 @@ return (
             <div className="flex items-center gap-3">
             <button
                 onClick={() => onNavigate("register")}
-                className="relative group px-5 py-2.5 bg-white text-[#1E3A5F] rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-white/30 hover:scale-105 border border-white/20"
+                className="cursor-pointer relative group px-5 py-2.5 bg-white text-[#1E3A5F] rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-white/30 hover:scale-105 border border-white/20"
             >
                 <span className="relative z-10">Registrarse</span>
                 <div className="absolute inset-0 bg-linear-to-r from-transparent via-[#2B6CB0]/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
@@ -111,7 +111,7 @@ return (
 
             <button
                 onClick={() => onNavigate("login")}
-                className="relative group px-5 py-2.5 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-[#2B6CB0]/50 hover:scale-105"
+                className="cursor-pointer relative group px-5 py-2.5 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-[#2B6CB0]/50 hover:scale-105"
             >
                 <span className="relative z-10">Iniciar Sesión</span>
                 <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

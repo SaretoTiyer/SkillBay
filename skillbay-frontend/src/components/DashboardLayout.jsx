@@ -11,7 +11,7 @@ Menu,
 X,
 ChevronDown,
 } from "lucide-react";
-import logoFull from "../assets/resources/Logos/LogoSkillBay.png";
+import logoFull from "../assets/IconoSkillBay.png";
 
 export default function DashboardLayout({
 children,
