@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // 🔹 Componentes principales
 import Navbar from "./components/Navbar";
@@ -21,18 +21,50 @@ import Applications from "./dashboard-users/Applications";
 // import Messages from "./components/dashboard/Messages";
 
 function App() {
-  const [currentView, setCurrentView] = useState("home");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  /* 
+    INICIALIZACIÓN DE ESTADO 
+    Intentamos leer de localStorage para mantener la sesión y la vista 
+    incluso si se refresca la página.
+  */
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem("currentView") || "home";
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Verificamos si existe el token y el objeto usuario
+    const token = localStorage.getItem("access_token");
+    const user = localStorage.getItem("usuario");
+    return !!(token && user);
+  });
+
+  /* 
+    EFECTO DE PERSISTENCIA
+    Cada vez que cambie la vista, la guardamos.
+  */
+  useEffect(() => {
+    localStorage.setItem("currentView", currentView);
+  }, [currentView]);
 
   // ==============================
   //  Autenticación
   // ==============================
-  const handleLogin = () => {
+  const handleLogin = (data) => {
+    // Guardamos en storage (aunque Login.jsx ya lo hace, es buena práctica sincronizar estado aquí)
+    // Nota: Login.jsx setea localStorage. 'data' puede ser opcional si ya está en storage.
     setIsAuthenticated(true);
     setCurrentView("explore");
+    // "explore" es la vista por defecto tras login, PERO
+    // si quisiéramos mantener la vista anterior, podríamos no sobreescribirla.
+    // El requerimiento dice: "cada vez que actualizo ... quiero que este se quede en la pagina que este"
+    // Al hacer login, es normal ir al dashboard. Al refrescar, el useState inicial se encarga.
   };
 
   const handleLogout = () => {
+    // Limpieza total
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("currentView");
+
     setIsAuthenticated(false);
     setCurrentView("home");
   };
@@ -50,8 +82,8 @@ function App() {
         return <UserServices />;
       case "applications":
         return <Applications />;
-      case "messages":
-        return <Messages />;
+      // case "messages":
+      //   return <Messages />;
       default:
         return <ExploreOpportunities />;
     }
