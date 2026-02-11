@@ -54,5 +54,23 @@ class UsuarioSeeder extends Seeder
             'rol' => 'ofertante',
             'fechaRegistro' => now(),
         ]);
+
+        // Generate 20+ random users
+        $faker = \Faker\Factory::create('es_CO');
+        
+        for ($i = 0; $i < 25; $i++) {
+            Usuario::create([
+                'id_CorreoUsuario' => $faker->unique()->email,
+                'nombre' => $faker->firstName,
+                'apellido' => $faker->lastName,
+                'genero' => $faker->randomElement(['Masculino', 'Femenino', 'Otro']),
+                'telefono' => $faker->unique()->numerify('3#########'),
+                'ciudad' => $faker->city,
+                'departamento' => $faker->state,
+                'password' => Hash::make('password123'),
+                'rol' => $faker->randomElement(['cliente', 'ofertante']),
+                'fechaRegistro' => $faker->dateTimeBetween('-1 year', 'now'),
+            ]);
+        }
     }
 }

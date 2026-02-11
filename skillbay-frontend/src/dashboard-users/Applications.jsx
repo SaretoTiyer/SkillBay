@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-FileText,
-Calendar,
-DollarSign,
-User,
-CheckCircle,
-XCircle,
-Clock
+    FileText,
+    Calendar,
+    DollarSign,
+    User,
+    CheckCircle,
+    XCircle,
+    Clock,
+    Loader2,
+    AlertCircle
 } from 'lucide-react';
+import { API_URL } from '../config/api';
 
 import { Badge } from '../components/ui/badge';
 import { Button } from "../components/ui/Button";
@@ -15,162 +18,218 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 export default function Applications() {
-const [applications] = useState([
-    {
-    id: 1,
-    projectTitle: 'Desarrollo de E-commerce',
-    projectDescription: 'Necesito desarrollar una tienda online completa con carrito de compras y pasarela de pago',
-    client: 'TechStore Colombia',
-    budget: '$2,000,000',
-    appliedDate: '2024-10-25',
-    status: 'pending',
-    proposalMessage: 'Tengo 5 años de experiencia en desarrollo de e-commerce con React y Node.js...',
-    image: 'https://images.unsplash.com/photo-1593720213681-e9a8778330a7',
-    },
-    {
-    id: 2,
-    projectTitle: 'Rediseño de Aplicación Móvil',
-    projectDescription: 'Busco diseñador UI/UX para rediseñar completamente nuestra app móvil',
-    client: 'FitnessPro App',
-    budget: '$1,200,000',
-    appliedDate: '2024-10-23',
-    status: 'hired',
-    proposalMessage: 'Me especializo en diseño UI/UX para aplicaciones móviles...',
-    image: 'https://images.unsplash.com/photo-1740174459726-8c57d8366061',
-    },
-    {
-    id: 3,
-    projectTitle: 'Campaña de Marketing Digital',
-    projectDescription: 'Necesito especialista en marketing para campaña en redes sociales',
-    client: 'Café Gourmet',
-    budget: '$900,000',
-    appliedDate: '2024-10-20',
-    status: 'rejected',
-    proposalMessage: 'He trabajado con marcas de alimentos y bebidas...',
-    image: 'https://images.unsplash.com/photo-1754926982324-1d874274d7c6',
-    },
-]);
+    const [applications, setApplications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-const getStatusBadge = (status) => {
-    if (status === 'pending') {
-    return (
-        <Badge className="bg-yellow-500 text-white flex gap-1">
-        <Clock size={14} /> Pendiente
-        </Badge>
+    useEffect(() => {
+        fetchApplications();
+    }, []);
+
+    const fetchApplications = async () => {
+        try {
+            const token = localStorage.getItem("access_token");
+            if (!token) {
+                setError("No has iniciado sesión");
+                setLoading(false);
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/postulaciones`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setApplications(Array.isArray(data) ? data : []);
+            } else {
+                if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    localStorage.removeItem("user_data");
+                    window.location.href = "/login";
+                    return;
+                }
+                console.error("Failed to fetch applications");
+                setError("Error al cargar las postulaciones");
+            }
+        } catch (err) {
+            console.error("Error fetching applications:", err);
+            setError("Error de conexión");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'pendiente':
+                return (
+                    <Badge className="bg-amber-500 text-white flex gap-1 items-center px-3 py-1">
+                        <Clock size={14} /> Pendiente
+                    </Badge>
+                );
+            case 'aceptada':
+            case 'bired': // Case for existing logic if any
+                return (
+                    <Badge className="bg-emerald-500 text-white flex gap-1 items-center px-3 py-1">
+                        <CheckCircle size={14} /> Aceptada
+                    </Badge>
+                );
+            case 'rechazada':
+                return (
+                    <Badge className="bg-red-500 text-white flex gap-1 items-center px-3 py-1">
+                        <XCircle size={14} /> Rechazada
+                    </Badge>
+                );
+            default:
+                return <Badge className="bg-gray-500 text-white">{status}</Badge>;
+        }
+    };
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'pendiente': return 'border-l-amber-500';
+            case 'aceptada': return 'border-l-emerald-500';
+            case 'rechazada': return 'border-l-red-500';
+            default: return 'border-l-gray-300';
+        }
+    };
+
+    const pending = applications.filter(a => a.estado === 'pendiente');
+    const accepted = applications.filter(a => a.estado === 'aceptada');
+    const rejected = applications.filter(a => a.estado === 'rechazada');
+
+    const ApplicationCard = ({ application }) => (
+        <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden hover:shadow-md transition-all duration-300`}>
+            <div className="grid md:grid-cols-[200px_1fr] gap-6">
+                <div className="h-48 md:h-auto relative overflow-hidden group">
+                    <ImageWithFallback
+                        src={application.servicio?.imagen ? `http://127.0.0.1:8000/storage/${application.servicio.imagen}` : null}
+                        alt={application.servicio?.titulo || "Servicio"}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+
+                <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">{application.servicio?.titulo}</h3>
+                            <p className="text-slate-500 line-clamp-2 text-sm">{application.servicio?.descripcion}</p>
+                        </div>
+                        {getStatusBadge(application.estado)}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm text-slate-500">
+                        <div className="flex items-center gap-2">
+                            <User size={16} className="text-blue-500" />
+                            <span className="truncate">{application.servicio?.cliente_usuario?.nombre || 'Cliente'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <DollarSign size={16} className="text-emerald-500" />
+                            <span>{application.presupuesto ? `$${Number(application.presupuesto).toLocaleString()}` : 'A convenir'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 col-span-2">
+                            <Calendar size={16} className="text-indigo-500" />
+                            <span>Postulado: {new Date(application.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <FileText size={14} /> Tu propuesta
+                        </h4>
+                        <p className="text-sm text-slate-600 italic">"{application.mensaje}"</p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <Button variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700"> Ver Detalles </Button>
+
+                        {application.estado === 'pendiente' && (
+                            <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">Editar Propuesta</Button>
+                        )}
+
+                        {application.estado === 'aceptada' && (
+                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200">Ir al Proyecto</Button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
     );
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            </div>
+        );
     }
 
-    if (status === 'hired') {
     return (
-        <Badge className="bg-green-500 text-white flex gap-1">
-        <CheckCircle size={14} /> Contratado
-        </Badge>
-    );
-    }
-
-    return (
-    <Badge className="bg-red-500 text-white flex gap-1">
-        <XCircle size={14} /> Denegado
-    </Badge>
-    );
-};
-
-const getStatusColor = (status) => {
-    if (status === 'pending') return 'border-l-yellow-500';
-    if (status === 'hired') return 'border-l-green-500';
-    return 'border-l-red-500';
-};
-
-const pending = applications.filter(a => a.status === 'pending');
-const hired = applications.filter(a => a.status === 'hired');
-const rejected = applications.filter(a => a.status === 'rejected');
-
-const ApplicationCard = ({ application }) => (
-    <div className={`bg-white rounded-2xl shadow-lg border-l-4 ${getStatusColor(application.status)} overflow-hidden`}>
-    <div className="grid md:grid-cols-[200px_1fr] gap-6">
-        <div className="h-48 md:h-auto">
-        <ImageWithFallback
-            src={application.image}
-            alt={application.projectTitle}
-            className="w-full h-full object-cover"
-        />
-        </div>
-
-        <div className="p-6">
-        <div className="flex justify-between mb-3">
-            <div>
-            <h3 className="text-[#1E3A5F]">{application.projectTitle}</h3>
-            <p className="text-[#A0AEC0] line-clamp-2">{application.projectDescription}</p>
+        <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">Mis Postulaciones</h1>
+                    <p className="text-slate-500 mt-1">Gestiona el estado de tus propuestas enviadas</p>
+                </div>
             </div>
-            {getStatusBadge(application.status)}
-        </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-[#A0AEC0]">
-            <div className="flex gap-2"><User size={16} /> {application.client}</div>
-            <div className="flex gap-2"><DollarSign size={16} /> {application.budget}</div>
-            <div className="flex gap-2 col-span-2">
-            <Calendar size={16} />
-            Postulado el {new Date(application.appliedDate).toLocaleDateString('es-CO')}
-            </div>
-        </div>
+            {error ? (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                    <div className="flex">
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                        <div className="ml-3">
+                            <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                    </div>
+                </div>
+            ) : applications.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
+                    <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FileText className="h-8 w-8 text-blue-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">No tienes postulaciones</h3>
+                    <p className="text-slate-500 max-w-sm mx-auto mb-6">Aún no te has postulado a ningún servicio. Explora las oportunidades disponibles.</p>
+                    <Button className="bg-blue-600 text-white hover:bg-blue-700">Explorar Servicios</Button>
+                </div>
+            ) : (
+                <Tabs defaultValue="all" className="w-full">
+                    <TabsList className="bg-white p-1 rounded-xl border border-slate-200 mb-8 inline-flex h-auto">
+                        <TabsTrigger value="all" className="rounded-lg px-4 py-2 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Todas ({applications.length})</TabsTrigger>
+                        <TabsTrigger value="pending" className="rounded-lg px-4 py-2 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700">Pendientes ({pending.length})</TabsTrigger>
+                        <TabsTrigger value="hired" className="rounded-lg px-4 py-2 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">Aceptadas ({accepted.length})</TabsTrigger>
+                        <TabsTrigger value="rejected" className="rounded-lg px-4 py-2 data-[state=active]:bg-red-50 data-[state=active]:text-red-700">Rechazadas ({rejected.length})</TabsTrigger>
+                    </TabsList>
 
-        <div className="bg-gray-100 rounded-xl p-4 mb-4">
-            <h4 className="text-sm text-[#1E3A5F] mb-1">Tu propuesta</h4>
-            <p className="text-sm text-[#A0AEC0] line-clamp-2">{application.proposalMessage}</p>
-        </div>
+                    <TabsContent value="all" className="space-y-6 animate-in fade-in-50 duration-500">
+                        {applications.map(app => (
+                            <ApplicationCard key={app.id} application={app} />
+                        ))}
+                    </TabsContent>
 
-        <div className="flex gap-2">
-            <Button variant="outline">Ver Detalles</Button>
+                    <TabsContent value="pending" className="space-y-6 animate-in fade-in-50 duration-500">
+                        {pending.length > 0 ? pending.map(app => (
+                            <ApplicationCard key={app.id} application={app} />
+                        )) : <p className="text-center text-slate-500 py-8">No tienes postulaciones pendientes.</p>}
+                    </TabsContent>
 
-            {application.status === 'pending' && (
-            <Button variant="outline">Editar Propuesta</Button>
-            )}
+                    <TabsContent value="hired" className="space-y-6 animate-in fade-in-50 duration-500">
+                        {accepted.length > 0 ? accepted.map(app => (
+                            <ApplicationCard key={app.id} application={app} />
+                        )) : <p className="text-center text-slate-500 py-8">No tienes propuestas aceptadas aún.</p>}
+                    </TabsContent>
 
-            {application.status === 'hired' && (
-            <Button className="bg-green-600 text-white">Ir al Proyecto</Button>
+                    <TabsContent value="rejected" className="space-y-6 animate-in fade-in-50 duration-500">
+                        {rejected.length > 0 ? rejected.map(app => (
+                            <ApplicationCard key={app.id} application={app} />
+                        )) : <p className="text-center text-slate-500 py-8">No tienes propuestas rechazadas.</p>}
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
-        </div>
-    </div>
-    </div>
-);
-
-return (
-    <div className="max-w-7xl mx-auto">
-    <h1 className="text-[#1E3A5F] mb-6">Mis Postulaciones</h1>
-
-    <Tabs defaultValue="all">
-        <TabsList>
-        <TabsTrigger value="all">Todas ({applications.length})</TabsTrigger>
-        <TabsTrigger value="pending">Pendientes ({pending.length})</TabsTrigger>
-        <TabsTrigger value="hired">Contratadas ({hired.length})</TabsTrigger>
-        <TabsTrigger value="rejected">Denegadas ({rejected.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-6">
-        {applications.map(app => (
-            <ApplicationCard key={app.id} application={app} />
-        ))}
-        </TabsContent>
-
-        <TabsContent value="pending" className="space-y-6">
-        {pending.map(app => (
-            <ApplicationCard key={app.id} application={app} />
-        ))}
-        </TabsContent>
-
-        <TabsContent value="hired" className="space-y-6">
-        {hired.map(app => (
-            <ApplicationCard key={app.id} application={app} />
-        ))}
-        </TabsContent>
-
-        <TabsContent value="rejected" className="space-y-6">
-        {rejected.map(app => (
-            <ApplicationCard key={app.id} application={app} />
-        ))}
-        </TabsContent>
-    </Tabs>
-    </div>
-);
+    );
 }

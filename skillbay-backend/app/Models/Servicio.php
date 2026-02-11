@@ -29,6 +29,11 @@ class Servicio extends Model
         return $this->belongsTo(Usuario::class, 'id_Cliente', 'id_CorreoUsuario');
     }
 
+    public function cliente_usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'id_Cliente', 'id_CorreoUsuario');
+    }
+
     public function categoria()
     {
         return $this->belongsTo(Categoria::class, 'id_Categoria', 'id_Categoria');

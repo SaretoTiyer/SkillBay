@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UsuarioController::class, 'me']);
     Route::put('/user', [UsuarioController::class, 'update']);
     Route::apiResource('servicios', \App\Http\Controllers\Api\ServicioController::class);
+    Route::apiResource('postulaciones', \App\Http\Controllers\Api\PostulacionController::class)->only(['index', 'store']);
     Route::get('/categorias', function () {
         return \App\Models\Categoria::all();
     });
