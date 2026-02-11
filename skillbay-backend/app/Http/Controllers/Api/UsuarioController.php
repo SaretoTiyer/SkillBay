@@ -130,9 +130,14 @@ class UsuarioController extends Controller
                 ], 401);
             }
 
+            // Crear token
+            $token = $usuario->createToken('auth_token')->plainTextToken;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Inicio de sesión exitoso.',
+                'access_token' => $token,
+                'token_type' => 'Bearer',
                 'usuario' => $usuario
             ]);
 
@@ -146,6 +151,73 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error interno del servidor',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener usuario autenticado
+     */
+    public function me(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'usuario' => $request->user()
+        ]);
+    }
+
+    /**
+     * Actualizar perfil de usuario
+     */
+    public function update(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'nullable|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
+                'apellido' => 'nullable|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
+                'genero' => 'nullable|string|in:Masculino,Femenino,Otro',
+                'telefono' => 'nullable|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono,' . $user->id_CorreoUsuario . ',id_CorreoUsuario',
+                'ciudad' => 'nullable|string|max:100',
+                'departamento' => 'nullable|string|max:100',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $data = $validator->validated();
+            
+            // Actualizar campos si vienen en la petición
+            if(isset($data['nombre'])) $user->nombre = strip_tags(trim($data['nombre']));
+            if(isset($data['apellido'])) $user->apellido = strip_tags(trim($data['apellido']));
+            if(isset($data['genero'])) $user->genero = $data['genero'];
+            if(isset($data['telefono'])) $user->telefono = strip_tags(trim($data['telefono']));
+            if(isset($data['ciudad'])) $user->ciudad = strip_tags(trim($data['ciudad']));
+            if(isset($data['departamento'])) $user->departamento = strip_tags(trim($data['departamento']));
+
+            // Guardar cambios - Importante: usar save() en el modelo Usuario
+            // Asegúrate de que el modelo Usuario tenga definida la primaryKey correctamente si no es 'id'
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Perfil actualizado correctamente',
+                'usuario' => $user
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar perfil',
                 'error' => $e->getMessage(),
             ], 500);
         }
