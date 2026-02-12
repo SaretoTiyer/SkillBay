@@ -28,7 +28,17 @@ class Usuario extends Authenticatable
         'departamento',
         'password',
         'rol',
+        'bloqueado',
         'fechaRegistro',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'bloqueado' => 'boolean',
     ];
 
     public function plan()

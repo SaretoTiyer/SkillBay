@@ -126,8 +126,9 @@ export default function Login({ onNavigate, onLogin }) {
                 // Callback global
                 onLogin && onLogin(data);
 
-                // Redirige a Explore
-                onNavigate('explore');
+                // Redirige segun rol
+                const nextView = data?.usuario?.rol === 'admin' ? 'admin_overview' : 'explore';
+                onNavigate(nextView);
             } else {
                 Swal.fire({
                     icon: 'error',

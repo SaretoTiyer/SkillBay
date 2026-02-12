@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notificacion;
 use App\Models\Servicio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -30,9 +31,35 @@ class ServicioController extends Controller
         return response()->json($servicios);
     }
 
+    // Explorar servicios publicados por otros usuarios
+    public function explore(Request $request)
+    {
+        $user = $request->user();
+
+        $servicios = Servicio::with(['categoria', 'cliente_usuario'])
+            ->where('estado', 'Activo')
+            ->where('id_Cliente', '!=', $user->id_CorreoUsuario)
+            ->orderBy('fechaPublicacion', 'desc')
+            ->get();
+
+        $servicios->transform(function ($servicio) {
+            if ($servicio->imagen) {
+                $servicio->imagen = asset('storage/' . $servicio->imagen);
+            }
+            return $servicio;
+        });
+
+        return response()->json($servicios);
+    }
+
     // Crear un nuevo servicio
     public function store(Request $request)
     {
+        $user = $request->user();
+        if ($user->bloqueado) {
+            return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required|string',
@@ -47,7 +74,20 @@ class ServicioController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user = $request->user();
+        $user->loadMissing('plan');
+        if ($user->plan && $user->plan->limiteServiciosMes !== null) {
+            $serviciosMes = Servicio::where('id_Cliente', $user->id_CorreoUsuario)
+                ->whereYear('created_at', now()->year)
+                ->whereMonth('created_at', now()->month)
+                ->count();
+
+            if ($serviciosMes >= (int) $user->plan->limiteServiciosMes) {
+                return response()->json([
+                    'message' => 'Has alcanzado el limite mensual de servicios de tu plan actual.',
+                ], 403);
+            }
+        }
+
         $data = $request->all();
         $data['id_Cliente'] = $user->id_CorreoUsuario;
         $data['estado'] = 'Activo'; // Default
@@ -69,6 +109,13 @@ class ServicioController extends Controller
             $servicio->imagen = asset('storage/' . $servicio->imagen);
         }
 
+        Notificacion::create([
+            'mensaje' => 'Tu servicio "' . $servicio->titulo . '" fue publicado.',
+            'estado' => 'No leido',
+            'tipo' => 'servicio',
+            'id_CorreoUsuario' => $user->id_CorreoUsuario,
+        ]);
+
         return response()->json($servicio, 201);
     }
 
@@ -76,6 +123,9 @@ class ServicioController extends Controller
     public function update(Request $request, $id)
     {
         $user = $request->user();
+        if ($user->bloqueado) {
+            return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
+        }
         $servicio = Servicio::where('id_Servicio', $id)
             ->where('id_Cliente', $user->id_CorreoUsuario)
             ->first();
@@ -123,6 +173,9 @@ class ServicioController extends Controller
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
+        if ($user->bloqueado) {
+            return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
+        }
         $servicio = Servicio::where('id_Servicio', $id)
             ->where('id_Cliente', $user->id_CorreoUsuario)
             ->first();

@@ -10,12 +10,25 @@ use Illuminate\Validation\ValidationException;
 
 class PlanController extends Controller
 {
+    private function validarAdmin(Request $request)
+    {
+        $user = $request->user();
+        return $user && $user->rol === 'admin';
+    }
+
     /**
      * Crear plan (solo admin).
      */
     public function crear(Request $request)
     {
         try {
+            if (!$this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'id_Plan' => 'required|string|in:Free,Plus,Ultra|unique:planes,id_Plan',
                 'nombre' => 'required|string|min:2|max:100',
@@ -98,6 +111,13 @@ class PlanController extends Controller
     public function actualizar(Request $request, $id)
     {
         try {
+            if (!$this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $plan = Plan::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
@@ -138,6 +158,13 @@ class PlanController extends Controller
     public function eliminar($id)
     {
         try {
+            if (!request()->user() || request()->user()->rol !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $plan = Plan::findOrFail($id);
             $plan->delete();
 

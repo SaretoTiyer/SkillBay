@@ -5,29 +5,35 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class CategoriaController extends Controller
 {
+    private function validarAdmin(Request $request)
+    {
+        $user = $request->user();
+        return $user && $user->rol === 'admin';
+    }
+
     /**
-     * Crear categoría --> esta funcionalidad es solo para el admin
+     * Crear categoria (solo admin).
      */
-    public function crear(request $request){
-        try{
-            // Validar los datos
+    public function crear(Request $request)
+    {
+        try {
+            if (!$this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
-                'descripcion' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
-            ], [
-                'nombre.required' => 'El nombre es obligatorio.',
-                'nombre.min' => 'El nombre debe tener al menos 2 caracteres.',
-                'nombre.max' => 'El nombre debe tener menos de 100 caracteres.',
-                'nombre.regex' => 'El nombre no puede contener caracteres especiales.',
-                'descripcion.required' => 'La descripcion es obligatoria.',
-                'descripcion.min' => 'La descripcion debe tener al menos 2 caracteres.',
-                'descripcion.max' => 'La descripcion debe tener menos de 100 caracteres.',
-                'descripcion.regex' => 'La descripcion no puede contener caracteres especiales.',
+                'id_Categoria' => 'nullable|string|max:191|unique:categorias,id_Categoria',
+                'nombre' => 'required|string|min:2|max:100',
+                'descripcion' => 'nullable|string|max:2000',
             ]);
 
             if ($validator->fails()) {
@@ -35,37 +41,49 @@ class CategoriaController extends Controller
             }
 
             $data = $validator->validated();
+            $idCategoria = $data['id_Categoria'] ?? Str::slug($data['nombre'], '_');
 
-            // Crear la categoría
-            $categoria = new Categoria();
-            $categoria->nombre = $data['nombre'];
-            $categoria->save();
+            if (Categoria::where('id_Categoria', $idCategoria)->exists()) {
+                $idCategoria = $idCategoria . '_' . time();
+            }
+
+            $categoria = Categoria::create([
+                'id_Categoria' => $idCategoria,
+                'nombre' => $data['nombre'],
+                'descripcion' => $data['descripcion'] ?? null,
+            ]);
 
             return response()->json([
                 'success' => true,
-                'categoria' => $categoria
+                'categoria' => $categoria,
             ], 201);
-        }
-        catch(\Exception $e){
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear la categoría',
+                'message' => 'Error de validacion',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la categoria',
                 'error' => $e->getMessage(),
             ], 500);
-        } 
+        }
     }
 
     /**
-     * Listar todas las categorías
+     * Listar categorias.
      */
-    public function listar(){
+    public function listar()
+    {
         try {
-            $categorias = Categoria::all();
+            $categorias = Categoria::orderBy('nombre')->get();
             return response()->json([
                 'success' => true,
                 'total' => $categorias->count(),
-                'categorias' => $categorias
-            ]);
+                'categorias' => $categorias,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -76,15 +94,16 @@ class CategoriaController extends Controller
     }
 
     /**
-     * Ver una categoría
+     * Ver una categoria.
      */
-    public function ver($id){
+    public function ver($id)
+    {
         try {
             $categoria = Categoria::findOrFail($id);
             return response()->json([
                 'success' => true,
-                'categoria' => $categoria
-            ]);
+                'categoria' => $categoria,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -95,16 +114,41 @@ class CategoriaController extends Controller
     }
 
     /**
-     * Editar una categoría --> esta funcionalidad es solo para el admin
+     * Actualizar categoria (solo admin).
      */
-    public function actualizar(request $request, $id){
+    public function actualizar(Request $request, $id)
+    {
         try {
+            if (!$this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $categoria = Categoria::findOrFail($id);
-            $categoria->update($request->all());
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'sometimes|required|string|min:2|max:100',
+                'descripcion' => 'nullable|string|max:2000',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $categoria->update($validator->validated());
+
             return response()->json([
                 'success' => true,
-                'categoria' => $categoria
-            ]);
+                'categoria' => $categoria,
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validacion',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -115,16 +159,25 @@ class CategoriaController extends Controller
     }
 
     /**
-     * Eliminar una categoría --> esta funcionalidad es solo para el admin
+     * Eliminar categoria (solo admin).
      */
-    public function eliminar($id){
+    public function eliminar(Request $request, $id)
+    {
         try {
+            if (!$this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
             $categoria = Categoria::findOrFail($id);
             $categoria->delete();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Categoria eliminada correctamente'
-            ]);
+                'message' => 'Categoria eliminada correctamente',
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -133,5 +186,4 @@ class CategoriaController extends Controller
             ], 500);
         }
     }
-
 }

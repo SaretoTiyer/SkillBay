@@ -24,6 +24,8 @@ class UsuarioSeeder extends Seeder
             'departamento' => 'Cundinamarca',
             'password' => Hash::make('password123'),
             'rol' => 'admin',
+            'id_Plan' => 'Free',
+            'bloqueado' => false,
             'fechaRegistro' => now(),
         ]);
 
@@ -38,6 +40,8 @@ class UsuarioSeeder extends Seeder
             'departamento' => 'Antioquia',
             'password' => Hash::make('password123'),
             'rol' => 'cliente',
+            'id_Plan' => 'Free',
+            'bloqueado' => false,
             'fechaRegistro' => now(),
         ]);
 
@@ -52,6 +56,8 @@ class UsuarioSeeder extends Seeder
             'departamento' => 'Valle del Cauca',
             'password' => Hash::make('password123'),
             'rol' => 'ofertante',
+            'id_Plan' => 'Free',
+            'bloqueado' => false,
             'fechaRegistro' => now(),
         ]);
 
@@ -69,6 +75,8 @@ class UsuarioSeeder extends Seeder
                 'departamento' => $faker->state,
                 'password' => Hash::make('password123'),
                 'rol' => $faker->randomElement(['cliente', 'ofertante']),
+                'id_Plan' => 'Free',
+                'bloqueado' => false,
                 'fechaRegistro' => $faker->dateTimeBetween('-1 year', 'now'),
             ]);
         }
