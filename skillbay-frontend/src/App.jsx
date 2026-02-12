@@ -18,6 +18,7 @@ import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
 import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
 import Applications from "./dashboard-users/Applications";
+import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
 // import Messages from "./components/dashboard/Messages";
 
 function App() {
@@ -82,6 +83,8 @@ function App() {
         return <UserServices />;
       case "applications":
         return <Applications />;
+      case "plans":
+        return <PlanesUser />;
       // case "messages":
       //   return <Messages />;
       default:

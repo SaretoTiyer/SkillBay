@@ -1,60 +1,45 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Plan;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
-class PlanController extends Controller {
-
+class PlanController extends Controller
+{
     /**
-     * Crear plan --> esta funcionalidad es solo para el admin
+     * Crear plan (solo admin).
      */
-    public function crear (request $request) {
-        try{
-            // Validar los datos
+    public function crear(Request $request)
+    {
+        try {
             $validator = Validator::make($request->all(), [
-                'nombre' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
-                'descripcion' => 'required|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
-                'precio' => 'required|numeric',
-            ], [
-                'nombre.required' => 'El nombre es obligatorio.',
-                'nombre.min' => 'El nombre debe tener al menos 2 caracteres.',
-                'nombre.max' => 'El nombre debe tener menos de 100 caracteres.',
-                'nombre.regex' => 'El nombre no puede contener caracteres especiales.',
-                'descripcion.required' => 'La descripcion es obligatoria.',
-                'descripcion.min' => 'La descripcion debe tener al menos 2 caracteres.',
-                'descripcion.max' => 'La descripcion debe tener menos de 100 caracteres.',
-                'descripcion.regex' => 'La descripcion no puede contener caracteres especiales.',
-                'precio.required' => 'El precio es obligatorio.',
-                'precio.numeric' => 'El precio debe ser un numero.',
+                'id_Plan' => 'required|string|in:Free,Plus,Ultra|unique:planes,id_Plan',
+                'nombre' => 'required|string|min:2|max:100',
+                'beneficios' => 'nullable|string|max:2000',
+                'precioMensual' => 'required|numeric|min:0',
+                'limiteServiciosMes' => 'nullable|integer|min:0',
             ]);
 
             if ($validator->fails()) {
                 throw new ValidationException($validator);
             }
 
-            $data = $validator->validated();
-
-            // Crear el plan
-            $plan = Plan::create([
-                'nombre' => $data['nombre'],
-                'descripcion' => $data['descripcion'],
-                'precio' => $data['precio'],
-            ]);
+            $plan = Plan::create($validator->validated());
 
             return response()->json([
                 'success' => true,
-                'plan' => [
-                    'id' => $plan->id,
-                    'nombre' => $plan->nombre,
-                    'descripcion' => $plan->descripcion,
-                    'precio' => $plan->precio
-            ]
-            ], 200);
+                'plan' => $plan,
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validacion',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -62,19 +47,20 @@ class PlanController extends Controller {
                 'error' => $e->getMessage(),
             ], 500);
         }
-
     }
 
     /**
-     * Listar todos los planes
+     * Listar todos los planes.
      */
-    public function listar() {
+    public function listar()
+    {
         try {
-            $planes = Plan::all();
+            $planes = Plan::orderByRaw("FIELD(id_Plan, 'Free', 'Plus', 'Ultra')")->get();
+
             return response()->json([
                 'success' => true,
                 'total' => $planes->count(),
-                'planes' => $planes
+                'planes' => $planes,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -86,15 +72,17 @@ class PlanController extends Controller {
     }
 
     /**
-     * ver un plan
+     * Ver un plan.
      */
-    public function ver($id) {
+    public function ver($id)
+    {
         try {
             $plan = Plan::findOrFail($id);
+
             return response()->json([
                 'success' => true,
-                'plan' => $plan
-            ]);
+                'plan' => $plan,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -105,16 +93,36 @@ class PlanController extends Controller {
     }
 
     /**
-     * Actualizar un plan --> esta funcionalidad es solo para el admin
+     * Actualizar un plan (solo admin).
      */
-    public function actualizar (request $request, $id) {
+    public function actualizar(Request $request, $id)
+    {
         try {
             $plan = Plan::findOrFail($id);
-            $plan->update($request->all());
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'sometimes|required|string|min:2|max:100',
+                'beneficios' => 'nullable|string|max:2000',
+                'precioMensual' => 'sometimes|required|numeric|min:0',
+                'limiteServiciosMes' => 'nullable|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $plan->update($validator->validated());
+
             return response()->json([
                 'success' => true,
-                'plan' => $plan
-            ]);
+                'plan' => $plan,
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validacion',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -125,16 +133,18 @@ class PlanController extends Controller {
     }
 
     /**
-     * Eliminar un plan --> esta funcionalidad es solo para el admin
+     * Eliminar un plan (solo admin).
      */
-    public function eliminar ($id) {
+    public function eliminar($id)
+    {
         try {
             $plan = Plan::findOrFail($id);
             $plan->delete();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Plan eliminado correctamente'
-            ]);
+                'message' => 'Plan eliminado correctamente',
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -143,5 +153,4 @@ class PlanController extends Controller {
             ], 500);
         }
     }
-
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Plan extends Model
 {
+    protected $table = 'planes';
     protected $primaryKey = 'id_Plan';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -15,4 +16,3 @@ class Plan extends Model
         return $this->hasMany(Usuario::class, 'id_Plan');
     }
 }
-

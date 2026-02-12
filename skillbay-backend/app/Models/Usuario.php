@@ -19,6 +19,7 @@ class Usuario extends Authenticatable
 
     protected $fillable = [
         'id_CorreoUsuario',
+        'id_Plan',
         'nombre',
         'apellido',
         'genero',
@@ -30,5 +31,9 @@ class Usuario extends Authenticatable
         'fechaRegistro',
     ];
 
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class, 'id_Plan');
+    }
 
 }

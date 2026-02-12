@@ -182,6 +182,7 @@ class UsuarioController extends Controller
                 'telefono' => 'nullable|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono,' . $user->id_CorreoUsuario . ',id_CorreoUsuario',
                 'ciudad' => 'nullable|string|max:100',
                 'departamento' => 'nullable|string|max:100',
+                'id_Plan' => 'nullable|string|exists:planes,id_Plan',
             ]);
 
             if ($validator->fails()) {
@@ -197,6 +198,7 @@ class UsuarioController extends Controller
             if(isset($data['telefono'])) $user->telefono = strip_tags(trim($data['telefono']));
             if(isset($data['ciudad'])) $user->ciudad = strip_tags(trim($data['ciudad']));
             if(isset($data['departamento'])) $user->departamento = strip_tags(trim($data['departamento']));
+            if(isset($data['id_Plan'])) $user->id_Plan = $data['id_Plan'];
 
             // Guardar cambios - Importante: usar save() en el modelo Usuario
             // Asegúrate de que el modelo Usuario tenga definida la primaryKey correctamente si no es 'id'

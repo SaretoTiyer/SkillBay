@@ -4,6 +4,7 @@ Home,
 User,
 Briefcase,
 FileText,
+CreditCard,
 MessageSquare,
 Bell,
 LogOut,
@@ -28,6 +29,7 @@ const navItems = [
     { name: "Mi Perfil", view: "profile", icon: User },
     { name: "Mis Servicios", view: "services", icon: Briefcase },
     { name: "Postulaciones", view: "applications", icon: FileText },
+    { name: "Planes", view: "plans", icon: CreditCard },
     { name: "Mensajes", view: "messages", icon: MessageSquare },
 ];
 
