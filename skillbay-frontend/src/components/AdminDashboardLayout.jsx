@@ -5,12 +5,13 @@ import {
   FolderTree,
   LayoutDashboard,
   LogOut,
+  ShieldAlert,
   ShieldCheck,
   UserCog,
-  XCircle,
 } from "lucide-react";
 import { API_URL } from "../config/api";
 import logoFull from "../assets/IconoSkillBay.png";
+import NotificationCenter from "./NotificationCenter";
 
 export default function AdminDashboardLayout({
   children,
@@ -27,6 +28,7 @@ export default function AdminDashboardLayout({
       { name: "Gestion Users", view: "admin_users", icon: UserCog },
       { name: "Gestion Planes", view: "admin_plans", icon: ShieldCheck },
       { name: "Gestion Postulaciones", view: "admin_applications", icon: BarChart3 },
+      { name: "Gestion Reportes", view: "admin_reports", icon: ShieldAlert },
       { name: "Gestion Categorias", view: "admin_categories", icon: FolderTree },
     ],
     []
@@ -85,24 +87,8 @@ export default function AdminDashboardLayout({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-[360px] max-h-[420px] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl">
-              <div className="flex items-center justify-between p-3 border-b border-slate-200">
-                <p className="font-semibold text-slate-800">Notificaciones</p>
-                <button onClick={() => setShowNotifications(false)} className="text-slate-500">
-                  <XCircle size={18} />
-                </button>
-              </div>
-              <div>
-                {notifications.length === 0 && (
-                  <p className="p-4 text-sm text-slate-500">No hay notificaciones.</p>
-                )}
-                {notifications.map((item) => (
-                  <div key={item.id_Notificacion} className="p-3 border-b border-slate-100">
-                    <p className="text-sm text-slate-700">{item.mensaje}</p>
-                    <p className="text-xs text-slate-400 mt-1">{item.tipo || "general"}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="absolute right-0 top-12">
+              <NotificationCenter isAdmin />
             </div>
           )}
         </div>

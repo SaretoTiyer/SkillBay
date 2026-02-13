@@ -26,6 +26,7 @@ class Usuario extends Authenticatable
         'telefono',
         'ciudad',
         'departamento',
+        'fechaNacimiento',
         'password',
         'rol',
         'bloqueado',
@@ -39,6 +40,7 @@ class Usuario extends Authenticatable
 
     protected $casts = [
         'bloqueado' => 'boolean',
+        'fechaNacimiento' => 'date',
     ];
 
     public function plan()

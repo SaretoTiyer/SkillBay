@@ -12,6 +12,7 @@ const initialForm = {
 
 export default function PlanManagement() {
   const [plans, setPlans] = useState([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
 
@@ -70,8 +71,31 @@ export default function PlanManagement() {
     });
   };
 
+  const filtered = plans.filter((plan) =>
+    `${plan.id_Plan} ${plan.nombre}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const exportCSV = () => {
+    const headers = ["ID", "Nombre", "Precio", "Limite", "Beneficios"];
+    const rows = filtered.map((p) => [p.id_Plan, p.nombre, p.precioMensual, p.limiteServiciosMes, p.beneficios || ""]);
+    const csv = [headers, ...rows]
+      .map((line) => line.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "planes.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="xl:col-span-3 bg-white rounded-xl border border-slate-200 p-3 flex gap-2">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar plan" className="border border-slate-200 rounded px-3 py-2" />
+        <button onClick={exportCSV} className="px-3 py-2 rounded bg-emerald-600 text-white">CSV</button>
+      </div>
       <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50">
@@ -84,7 +108,7 @@ export default function PlanManagement() {
             </tr>
           </thead>
           <tbody>
-            {plans.map((plan) => (
+            {filtered.map((plan) => (
               <tr key={plan.id_Plan} className="border-t border-slate-100">
                 <td className="p-3">{plan.id_Plan}</td>
                 <td className="p-3">{plan.nombre}</td>

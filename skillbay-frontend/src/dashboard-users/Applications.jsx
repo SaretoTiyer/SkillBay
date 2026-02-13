@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import {
     FileText,
     Calendar,
@@ -11,6 +12,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { API_URL } from '../config/api';
+import { resolveImageUrl } from '../utils/image';
 
 import { Badge } from '../components/ui/badge';
 import { Button } from "../components/ui/Button";
@@ -102,12 +104,47 @@ export default function Applications() {
     const accepted = applications.filter(a => a.estado === 'aceptada');
     const rejected = applications.filter(a => a.estado === 'rechazada');
 
+    const reportApplication = async (application) => {
+        const { value: motivo } = await Swal.fire({
+            title: 'Reportar usuario/postulacion',
+            input: 'textarea',
+            inputLabel: 'Motivo del reporte',
+            showCancelButton: true,
+            confirmButtonText: 'Reportar',
+            cancelButtonText: 'Cancelar',
+        });
+        if (!motivo || motivo.trim().length < 10) return;
+
+        try {
+            const token = localStorage.getItem("access_token");
+            const response = await fetch(`${API_URL}/reportes`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_Postulacion: application.id,
+                    id_Servicio: application.id_Servicio,
+                    id_Reportado: application.servicio?.cliente_usuario?.id_CorreoUsuario,
+                    motivo: motivo.trim(),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.message || 'No se pudo reportar.');
+            Swal.fire('Enviado', 'Reporte registrado correctamente.', 'success');
+        } catch (err) {
+            Swal.fire('Error', err.message, 'error');
+        }
+    };
+
     const ApplicationCard = ({ application }) => (
         <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden hover:shadow-md transition-all duration-300`}>
             <div className="grid md:grid-cols-[200px_1fr] gap-6">
                 <div className="h-48 md:h-auto relative overflow-hidden group">
                     <ImageWithFallback
-                        src={application.servicio?.imagen ? `http://127.0.0.1:8000/storage/${application.servicio.imagen}` : null}
+                        src={resolveImageUrl(application.servicio?.imagen)}
                         alt={application.servicio?.titulo || "Servicio"}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -155,6 +192,13 @@ export default function Applications() {
                         {application.estado === 'aceptada' && (
                             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200">Ir al Proyecto</Button>
                         )}
+                        <Button
+                            variant="outline"
+                            className="border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() => reportApplication(application)}
+                        >
+                            Reportar
+                        </Button>
                     </div>
                 </div>
             </div>

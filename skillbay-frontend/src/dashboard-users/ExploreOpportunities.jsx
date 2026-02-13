@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Briefcase, DollarSign, MapPin, Search, Star } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 
 export default function ExploreOpportunities() {
   const [query, setQuery] = useState("");
@@ -89,6 +90,41 @@ export default function ExploreOpportunities() {
     }
   };
 
+  const reportService = async (service) => {
+    const { value: motivo } = await Swal.fire({
+      title: "Reportar servicio",
+      input: "textarea",
+      inputLabel: "Describe el motivo del reporte",
+      inputPlaceholder: "Ej: contenido inapropiado, fraude, suplantacion...",
+      showCancelButton: true,
+      confirmButtonText: "Enviar reporte",
+      cancelButtonText: "Cancelar",
+    });
+    if (!motivo || motivo.trim().length < 10) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/reportes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id_Servicio: service.id_Servicio,
+          id_Reportado: service?.cliente_usuario?.id_CorreoUsuario,
+          motivo: motivo.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo enviar el reporte.");
+      Swal.fire("Enviado", "Reporte registrado correctamente.", "success");
+    } catch (error) {
+      Swal.fire("Error", error.message, "error");
+    }
+  };
+
   if (loading) {
     return <p className="text-slate-500">Cargando oportunidades...</p>;
   }
@@ -132,7 +168,8 @@ export default function ExploreOpportunities() {
           <article key={service.id_Servicio} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
             <div className="h-44 bg-slate-100">
               {service.imagen ? (
-                <img src={service.imagen} alt={service.titulo} className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(service.imagen)} alt={service.titulo} className="w-full h-full object-cover" />
+                
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-400">
                   <Briefcase size={40} />
@@ -165,6 +202,9 @@ export default function ExploreOpportunities() {
                 </p>
                 <button onClick={() => postular(service)} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">
                   Postularme
+                </button>
+                <button onClick={() => reportService(service)} className="px-3 py-2 rounded-lg bg-red-100 text-red-700 text-sm">
+                  Reportar
                 </button>
               </div>
             </div>

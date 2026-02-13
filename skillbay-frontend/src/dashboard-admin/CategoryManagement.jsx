@@ -6,6 +6,7 @@ const initialForm = { id_Categoria: "", nombre: "", descripcion: "" };
 
 export default function CategoryManagement() {
   const [categories, setCategories] = useState([]);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
 
@@ -79,8 +80,31 @@ export default function CategoryManagement() {
     }
   };
 
+  const filtered = categories.filter((c) =>
+    `${c.id_Categoria} ${c.nombre} ${c.descripcion || ""}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const exportCSV = () => {
+    const headers = ["ID", "Nombre", "Descripcion"];
+    const rows = filtered.map((c) => [c.id_Categoria, c.nombre, c.descripcion || ""]);
+    const csv = [headers, ...rows]
+      .map((line) => line.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "categorias.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="xl:col-span-3 bg-white rounded-xl border border-slate-200 p-3 flex gap-2">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar categoria" className="border border-slate-200 rounded px-3 py-2" />
+        <button onClick={exportCSV} className="px-3 py-2 rounded bg-emerald-600 text-white">CSV</button>
+      </div>
       <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50">
@@ -92,7 +116,7 @@ export default function CategoryManagement() {
             </tr>
           </thead>
           <tbody>
-            {categories.map((category) => (
+            {filtered.map((category) => (
               <tr key={category.id_Categoria} className="border-t border-slate-100">
                 <td className="p-3">{category.id_Categoria}</td>
                 <td className="p-3">{category.nombre}</td>

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Notificacion;
 use App\Models\Plan;
 use App\Models\Usuario;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -34,6 +35,7 @@ class UsuarioController extends Controller
                 'telefono' => 'required|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono',
                 'ciudad' => 'nullable|string|max:100',
                 'departamento' => 'nullable|string|max:100',
+                'fechaNacimiento' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
                 'password' => [
                     'required',
                     'string',
@@ -58,6 +60,7 @@ class UsuarioController extends Controller
                 'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones o el símbolo +.',
                 'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
                 'password.regex' => 'La contraseña no puede contener espacios.',
+                'password.regex' => 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial.',
             ]);
 
             if ($validator->fails()) {
@@ -79,11 +82,19 @@ class UsuarioController extends Controller
                 'telefono' => strip_tags(trim($data['telefono'])),
                 'ciudad' => strip_tags(trim($data['ciudad'] ?? '')),
                 'departamento' => strip_tags(trim($data['departamento'] ?? '')),
+                'fechaNacimiento' => Carbon::parse($data['fechaNacimiento'])->format('Y-m-d'),
                 'password' => Hash::make($data['password']),
                 'rol' => $data['rol'] ?? 'cliente',
                 'id_Plan' => $data['id_Plan'] ?? $planDefault,
                 'bloqueado' => false,
                 'fechaRegistro' => now(),
+            ]);
+
+            Notificacion::create([
+                'mensaje' => 'Bienvenido a SkillBay. Tu cuenta esta lista para comenzar.',
+                'estado' => 'No leido',
+                'tipo' => 'sistema',
+                'id_CorreoUsuario' => $user->id_CorreoUsuario,
             ]);
 
             return response()->json([
@@ -147,6 +158,19 @@ class UsuarioController extends Controller
                 ], 403);
             }
 
+            $hasWelcome = Notificacion::where('id_CorreoUsuario', $usuario->id_CorreoUsuario)
+                ->where('tipo', 'sistema')
+                ->where('mensaje', 'like', 'Bienvenido a SkillBay%')
+                ->exists();
+            if (!$hasWelcome) {
+                Notificacion::create([
+                    'mensaje' => 'Bienvenido a SkillBay. Tu cuenta esta lista para comenzar.',
+                    'estado' => 'No leido',
+                    'tipo' => 'sistema',
+                    'id_CorreoUsuario' => $usuario->id_CorreoUsuario,
+                ]);
+            }
+
             // Crear token
             $token = $usuario->createToken('auth_token')->plainTextToken;
 
@@ -206,6 +230,7 @@ class UsuarioController extends Controller
                 'telefono' => 'nullable|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono,' . $user->id_CorreoUsuario . ',id_CorreoUsuario',
                 'ciudad' => 'nullable|string|max:100',
                 'departamento' => 'nullable|string|max:100',
+                'fechaNacimiento' => 'nullable|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
                 'id_Plan' => 'nullable|string|exists:planes,id_Plan',
             ]);
 
@@ -222,6 +247,7 @@ class UsuarioController extends Controller
             if(isset($data['telefono'])) $user->telefono = strip_tags(trim($data['telefono']));
             if(isset($data['ciudad'])) $user->ciudad = strip_tags(trim($data['ciudad']));
             if(isset($data['departamento'])) $user->departamento = strip_tags(trim($data['departamento']));
+            if(isset($data['fechaNacimiento'])) $user->fechaNacimiento = Carbon::parse($data['fechaNacimiento'])->format('Y-m-d');
             if(isset($data['id_Plan'])) $user->id_Plan = $data['id_Plan'];
 
             // Guardar cambios - Importante: usar save() en el modelo Usuario

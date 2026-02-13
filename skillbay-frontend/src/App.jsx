@@ -10,6 +10,7 @@ import About from "./pages/About";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 
 import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
@@ -17,12 +18,14 @@ import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
 import Applications from "./dashboard-users/Applications";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
+import UserMessages from "./dashboard-users/UserMessages";
 
 import AdminOverview from "./dashboard-admin/AdminOverview";
 import UserManagement from "./dashboard-admin/UserManagement";
 import PlanManagement from "./dashboard-admin/PlanManagement";
 import ApplicationManagement from "./dashboard-admin/ApplicationManagement";
 import CategoryManagement from "./dashboard-admin/CategoryManagement";
+import ReportManagement from "./dashboard-admin/ReportManagement";
 
 function getStoredUser() {
   try {
@@ -84,6 +87,8 @@ function App() {
         return <UserServices />;
       case "applications":
         return <Applications />;
+      case "messages":
+        return <UserMessages />;
       case "plans":
         return <PlanesUser />;
       default:
@@ -101,6 +106,8 @@ function App() {
         return <PlanManagement />;
       case "admin_applications":
         return <ApplicationManagement />;
+      case "admin_reports":
+        return <ReportManagement />;
       case "admin_categories":
         return <CategoryManagement />;
       default:
@@ -120,6 +127,8 @@ function App() {
         return <Contact />;
       case "login":
         return <Login onNavigate={setCurrentView} onLogin={handleLogin} />;
+      case "forgot_password":
+        return <ForgotPassword onNavigate={setCurrentView} />;
       case "register":
         return <Register onNavigate={setCurrentView} />;
       default:

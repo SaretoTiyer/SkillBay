@@ -36,6 +36,7 @@ import {
 } from "../components/ui/select";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 import Swal from "sweetalert2";
 
 export default function UserServices() {
@@ -157,7 +158,7 @@ export default function UserServices() {
             tiempo_entrega: service.tiempo_entrega,
             imagen: null, // Keep null unless changed
         });
-        setPreviewImage(service.imagen);
+        setPreviewImage(resolveImageUrl(service.imagen));
         setIsDialogOpen(true);
     };
 
@@ -493,7 +494,7 @@ export default function UserServices() {
                     >
                         <div className="relative h-64 overflow-hidden">
                             <ImageWithFallback
-                                src={service.imagen}
+                                src={resolveImageUrl(service.imagen)}
                                 alt={service.titulo}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />

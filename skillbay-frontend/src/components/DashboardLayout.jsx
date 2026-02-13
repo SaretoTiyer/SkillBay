@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Briefcase, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, User, X } from "lucide-react";
+import { Bell, Briefcase, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
+import NotificationCenter from "./NotificationCenter";
 
 export default function DashboardLayout({ children, currentView, onNavigate, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
     { name: "Mi Perfil", view: "profile", icon: User },
     { name: "Mis Servicios", view: "services", icon: Briefcase },
     { name: "Postulaciones", view: "applications", icon: FileText },
+    { name: "Mensajes", view: "messages", icon: MessageSquare },
     { name: "Planes", view: "plans", icon: CreditCard },
   ];
 
@@ -85,21 +87,8 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] overflow-hidden z-50">
-                  <div className="p-4 bg-linear-to-r from-[#1E3A5F] to-[#2B6CB0] text-white">
-                    <h3 className="font-semibold">Notificaciones</h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.length === 0 && (
-                      <p className="p-4 text-sm text-[#64748B]">No tienes notificaciones.</p>
-                    )}
-                    {notifications.map((notif) => (
-                      <div key={notif.id_Notificacion} className="p-4 border-b border-[#E2E8F0] hover:bg-[#f7fafc]">
-                        <p className="text-sm text-[#1E3A5F]">{notif.mensaje}</p>
-                        <span className="text-xs text-[#A0AEC0] mt-1 block">{notif.tipo || "general"}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="absolute right-0 mt-2 z-50">
+                  <NotificationCenter />
                 </div>
               )}
             </div>

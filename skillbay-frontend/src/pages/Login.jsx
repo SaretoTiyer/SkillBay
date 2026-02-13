@@ -215,6 +215,7 @@ export default function Login({ onNavigate, onLogin }) {
                                 </label>
                                 <button
                                     type="button"
+                                    onClick={() => onNavigate('forgot_password')}
                                     className="text-[#2B6CB0] hover:text-[#2563a7] transition-colors"
                                 >
                                     ¿Olvidaste tu contraseña?

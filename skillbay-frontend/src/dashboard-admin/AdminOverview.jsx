@@ -4,10 +4,12 @@ import { API_URL } from "../config/api";
 
 export default function AdminOverview() {
   const [resumen, setResumen] = useState(null);
+  const [metricas, setMetricas] = useState({ usuariosPorMes: [], ingresosPorMes: [] });
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
     fetchResumen();
+    fetchMetricas();
   }, []);
 
   const fetchResumen = async () => {
@@ -27,6 +29,26 @@ export default function AdminOverview() {
     }
   };
 
+  const fetchMetricas = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/admin/metricas`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setMetricas({
+        usuariosPorMes: Array.isArray(data?.usuariosPorMes) ? data.usuariosPorMes : [],
+        ingresosPorMes: Array.isArray(data?.ingresosPorMes) ? data.ingresosPorMes : [],
+      });
+    } catch (error) {
+      console.error("Error metricas admin:", error);
+    }
+  };
+
   const cards = [
     { label: "Usuarios", value: resumen?.usuarios ?? 0 },
     { label: "Usuarios bloqueados", value: resumen?.usuariosBloqueados ?? 0 },
@@ -34,8 +56,10 @@ export default function AdminOverview() {
     { label: "Servicios", value: resumen?.servicios ?? 0 },
     { label: "Postulaciones", value: resumen?.postulaciones ?? 0 },
     { label: "Postulaciones pendientes", value: resumen?.postulacionesPendientes ?? 0 },
+    { label: "Reportes pendientes", value: resumen?.reportesPendientes ?? 0 },
     { label: "Categorias", value: resumen?.categorias ?? 0 },
     { label: "Notificaciones no leidas", value: resumen?.notificacionesPendientes ?? 0 },
+    { label: "Ingresos planes (COP)", value: Number(resumen?.ingresosPlanes ?? 0).toLocaleString("es-CO") },
   ];
 
   const enviarNotificacionGlobal = async () => {
@@ -73,6 +97,39 @@ export default function AdminOverview() {
             <p className="text-3xl font-bold text-slate-800 mt-1">{card.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="font-semibold text-slate-800 mb-3">Registros de usuarios por mes</h2>
+          <div className="space-y-2">
+            {metricas.usuariosPorMes.map((item) => (
+              <div key={item.mes} className="flex items-center gap-3">
+                <span className="w-20 text-xs text-slate-500">{item.mes}</span>
+                <div className="flex-1 h-3 bg-slate-100 rounded">
+                  <div className="h-3 bg-blue-600 rounded" style={{ width: `${Math.min(Number(item.total) * 12, 100)}%` }} />
+                </div>
+                <span className="text-sm text-slate-700">{item.total}</span>
+              </div>
+            ))}
+            {metricas.usuariosPorMes.length === 0 && <p className="text-sm text-slate-500">Sin datos.</p>}
+          </div>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="font-semibold text-slate-800 mb-3">Ingresos por planes (COP) por mes</h2>
+          <div className="space-y-2">
+            {metricas.ingresosPorMes.map((item) => (
+              <div key={item.mes} className="flex items-center gap-3">
+                <span className="w-20 text-xs text-slate-500">{item.mes}</span>
+                <div className="flex-1 h-3 bg-slate-100 rounded">
+                  <div className="h-3 bg-emerald-600 rounded" style={{ width: `${Math.min(Number(item.total) / 5000, 100)}%` }} />
+                </div>
+                <span className="text-sm text-slate-700">${Number(item.total || 0).toLocaleString("es-CO")}</span>
+              </div>
+            ))}
+            {metricas.ingresosPorMes.length === 0 && <p className="text-sm text-slate-500">Sin datos.</p>}
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 bg-white border border-slate-200 rounded-xl p-4">

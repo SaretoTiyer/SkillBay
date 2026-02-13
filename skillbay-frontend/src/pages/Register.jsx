@@ -76,6 +76,7 @@
         genero: '',
         ciudad: '',
         departamento: '',
+        fechaNacimiento: '',
         password: '',
         confirmPassword: '',
         acceptTerms: false,
@@ -158,6 +159,7 @@
         'genero',
         'ciudad',
         'departamento',
+        'fechaNacimiento',
         'password',
         'confirmPassword',
         ];
@@ -219,6 +221,17 @@
         newErrors.confirmPassword = 'Las contraseñas no coinciden';
         }
 
+        if (formData.fechaNacimiento) {
+            const birth = new Date(formData.fechaNacimiento);
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            if (age < 18) {
+                newErrors.fechaNacimiento = 'Debes ser mayor de 18 anos para registrarte';
+            }
+        }
+
         // accept terms (es un campo booleano)
         if (!formData.acceptTerms) {
         newErrors.acceptTerms = 'Debes aceptar los términos y condiciones';
@@ -250,6 +263,7 @@
             genero: formData.genero || null,
             ciudad: formData.ciudad || null,
             departamento: formData.departamento || null,
+            fechaNacimiento: formData.fechaNacimiento,
             password: formData.password,
             }),
         });
@@ -448,6 +462,20 @@
                             ))}
                     </select>
                     {renderError('ciudad')}
+                </div>
+
+                {/* Fecha de nacimiento */}
+                <div className="lg:col-span-2">
+                    <label className="block text-[#1E3A5F]">Fecha de nacimiento (mayor de 18 años)</label>
+                    <input
+                        type="date"
+                        name="fechaNacimiento"
+                        value={formData.fechaNacimiento}
+                        onChange={handleChange}
+                        required
+                        className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    />
+                    {renderError('fechaNacimiento')}
                 </div>
 
                 {/* Contraseña */}
