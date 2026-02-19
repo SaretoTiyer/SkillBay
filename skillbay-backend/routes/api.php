@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PostulacionController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\ReporteController;
+use App\Http\Controllers\Api\ResenaController;
 use App\Http\Controllers\Api\ServicioController;
 use App\Http\Controllers\Api\UsuarioController;
 
@@ -55,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notificaciones', [NotificacionController::class, 'eliminarTodas']);
 
     Route::post('/reportes', [ReporteController::class, 'store']);
+    Route::post('/resenas', [ResenaController::class, 'store']);
+    Route::get('/resenas/servicio/{id}', [ResenaController::class, 'porServicio']);
 
     Route::get('/mensajes/conversaciones', [MensajeController::class, 'conversaciones']);
     Route::get('/postulaciones/{idPostulacion}/mensajes', [MensajeController::class, 'index']);

@@ -35,6 +35,7 @@ class CategoriaController extends Controller
                 'nombre' => 'required|string|min:2|max:100',
                 'grupo' => 'nullable|string|max:120',
                 'descripcion' => 'nullable|string|max:2000',
+                'imagen' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
@@ -53,6 +54,7 @@ class CategoriaController extends Controller
                 'nombre' => $data['nombre'],
                 'grupo' => $data['grupo'] ?? null,
                 'descripcion' => $data['descripcion'] ?? null,
+                'imagen' => $data['imagen'] ?? null,
             ]);
 
             return response()->json([
@@ -134,6 +136,7 @@ class CategoriaController extends Controller
                 'nombre' => 'sometimes|required|string|min:2|max:100',
                 'grupo' => 'nullable|string|max:120',
                 'descripcion' => 'nullable|string|max:2000',
+                'imagen' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
