@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, X } from "lucide-react";
+import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Wallet, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
 import NotificationCenter from "./NotificationCenter";
@@ -8,6 +8,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const currentUser = useMemo(() => {
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
     { name: "Postulaciones", view: "applications", icon: FileText },
     { name: "Mensajes", view: "messages", icon: MessageSquare },
     { name: "Planes", view: "plans", icon: CreditCard },
+    { name: "Pagos", view: "payments", icon: Wallet },
   ];
 
   useEffect(() => {
@@ -95,14 +97,42 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
               )}
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#2B6CB0] to-[#1E3A5F] flex items-center justify-center text-white text-sm">
-                {initials}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm text-[#1E3A5F]">{fullName}</p>
-              </div>
-              <ChevronDown size={16} className="text-[#A0AEC0]" />
+            <div className="relative">
+              <button
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg"
+              >
+                <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#2B6CB0] to-[#1E3A5F] flex items-center justify-center text-white text-sm">
+                  {initials}
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm text-[#1E3A5F]">{fullName}</p>
+                </div>
+                <ChevronDown size={16} className="text-[#A0AEC0]" />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      onNavigate("profile");
+                      setProfileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Mi perfil
+                  </button>
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      onLogout();
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50"
+                  >
+                    Cerrar sesion
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

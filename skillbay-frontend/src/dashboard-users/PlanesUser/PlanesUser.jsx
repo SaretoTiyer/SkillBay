@@ -78,14 +78,14 @@ export default function PlanesUser() {
     setUpdatingPlanId(idPlan);
 
     try {
-      const response = await fetch(`${API_URL}/user`, {
-        method: "PUT",
+      const response = await fetch(`${API_URL}/pagos/plan`, {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ id_Plan: idPlan }),
+        body: JSON.stringify({ id_Plan: idPlan, modalidadPago: "virtual" }),
       });
 
       const data = await response.json();
@@ -94,13 +94,13 @@ export default function PlanesUser() {
         throw new Error(data?.message || "No se pudo actualizar el plan.");
       }
 
-      const savedUser = data?.usuario ?? { ...currentUser, id_Plan: idPlan };
+      const savedUser = { ...currentUser, id_Plan: idPlan };
       localStorage.setItem("usuario", JSON.stringify(savedUser));
 
       Swal.fire({
         icon: "success",
-        title: "Plan actualizado",
-        text: `Ahora estas en el plan ${idPlan}.`,
+        title: "Plan pagado y actualizado",
+        text: `Referencia: ${data?.pago?.referenciaPago || "-"} | Plan ${idPlan}.`,
         timer: 1800,
         showConfirmButton: false,
       }).then(() => window.location.reload());

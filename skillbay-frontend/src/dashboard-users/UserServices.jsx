@@ -42,6 +42,7 @@ import Swal from "sweetalert2";
 export default function UserServices() {
     const [services, setServices] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [selectedGroup, setSelectedGroup] = useState("");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
@@ -63,12 +64,15 @@ export default function UserServices() {
     const [loadingRequests, setLoadingRequests] = useState(true);
     const [updatingRequestId, setUpdatingRequestId] = useState(null);
 
-    const defaultCategories = [
-        { id_Categoria: "web", nombre: "Desarrollo Web" },
-        { id_Categoria: "design", nombre: "Diseño Gráfico" },
-        { id_Categoria: "marketing", nombre: "Marketing Digital" },
-        { id_Categoria: "consulting", nombre: "Consultoría" },
-        { id_Categoria: "mobile", nombre: "Desarrollo Móvil" },
+        const defaultCategories = [
+        { id_Categoria: "tec_desarrollo_web", nombre: "Desarrollo Web", grupo: "Tecnologia" },
+        { id_Categoria: "tec_diseno_grafico", nombre: "Diseno Grafico", grupo: "Tecnologia" },
+        { id_Categoria: "tec_soporte_tecnico", nombre: "Soporte Tecnico", grupo: "Tecnologia" },
+        { id_Categoria: "tec_marketing_digital", nombre: "Marketing Digital", grupo: "Tecnologia" },
+        { id_Categoria: "hog_limpieza", nombre: "Limpieza", grupo: "Cuidado del Hogar" },
+        { id_Categoria: "hog_jardineria", nombre: "Jardineria", grupo: "Cuidado del Hogar" },
+        { id_Categoria: "hog_plomeria", nombre: "Plomeria", grupo: "Cuidado del Hogar" },
+        { id_Categoria: "hog_electricidad", nombre: "Electricidad", grupo: "Cuidado del Hogar" },
     ];
 
     useEffect(() => {
@@ -111,13 +115,23 @@ export default function UserServices() {
 
             if (response.ok) {
                 const data = await response.json();
-                setCategories(data.length > 0 ? data : defaultCategories);
+                const incoming = data.length > 0 ? data : defaultCategories;
+                setCategories(incoming);
+                if (!selectedGroup) {
+                    setSelectedGroup(incoming[0]?.grupo || "General");
+                }
             } else {
                 setCategories(defaultCategories);
+                if (!selectedGroup) {
+                    setSelectedGroup(defaultCategories[0]?.grupo || "General");
+                }
             }
         } catch (error) {
             console.error("Error fetching categories:", error);
             setCategories(defaultCategories);
+            if (!selectedGroup) {
+                setSelectedGroup(defaultCategories[0]?.grupo || "General");
+            }
         }
     };
 
@@ -191,6 +205,11 @@ export default function UserServices() {
         setFormData((prev) => ({ ...prev, categoria: value }));
     };
 
+    const handleGroupChange = (value) => {
+        setSelectedGroup(value);
+        setFormData((prev) => ({ ...prev, categoria: "" }));
+    };
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -209,6 +228,9 @@ export default function UserServices() {
             tiempo_entrega: "",
             imagen: null,
         });
+        if (categories.length) {
+            setSelectedGroup(categories[0]?.grupo || "General");
+        }
         setPreviewImage(null);
         setIsDialogOpen(true);
     };
@@ -223,6 +245,10 @@ export default function UserServices() {
             tiempo_entrega: service.tiempo_entrega,
             imagen: null, // Keep null unless changed
         });
+        const categoryFound = categories.find((cat) => cat.id_Categoria === service.id_Categoria);
+        if (categoryFound?.grupo) {
+            setSelectedGroup(categoryFound.grupo);
+        }
         setPreviewImage(resolveImageUrl(service.imagen));
         setIsDialogOpen(true);
     };
@@ -376,6 +402,9 @@ export default function UserServices() {
         );
     };
 
+    const categoryGroups = Array.from(new Set(categories.map((cat) => cat.grupo || "General")));
+    const availableSubcategories = categories.filter((cat) => (cat.grupo || "General") === selectedGroup);
+
     if (loading) return (
         <div className="flex items-center justify-center h-96">
             <Loader2 className="animate-spin text-blue-600" size={40} />
@@ -467,14 +496,32 @@ export default function UserServices() {
 
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                            <Tag size={16} /> Categoría
+                                            <Tag size={16} /> Categoria principal
+                                        </label>
+                                        <Select value={selectedGroup} onValueChange={handleGroupChange}>
+                                            <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                                                <SelectValue placeholder="Seleccionar grupo..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {categoryGroups.map((group) => (
+                                                    <SelectItem key={group} value={group}>
+                                                        {group}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                            <Tag size={16} /> Subcategoria
                                         </label>
                                         <Select value={formData.categoria} onValueChange={handleSelectChange}>
                                             <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
-                                                <SelectValue placeholder="Seleccionar..." />
+                                                <SelectValue placeholder="Seleccionar subcategoria..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {categories.map((cat) => (
+                                                {availableSubcategories.map((cat) => (
                                                     <SelectItem key={cat.id_Categoria} value={cat.id_Categoria}>
                                                         {cat.nombre}
                                                     </SelectItem>
@@ -482,6 +529,8 @@ export default function UserServices() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+
 
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -717,3 +766,4 @@ export default function UserServices() {
         </div>
     );
 }
+

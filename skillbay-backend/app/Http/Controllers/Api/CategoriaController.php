@@ -33,6 +33,7 @@ class CategoriaController extends Controller
             $validator = Validator::make($request->all(), [
                 'id_Categoria' => 'nullable|string|max:191|unique:categorias,id_Categoria',
                 'nombre' => 'required|string|min:2|max:100',
+                'grupo' => 'nullable|string|max:120',
                 'descripcion' => 'nullable|string|max:2000',
             ]);
 
@@ -50,6 +51,7 @@ class CategoriaController extends Controller
             $categoria = Categoria::create([
                 'id_Categoria' => $idCategoria,
                 'nombre' => $data['nombre'],
+                'grupo' => $data['grupo'] ?? null,
                 'descripcion' => $data['descripcion'] ?? null,
             ]);
 
@@ -78,7 +80,7 @@ class CategoriaController extends Controller
     public function listar()
     {
         try {
-            $categorias = Categoria::orderBy('nombre')->get();
+            $categorias = Categoria::orderBy('grupo')->orderBy('nombre')->get();
             return response()->json([
                 'success' => true,
                 'total' => $categorias->count(),
@@ -130,6 +132,7 @@ class CategoriaController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'nombre' => 'sometimes|required|string|min:2|max:100',
+                'grupo' => 'nullable|string|max:120',
                 'descripcion' => 'nullable|string|max:2000',
             ]);
 

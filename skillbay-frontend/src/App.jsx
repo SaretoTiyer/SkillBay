@@ -17,6 +17,7 @@ import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
 import ExploreServices from "./dashboard-users/ExploreServices";
 import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
+import UserPayments from "./dashboard-users/UserPayments";
 import Applications from "./dashboard-users/Applications";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
 import UserMessages from "./dashboard-users/UserMessages";
@@ -89,6 +90,8 @@ function App() {
         return <UserProfile />;
       case "services":
         return <UserServices />;
+      case "payments":
+        return <UserPayments />;
       case "applications":
         return <Applications />;
       case "messages":

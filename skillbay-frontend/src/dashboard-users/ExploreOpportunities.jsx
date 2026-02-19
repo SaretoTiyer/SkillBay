@@ -163,6 +163,60 @@ export default function ExploreOpportunities() {
     }
   };
 
+  const payFromOpportunity = async (service) => {
+    const { value: formValues } = await Swal.fire({
+      title: "Simular pago (origen postulacion)",
+      html:
+        `<input id="pay-ident" class="swal2-input" placeholder="Identificacion del cliente" />` +
+        `<input id="pay-post" class="swal2-input" placeholder="ID postulacion (opcional)" />` +
+        `<select id="pay-method" class="swal2-select"><option value="virtual">Pago virtual</option><option value="efectivo">Pago en efectivo</option></select>` +
+        `<select id="pay-mode" class="swal2-select"><option value="virtual">Servicio virtual</option><option value="presencial">Servicio presencial</option></select>`,
+      showCancelButton: true,
+      confirmButtonText: "Registrar pago",
+      cancelButtonText: "Cancelar",
+      preConfirm: () => {
+        const identificacionCliente = document.getElementById("pay-ident")?.value?.trim();
+        const idPost = document.getElementById("pay-post")?.value?.trim();
+        const modalidadPago = document.getElementById("pay-method")?.value;
+        const modalidadServicio = document.getElementById("pay-mode")?.value;
+        if (!identificacionCliente) {
+          Swal.showValidationMessage("Debes ingresar la identificacion del cliente.");
+          return false;
+        }
+        return {
+          identificacionCliente,
+          modalidadPago,
+          modalidadServicio,
+          id_Postulacion: idPost ? Number(idPost) : null,
+        };
+      },
+    });
+
+    if (!formValues) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/pagos/servicio`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id_Servicio: service.id_Servicio,
+          origenSolicitud: "postulacion",
+          ...formValues,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo registrar el pago.");
+      Swal.fire("Pago registrado", `Referencia: ${data?.pago?.referenciaPago || "-"}`, "success");
+    } catch (error) {
+      Swal.fire("Error", error.message || "No se pudo registrar el pago.", "error");
+    }
+  };
+
   if (loading) {
     return <p className="text-slate-500">Cargando oportunidades...</p>;
   }
@@ -250,6 +304,9 @@ export default function ExploreOpportunities() {
                   <div className="flex items-center gap-2">
                     <button onClick={() => postular(service)} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">
                       Postular
+                    </button>
+                    <button onClick={() => payFromOpportunity(service)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">
+                      Pagar
                     </button>
                     <button onClick={() => reportService(service)} className="px-3 py-2 rounded-lg bg-red-100 text-red-700 text-sm">
                       Reportar

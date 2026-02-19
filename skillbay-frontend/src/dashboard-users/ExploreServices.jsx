@@ -110,6 +110,54 @@ export default function ExploreServices() {
     }
   };
 
+  const payService = async (service) => {
+    const { value: formValues } = await Swal.fire({
+      title: "Simular pago de servicio",
+      html:
+        `<input id="pay-ident" class="swal2-input" placeholder="Identificacion del cliente" />` +
+        `<select id="pay-method" class="swal2-select"><option value="virtual">Pago virtual</option><option value="efectivo">Pago en efectivo</option></select>` +
+        `<select id="pay-mode" class="swal2-select"><option value="virtual">Servicio virtual</option><option value="presencial">Servicio presencial</option></select>`,
+      showCancelButton: true,
+      confirmButtonText: "Registrar pago",
+      cancelButtonText: "Cancelar",
+      preConfirm: () => {
+        const identificacionCliente = document.getElementById("pay-ident")?.value?.trim();
+        const modalidadPago = document.getElementById("pay-method")?.value;
+        const modalidadServicio = document.getElementById("pay-mode")?.value;
+        if (!identificacionCliente) {
+          Swal.showValidationMessage("Debes ingresar la identificacion del cliente.");
+          return false;
+        }
+        return { identificacionCliente, modalidadPago, modalidadServicio };
+      },
+    });
+
+    if (!formValues) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/pagos/servicio`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id_Servicio: service.id_Servicio,
+          origenSolicitud: "servicio",
+          ...formValues,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo registrar el pago.");
+      Swal.fire("Pago registrado", `Referencia: ${data?.pago?.referenciaPago || "-"}`, "success");
+    } catch (error) {
+      Swal.fire("Error", error.message || "No se pudo registrar el pago.", "error");
+    }
+  };
+
   if (loading) {
     return <p className="text-slate-500">Cargando servicios...</p>;
   }
@@ -158,6 +206,12 @@ export default function ExploreServices() {
                   className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg"
                 >
                   Solicitar servicio
+                </button>
+                <button
+                  onClick={() => payService(service)}
+                  className="mt-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 rounded-lg"
+                >
+                  Pagar servicio
                 </button>
               </div>
             </article>

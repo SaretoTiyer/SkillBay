@@ -8,9 +8,12 @@ export default function ForgotPassword({ onNavigate }) {
   const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
   const [step, setStep] = useState(1);
+  const [loadingCode, setLoadingCode] = useState(false);
+  const [loadingReset, setLoadingReset] = useState(false);
 
   const requestCode = async (e) => {
     e.preventDefault();
+    setLoadingCode(true);
     try {
       const response = await fetch(`${API_URL}/password/forgot`, {
         method: "POST",
@@ -23,11 +26,14 @@ export default function ForgotPassword({ onNavigate }) {
       setStep(2);
     } catch (error) {
       Swal.fire("Error", error.message, "error");
+    } finally {
+      setLoadingCode(false);
     }
   };
 
   const resetPassword = async (e) => {
     e.preventDefault();
+    setLoadingReset(true);
     try {
       const response = await fetch(`${API_URL}/password/reset`, {
         method: "POST",
@@ -40,6 +46,8 @@ export default function ForgotPassword({ onNavigate }) {
       onNavigate("login");
     } catch (error) {
       Swal.fire("Error", error.message, "error");
+    } finally {
+      setLoadingReset(false);
     }
   };
 
@@ -62,7 +70,9 @@ export default function ForgotPassword({ onNavigate }) {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <button type="submit" className="w-full py-2 rounded bg-blue-600 text-white">Enviar codigo</button>
+            <button type="submit" disabled={loadingCode} className="w-full py-2 rounded bg-blue-600 text-white disabled:opacity-60">
+              {loadingCode ? "Enviando..." : "Enviar codigo"}
+            </button>
           </form>
         )}
 
@@ -84,7 +94,9 @@ export default function ForgotPassword({ onNavigate }) {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <button type="submit" className="w-full py-2 rounded bg-emerald-600 text-white">Actualizar contrasena</button>
+            <button type="submit" disabled={loadingReset} className="w-full py-2 rounded bg-emerald-600 text-white disabled:opacity-60">
+              {loadingReset ? "Actualizando..." : "Actualizar contrasena"}
+            </button>
           </form>
         )}
 

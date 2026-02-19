@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MensajeController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PostulacionController;
+use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\ServicioController;
 use App\Http\Controllers\Api\UsuarioController;
@@ -21,6 +22,10 @@ Route::post('/password/reset', [AuthRecoveryController::class, 'restablecerContr
 Route::get('/usuarios', [UsuarioController::class, 'listar']);
 Route::get('/planes', [PlanController::class, 'listar']);
 Route::get('/planes/{id}', [PlanController::class, 'ver']);
+Route::get('/servicios/public', [ServicioController::class, 'publicExplore']);
+Route::get('/categorias/publicas', function () {
+    return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
+});
 
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -36,8 +41,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
     Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
     Route::get('/categorias', function () {
-        return \App\Models\Categoria::all();
+        return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
     });
+    Route::post('/pagos/plan', [PagoController::class, 'pagarPlan']);
+    Route::post('/pagos/servicio', [PagoController::class, 'pagarServicio']);
+    Route::get('/pagos/historial', [PagoController::class, 'historial']);
 
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::get('/notificaciones/resumen', [NotificacionController::class, 'resumen']);

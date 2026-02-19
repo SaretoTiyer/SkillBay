@@ -1,127 +1,133 @@
-import { ArrowRight, Laptop, Home, BookOpen, Wrench, PartyPopper, Hammer, Sparkles, CheckCircle, Clock, Users } from 'lucide-react';
-
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 
 export default function Services({ onNavigate }) {
-const serviceCategories = [
-    {
-    title: 'Tecnología',
-    description: 'Desarrollo web, diseño gráfico, soporte técnico, programación y más.',
-    icon: Laptop,
-    image: 'https://images.unsplash.com/photo-1758691462519-99076ad0d485?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-blue-500 to-blue-600',
-    services: ['Desarrollo Web', 'Diseño Gráfico', 'Soporte Técnico', 'Marketing Digital'],
-    },
-    {
-    title: 'Cuidado del Hogar',
-    description: 'Limpieza, jardinería, plomería, electricidad y mantenimiento general.',
-    icon: Home,
-    image: 'https://images.unsplash.com/photo-1686178827149-6d55c72d81df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-green-500 to-green-600',
-    services: ['Limpieza', 'Jardinería', 'Plomería', 'Electricidad'],
-    },
-    {
-    title: 'Educación',
-    description: 'Tutorías, clases particulares, formación profesional y asesorías académicas.',
-    icon: BookOpen,
-    image: 'https://images.unsplash.com/photo-1608986596619-eb50cc56831f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-purple-500 to-purple-600',
-    services: ['Tutorías', 'Idiomas', 'Música', 'Preparación Exámenes'],
-    },
-    {
-    title: 'Servicios Generales',
-    description: 'Consultoría, asesoría legal, contabilidad, traducción y más servicios profesionales.',
-    icon: Wrench,
-    image: 'https://images.unsplash.com/photo-1738817628102-0b420c17dac3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-orange-500 to-orange-600',
-    services: ['Consultoría', 'Asesoría Legal', 'Contabilidad', 'Traducción'],
-    },
-    {
-    title: 'Eventos',
-    description: 'Organización de eventos, catering, fotografía, animación y decoración.',
-    icon: PartyPopper,
-    image: 'https://images.unsplash.com/photo-1759477274116-e3cb02d2b9d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-pink-500 to-pink-600',
-    services: ['Organización', 'Catering', 'Fotografía', 'Decoración'],
-    },
-    {
-    title: 'Oficios Manuales',
-    description: 'Carpintería, pintura, albañilería, reparaciones y trabajos artesanales.',
-    icon: Hammer,
-    image: 'https://images.unsplash.com/photo-1759523131742-af817477bcd9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    color: 'from-yellow-500 to-yellow-600',
-    services: ['Carpintería', 'Pintura', 'Albañilería', 'Reparaciones'],
-    },
-];
+  const [categories, setCategories] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const steps = [
-    { number: '01', title: 'Crea tu Cuenta', description: 'Regístrate gratis en menos de 2 minutos', icon: Users },
-    { number: '02', title: 'Busca o Publica', description: 'Encuentra el servicio o publica tu oferta', icon: CheckCircle },
-    { number: '03', title: 'Conecta y Trabaja', description: 'Conecta con profesionales verificados', icon: Clock },
-];
+  useEffect(() => {
+    loadPublicData();
+  }, []);
 
-return (
+  const loadPublicData = async () => {
+    try {
+      const [categoriesRes, servicesRes] = await Promise.all([
+        fetch(`${API_URL}/categorias/publicas`, { headers: { Accept: "application/json" } }),
+        fetch(`${API_URL}/servicios/public`, { headers: { Accept: "application/json" } }),
+      ]);
+
+      const categoriesData = await categoriesRes.json();
+      const servicesData = await servicesRes.json();
+
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setServices(Array.isArray(servicesData) ? servicesData : []);
+    } catch (error) {
+      console.error("Error loading public services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const groupedCategories = useMemo(() => {
+    const groups = {};
+    categories.forEach((item) => {
+      const groupName = item.grupo || "General";
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(item);
+    });
+    return groups;
+  }, [categories]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-24 flex items-center justify-center text-slate-500">
+        <Loader2 className="animate-spin mr-2" size={22} /> Cargando servicios...
+      </div>
+    );
+  }
+
+  return (
     <div className="min-h-screen pt-20">
-    {/* --- Hero --- */}
-    <section className="relative overflow-hidden bg-linear-to-br from-[#0f2744] via-[#1E3A5F] to-[#2B6CB0] text-white">
-        <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#2B6CB0] rounded-full blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-[#1E3A5F] rounded-full blur-3xl opacity-20 animate-pulse delay-1000"></div>
+      <section className="bg-linear-to-br from-[#0f2744] via-[#1E3A5F] to-[#2B6CB0] text-white py-20 px-4">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl font-bold mb-4">Categorias y Subcategorias</h1>
+          <p className="text-blue-100">Explora servicios disponibles en la plataforma sin iniciar sesion.</p>
         </div>
+      </section>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-8">
-            <Sparkles className="text-yellow-300" size={18} />
-            <span className="text-sm">Más de 6 categorías de servicios disponibles</span>
+      <section className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {Object.entries(groupedCategories).map(([groupName, items]) => (
+            <article key={groupName} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-800 mb-3">{groupName}</h2>
+              <p className="text-sm text-slate-500 mb-4">
+                {items.length} subcategorias disponibles.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {items.map((subcategory) => (
+                  <span key={subcategory.id_Categoria} className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-full">
+                    {subcategory.nombre}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
         </div>
-        <h1 className="mb-6 bg-linear-to-r from-white via-white to-blue-100 bg-clip-text text-transparent">
-            Categorías de Servicios
-        </h1>
-        <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-            Explora nuestra amplia variedad de servicios profesionales.
-        </p>
-        </div>
+      </section>
 
-        <div className="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 120" fill="none">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H0Z" fill="white"/>
-        </svg>
-        </div>
-    </section>
+      <section className="bg-slate-50 border-y border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <h2 className="text-2xl font-bold text-slate-800">Servicios publicados</h2>
+            <button
+              onClick={() => onNavigate("register")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
+              Registrarse para contratar
+            </button>
+          </div>
 
-    {/* --- Categorías --- */}
-    <section className="py-24 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {serviceCategories.map((category, index) => {
-            const Icon = category.icon;
-            return (
-            <div key={index} className="group bg-white rounded-2xl overflow-hidden hover:shadow-2xl border-2 border-gray-200 transition-all hover:-translate-y-2">
-                <div className="relative h-56">
-                <img src={category.image} alt={category.title} className="w-full h-full object-cover" />
-                <div className={`absolute inset-0 bg-linear-to-t ${category.color} opacity-60`}></div>
-                <div className="absolute top-4 right-4 bg-white/90 p-3 rounded-xl shadow-lg">
-                    <Icon className="text-[#1E3A5F]" size={28} />
-                </div>
-                </div>
-                <div className="p-8">
-                <h3 className="text-[#1E3A5F] mb-3">{category.title}</h3>
-                <p className="text-[#A0AEC0] mb-4">{category.description}</p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                    {category.services.map((service, idx) => (
-                    <span key={idx} className="px-3 py-1.5 bg-[#E2E8F0] text-[#1E3A5F] rounded-full text-sm">
-                        {service}
-                    </span>
-                    ))}
-                </div>
-                <button className="w-full py-3 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] text-white rounded-xl flex items-center justify-center gap-2 hover:shadow-lg">
-                    <span>Explorar Servicios</span>
-                    <ArrowRight size={18} />
-                </button>
-                </div>
+          {services.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+              Aun no hay servicios publicados.
             </div>
-            );
-        })}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {services.slice(0, 12).map((service) => (
+                <article key={service.id_Servicio} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                  <div className="h-40 bg-slate-100">
+                    {service.imagen ? (
+                      <img src={resolveImageUrl(service.imagen)} alt={service.titulo} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">Sin imagen</div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-slate-800 line-clamp-1">{service.titulo}</h3>
+                    <p className="text-sm text-slate-500 line-clamp-2 mt-1">{service.descripcion || "Sin descripcion."}</p>
+                    <div className="flex items-center justify-between mt-4">
+                      <span className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded">{service?.categoria?.nombre || "General"}</span>
+                      <span className="text-sm font-semibold text-blue-700">
+                        {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")} COP` : "A convenir"}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <button onClick={() => onNavigate("register")} className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#1E3A5F] text-white hover:bg-[#163050]">
+              Crear cuenta para solicitar servicios
+              <ArrowRight size={17} />
+            </button>
+          </div>
         </div>
-    </section>
+      </section>
     </div>
-);
+  );
 }

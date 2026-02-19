@@ -12,6 +12,24 @@ use Illuminate\Support\Facades\Validator;
 
 class ServicioController extends Controller
 {
+    // Explorar servicios publicados para visitantes (sin autenticacion)
+    public function publicExplore()
+    {
+        $servicios = Servicio::with(['categoria', 'cliente_usuario'])
+            ->where('estado', 'Activo')
+            ->orderBy('fechaPublicacion', 'desc')
+            ->get();
+
+        $servicios->transform(function ($servicio) {
+            if ($servicio->imagen) {
+                $servicio->imagen = asset('storage/' . $servicio->imagen);
+            }
+            return $servicio;
+        });
+
+        return response()->json($servicios);
+    }
+
     // Listar servicios del usuario autenticado
     public function index(Request $request)
     {
