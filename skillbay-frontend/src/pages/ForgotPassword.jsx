@@ -58,7 +58,7 @@ export default function ForgotPassword({ onNavigate }) {
           <img src={logoFull} alt="SkillBay" className="h-14" />
         </div>
         <h1 className="text-xl font-bold text-[#1E3A5F] mb-2">Recuperar contraseña</h1>
-        <p className="text-sm text-slate-500 mb-6">Recibe un codigo en tu correo y crea una nueva contrasena.</p>
+        <p className="text-sm text-slate-500 mb-6">Recibe un codigo en tu correo y crea una nueva Contraseña.</p>
 
         {step === 1 && (
           <form onSubmit={requestCode} className="space-y-4">
@@ -95,7 +95,7 @@ export default function ForgotPassword({ onNavigate }) {
               required
             />
             <button type="submit" disabled={loadingReset} className="w-full py-2 rounded bg-emerald-600 text-white disabled:opacity-60">
-              {loadingReset ? "Actualizando..." : "Actualizar contrasena"}
+              {loadingReset ? "Actualizando..." : "Actualizar Contraseña"}
             </button>
           </form>
         )}

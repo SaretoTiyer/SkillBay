@@ -97,7 +97,11 @@ export default function Services({ onNavigate }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {services.slice(0, 12).map((service) => (
-                <article key={service.id_Servicio} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <article
+                  key={service.id_Servicio}
+                  onClick={() => onNavigate("register")}
+                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
+                >
                   <div className="h-40 bg-slate-100">
                     {service.imagen ? (
                       <img src={resolveImageUrl(service.imagen)} alt={service.titulo} className="w-full h-full object-cover" />
@@ -114,6 +118,16 @@ export default function Services({ onNavigate }) {
                         {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")} COP` : "A convenir"}
                       </span>
                     </div>
+                    <button
+                      type="button"
+                      className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate("register");
+                      }}
+                    >
+                      Ver y solicitar
+                    </button>
                   </div>
                 </article>
               ))}

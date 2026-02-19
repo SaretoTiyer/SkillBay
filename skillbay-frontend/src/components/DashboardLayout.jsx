@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Wallet, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
@@ -10,6 +10,8 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const notificationRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
   const currentUser = useMemo(() => {
     try {
@@ -34,6 +36,20 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
     fetchNotificationsSummary();
     const interval = setInterval(fetchNotificationsSummary, 15000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const fetchNotificationsSummary = async () => {
@@ -77,7 +93,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
                 className="relative p-2 hover:bg-[#E2E8F0] rounded-lg text-[#1E3A5F]"
@@ -97,7 +113,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setProfileMenuOpen((prev) => !prev)}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg"

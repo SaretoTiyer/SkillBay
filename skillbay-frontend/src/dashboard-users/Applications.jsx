@@ -286,7 +286,7 @@ export default function Applications() {
               <>
                 <Button variant="outline" onClick={() => editProposal(application)}>Editar Propuesta</Button>
                 <Button variant="outline" className="border-amber-200 text-amber-700" onClick={() => cancelProposal(application)}>
-                  Cancelar Postulacion
+                  Cancelar Postulación
                 </Button>
               </>
             )}

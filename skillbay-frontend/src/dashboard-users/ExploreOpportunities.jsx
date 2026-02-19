@@ -6,7 +6,7 @@ import { resolveImageUrl } from "../utils/image";
 
 const OPPORTUNITY_DEFAULTS = {
   "Desarrollo Web": "#0f172a|#1d4ed8",
-  "Diseno Grafico": "#1f2937|#ec4899",
+  "Diseño Grafico": "#1f2937|#ec4899",
   "Marketing Digital": "#14532d|#16a34a",
   "Consultoria": "#312e81|#6366f1",
   "Desarrollo Movil": "#7f1d1d|#ef4444",
@@ -73,10 +73,10 @@ export default function ExploreOpportunities() {
 
   const postular = async (service) => {
     const { value: mensaje } = await Swal.fire({
-      title: "Enviar postulaci�n",
+      title: "Enviar postulación",
       input: "textarea",
-      inputLabel: "Mensaje de postulaci�n",
-      inputPlaceholder: "Escribe por qu� eres una buena opci�n para esta oportunidad...",
+      inputLabel: "Mensaje de postulación",
+      inputPlaceholder: "Escribe por que eres una buena opción para esta oportunidad...",
       inputAttributes: {
         maxlength: "2000",
       },
@@ -112,12 +112,12 @@ export default function ExploreOpportunities() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.message || "No se pudo registrar la postulaci�n.");
+        throw new Error(data?.message || "No se pudo registrar la postulación.");
       }
 
-      Swal.fire("Enviado", "Tu postulaci�n fue enviada.", "success");
+      Swal.fire("Enviado", "Tu postulación fue enviada.", "success");
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la postulaci�n.", "error");
+      Swal.fire("Error", error.message || "No se pudo enviar la postulación.", "error");
     }
   };
 
@@ -225,7 +225,7 @@ export default function ExploreOpportunities() {
     <div className="max-w-7xl mx-auto p-4">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#1E3A5F]">Explorar Oportunidades</h1>
-        <p className="text-[#64748B]">Explora oportunidades publicadas por otros usuarios y env�a tu postulaci�n.</p>
+        <p className="text-[#64748B]">Explora oportunidades publicadas por otros usuarios y envía tu postulación.</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6">

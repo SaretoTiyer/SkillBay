@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { API_URL } from '../config/api';
 import logoFull from '../assets/IconoSkillBay.png';
@@ -14,18 +14,13 @@ export default function Login({ onNavigate, onLogin }) {
         password: '',
     });
 
-    // -------- SANITIZACIÓN SEGURA (igual que Register.jsx) ----------
     const sanitize = (name, value) => {
         if (value == null) return '';
         let s = String(value);
 
-        // Quitar caracteres invisibles
         s = s.replace(/[\u0000-\u001F\u007F]/g, '');
-
-        // Quitar caracteres peligrosos
         s = s.replace(/['"`;=<>\/\*]/g, '');
 
-        // Email y password NO permiten espacios
         if (name === 'id_CorreoUsuario' || name === 'password') {
             s = s.replace(/\s+/g, '');
         }
@@ -39,34 +34,31 @@ export default function Login({ onNavigate, onLogin }) {
         setFormData((prev) => ({ ...prev, [name]: cleaned }));
     };
 
-    // -------- VALIDACIÓN ----------
     const validate = () => {
         if (!formData.id_CorreoUsuario.trim() || !formData.password.trim()) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Campos vacíos',
+                title: 'Campos vacios',
                 text: 'Por favor, completa todos los campos antes de continuar.',
             });
             return false;
         }
 
-        // Email válido
         const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.id_CorreoUsuario);
         if (!emailOk) {
             Swal.fire({
                 icon: 'error',
-                title: 'Correo inválido',
-                text: 'Ingresa un correo electrónico válido.',
+                title: 'Correo invalido',
+                text: 'Ingresa un correo electronico valido.',
             });
             return false;
         }
 
-        // Password mínimo
         if (formData.password.length < 8) {
             Swal.fire({
                 icon: 'error',
-                title: 'Contraseña inválida',
-                text: 'La contraseña debe tener mínimo 8 caracteres.',
+                title: 'Contraseña invalida',
+                text: 'La contraseña debe tener minimo 8 caracteres.',
             });
             return false;
         }
@@ -74,7 +66,6 @@ export default function Login({ onNavigate, onLogin }) {
         return true;
     };
 
-    // -------- SUBMIT ----------
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
@@ -94,16 +85,14 @@ export default function Login({ onNavigate, onLogin }) {
             const contentType = response.headers.get('content-type') || '';
             let data = {};
 
-            // Si backend devuelve JSON → leer normal
             if (contentType.includes('application/json')) {
                 data = await response.json();
             } else {
-                // Si backend devuelve HTML → error (ej. redirección Laravel)
                 const text = await response.text();
                 Swal.fire({
                     icon: 'error',
                     title: 'Error inesperado',
-                    text: text || 'Respuesta no válida del servidor.',
+                    text: text || 'Respuesta no valida del servidor.',
                 });
                 return;
             }
@@ -112,27 +101,24 @@ export default function Login({ onNavigate, onLogin }) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Bienvenido',
-                    text: 'Inicio de sesión exitoso',
+                    text: 'Inicio de sesion exitoso',
                     timer: 1500,
                     showConfirmButton: false,
                 });
 
-                // Guardar usuario y token
                 localStorage.setItem('usuario', JSON.stringify(data.usuario || {}));
                 if (data.access_token) {
                     localStorage.setItem('access_token', data.access_token);
                 }
 
-                // Callback global
                 onLogin && onLogin(data);
 
-                // Redirige segun rol
                 const nextView = data?.usuario?.rol === 'admin' ? 'admin_overview' : 'explore';
                 onNavigate(nextView);
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error de autenticación',
+                    title: 'Error de autenticacion',
                     text: data.message || 'Credenciales incorrectas.',
                 });
             }
@@ -141,7 +127,7 @@ export default function Login({ onNavigate, onLogin }) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error del servidor',
-                text: 'No se pudo conectar con el servidor. Inténtalo más tarde.',
+                text: 'No se pudo conectar con el servidor. Intentalo mas tarde.',
             });
         } finally {
             setIsLoading(false);
@@ -150,23 +136,31 @@ export default function Login({ onNavigate, onLogin }) {
 
     return (
         <>
-            {isLoading && <Loader text="Iniciando sesión..." />}
+            {isLoading && <Loader text="Iniciando sesion..." />}
             <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-md w-full">
                     <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+                        <button
+                            type="button"
+                            onClick={() => onNavigate('home')}
+                            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                        >
+                            <ArrowLeft size={16} />
+                            Regresar
+                        </button>
+
                         <div className="flex justify-center mb-8">
                             <img src={logoFull} alt="SkillBay" className="h-16" />
                         </div>
 
                         <div className="text-center mb-8">
-                            <h2 className="text-[#1E3A5F] mb-2">Iniciar Sesión</h2>
+                            <h2 className="text-[#1E3A5F] mb-2">Iniciar Sesion</h2>
                             <p className="text-[#A0AEC0]">Bienvenido de nuevo a SkillBay</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Email */}
                             <div>
-                                <label className="block text-[#1E3A5F]">Correo Electrónico</label>
+                                <label className="block text-[#1E3A5F]">Correo Electronico</label>
                                 <input
                                     type="email"
                                     name="id_CorreoUsuario"
@@ -179,7 +173,6 @@ export default function Login({ onNavigate, onLogin }) {
                                 />
                             </div>
 
-                            {/* Contraseña */}
                             <div>
                                 <label className="block text-[#1E3A5F]">Contraseña</label>
                                 <div className="relative mt-2">
@@ -204,7 +197,6 @@ export default function Login({ onNavigate, onLogin }) {
                                 </div>
                             </div>
 
-                            {/* Opciones */}
                             <div className="flex items-center justify-between">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input
@@ -218,18 +210,17 @@ export default function Login({ onNavigate, onLogin }) {
                                     onClick={() => onNavigate('forgot_password')}
                                     className="text-[#2B6CB0] hover:text-[#2563a7] transition-colors"
                                 >
-                                    ¿Olvidaste tu contraseña?
+                                    Olvidaste tu Contraseña?
                                 </button>
                             </div>
 
-                            {/* Botón */}
                             <button
                                 type="submit"
                                 disabled={isLoading}
                                 className="w-full flex items-center justify-center gap-2 bg-[#2B6CB0] hover:bg-[#2563a7] text-white py-3 rounded-lg"
                             >
                                 <LogIn size={18} />
-                                Iniciar Sesión
+                                Iniciar Sesion
                             </button>
                         </form>
 
@@ -241,28 +232,18 @@ export default function Login({ onNavigate, onLogin }) {
 
                         <div className="mt-8 text-center">
                             <p className="text-[#A0AEC0]">
-                                ¿No tienes una cuenta?{' '}
+                                No tienes una cuenta?{' '}
                                 <button
                                     onClick={() => onNavigate('register')}
                                     className="text-[#2B6CB0] hover:text-[#2563a7] transition-colors"
                                 >
-                                    Regístrate
+                                    Registrate
                                 </button>
                             </p>
                         </div>
                     </div>
-
-                    <div className="mt-6 text-center">
-                        <button
-                            onClick={() => onNavigate('home')}
-                            className="text-white hover:text-[#E2E8F0] transition-colors"
-                        >
-                            ← Volver al Inicio
-                        </button>
-                    </div>
                 </div>
             </div>
         </>
-
     );
 }

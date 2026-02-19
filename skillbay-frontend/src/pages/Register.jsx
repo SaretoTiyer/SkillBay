@@ -1,5 +1,5 @@
     import { useEffect,useState, useMemo } from 'react';
-    import { Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
+    import { ArrowLeft, Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
     import Swal from 'sweetalert2';
     import { API_URL } from '../config/api';
     import { API_Departamentos } from '../config/api';
@@ -312,6 +312,15 @@
 
             <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md lg:max-w-4xl w-full bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+                <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate('home')}
+                    className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                >
+                    <ArrowLeft size={16} />
+                    Regresar
+                </button>
+
                 <div className="flex justify-center mb-8">
                 <img src={logoFull} alt="SkillBay" className="h-16" />
                 </div>

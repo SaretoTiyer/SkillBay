@@ -51,7 +51,7 @@ class AuthRecoveryController extends Controller
             Mail::raw(
                 "Hola,\n\nTu codigo de recuperacion de SkillBay es: {$token}\n\nEste codigo vence en 20 minutos.",
                 function ($message) use ($email) {
-                    $message->to($email)->subject('Recuperacion de contrasena - SkillBay');
+                    $message->to($email)->subject('Recuperacion de Contraseña - SkillBay');
                 }
             );
         } catch (\Exception $e) {
@@ -68,7 +68,7 @@ class AuthRecoveryController extends Controller
         ]);
     }
 
-    public function restablecerContrasena(Request $request)
+    public function restablecerContraseña(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email|max:191',
@@ -107,7 +107,7 @@ class AuthRecoveryController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Contrasena actualizada correctamente.',
+            'message' => 'Contraseña actualizada correctamente.',
         ]);
     }
 }
