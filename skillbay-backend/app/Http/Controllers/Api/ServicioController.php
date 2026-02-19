@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notificacion;
+use App\Models\Postulacion;
 use App\Models\Servicio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -68,6 +69,7 @@ class ServicioController extends Controller
             'tiempo_entrega' => 'nullable|string|max:191',
             'id_Categoria' => 'required|exists:categorias,id_Categoria',
             'imagen' => 'nullable|image|max:2048', // 2MB Max
+            'estado' => 'nullable|string|in:Activo,Borrador,Inactivo',
         ]);
 
         if ($validator->fails()) {
@@ -90,7 +92,7 @@ class ServicioController extends Controller
 
         $data = $request->all();
         $data['id_Cliente'] = $user->id_CorreoUsuario;
-        $data['estado'] = 'Activo'; // Default
+        $data['estado'] = $data['estado'] ?? 'Activo';
 
         // Handle Image Upload
         if ($request->hasFile('imagen')) {
@@ -104,6 +106,16 @@ class ServicioController extends Controller
         }
 
         $servicio = Servicio::create($data);
+
+        if ($user->rol === 'ofertante') {
+            $tienePostulaciones = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
+                ->whereIn('estado', ['pendiente', 'aceptada', 'rechazada'])
+                ->exists();
+            if (!$tienePostulaciones) {
+                $user->rol = 'cliente';
+                $user->save();
+            }
+        }
 
         if ($servicio->imagen) {
             $servicio->imagen = asset('storage/' . $servicio->imagen);

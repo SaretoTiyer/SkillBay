@@ -7,6 +7,7 @@ export default function UserMessages() {
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const currentUser = JSON.parse(localStorage.getItem("usuario") || "{}");
 
   useEffect(() => {
     fetchApplications();
@@ -58,6 +59,13 @@ export default function UserMessages() {
     }
   };
 
+  const openPublicProfile = (idCorreo) => {
+    if (!idCorreo) return;
+    localStorage.setItem("profile_target_user", idCorreo);
+    localStorage.setItem("currentView", "public_profile");
+    window.location.reload();
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <aside className="bg-white rounded-xl border border-slate-200 p-3">
@@ -73,6 +81,9 @@ export default function UserMessages() {
             >
               <p className="text-sm font-medium text-slate-700">{app.servicio?.titulo || `Postulacion #${app.id}`}</p>
               <p className="text-xs text-slate-500">Estado: {app.estado}</p>
+              <p className="text-xs text-blue-600">
+                Con: {app.id_Usuario === currentUser.id_CorreoUsuario ? app.servicio?.id_Cliente : app.id_Usuario}
+              </p>
             </button>
           ))}
         </div>
@@ -85,11 +96,21 @@ export default function UserMessages() {
             <h3 className="font-semibold text-slate-800 border-b border-slate-100 pb-2 mb-3">
               Conversacion: {selected.servicio?.titulo || `Postulacion #${selected.id}`}
             </h3>
+            <button
+              onClick={() =>
+                openPublicProfile(
+                  selected.id_Usuario === currentUser.id_CorreoUsuario ? selected.servicio?.id_Cliente : selected.id_Usuario
+                )
+              }
+              className="text-xs text-blue-600 hover:underline mb-3 self-start"
+            >
+              Ver perfil del usuario
+            </button>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {messages.map((msg) => (
                 <div key={msg.id_Mensaje} className="p-2 rounded bg-slate-50 border border-slate-100">
                   <p className="text-xs text-slate-500">
-                    {msg.emisor?.nombre || msg.id_Emisor} - {new Date(msg.created_at).toLocaleString()}
+                    De: {msg.emisor?.nombre || msg.id_Emisor} - {new Date(msg.created_at).toLocaleString()}
                   </p>
                   <p className="text-sm text-slate-700">{msg.mensaje}</p>
                 </div>

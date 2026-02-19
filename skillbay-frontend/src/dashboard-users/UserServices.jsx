@@ -59,6 +59,9 @@ export default function UserServices() {
     });
 
     const [previewImage, setPreviewImage] = useState(null);
+    const [serviceRequests, setServiceRequests] = useState([]);
+    const [loadingRequests, setLoadingRequests] = useState(true);
+    const [updatingRequestId, setUpdatingRequestId] = useState(null);
 
     const defaultCategories = [
         { id_Categoria: "web", nombre: "Desarrollo Web" },
@@ -71,6 +74,7 @@ export default function UserServices() {
     useEffect(() => {
         fetchServices();
         fetchCategories();
+        fetchServiceRequests();
     }, []);
 
     const fetchServices = async () => {
@@ -114,6 +118,67 @@ export default function UserServices() {
         } catch (error) {
             console.error("Error fetching categories:", error);
             setCategories(defaultCategories);
+        }
+    };
+
+    const fetchServiceRequests = async () => {
+        try {
+            const token = localStorage.getItem("access_token");
+            if (!token) return;
+
+            const response = await fetch(`${API_URL}/servicios/solicitudes`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setServiceRequests(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error("Error fetching service requests:", error);
+        } finally {
+            setLoadingRequests(false);
+        }
+    };
+
+    const updateServiceRequestStatus = async (requestId, status) => {
+        setUpdatingRequestId(requestId);
+        try {
+            const token = localStorage.getItem("access_token");
+            const response = await fetch(`${API_URL}/servicios/solicitudes/${requestId}/estado`, {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ estado: status }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.message || "No se pudo actualizar el estado de la solicitud.");
+            }
+
+            setServiceRequests((prev) =>
+                prev.map((item) =>
+                    item.id === requestId ? { ...item, estado: status } : item
+                )
+            );
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Estado actualizado',
+                timer: 1400,
+                showConfirmButton: false,
+            });
+        } catch (error) {
+            Swal.fire('Error', error.message || 'No se pudo actualizar la solicitud.', 'error');
+        } finally {
+            setUpdatingRequestId(null);
         }
     };
 
@@ -296,6 +361,21 @@ export default function UserServices() {
         );
     };
 
+    const getRequestStatusBadge = (status) => {
+        const tone = {
+            pendiente: 'bg-amber-100 text-amber-700',
+            aceptada: 'bg-emerald-100 text-emerald-700',
+            rechazada: 'bg-rose-100 text-rose-700',
+            cancelada: 'bg-slate-100 text-slate-700',
+        };
+
+        return (
+            <Badge className={`${tone[status] || 'bg-slate-100 text-slate-700'} border-0 px-3 py-1 font-medium`}>
+                {status || 'pendiente'}
+            </Badge>
+        );
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center h-96">
             <Loader2 className="animate-spin text-blue-600" size={40} />
@@ -467,6 +547,83 @@ export default function UserServices() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {/* Service Requests */}
+            <section className="mb-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800">Solicitudes de servicio recibidas</h2>
+                        <p className="text-slate-500 text-sm">Prioriza a quien atender en cada servicio publicado.</p>
+                    </div>
+                    <Badge className="bg-blue-100 text-blue-700 border-0 px-3 py-1">
+                        {serviceRequests.length} solicitudes
+                    </Badge>
+                </div>
+
+                {loadingRequests ? (
+                    <div className="flex items-center gap-2 text-slate-500 bg-white rounded-2xl border border-slate-200 p-5">
+                        <Loader2 className="animate-spin" size={18} /> Cargando solicitudes...
+                    </div>
+                ) : serviceRequests.length === 0 ? (
+                    <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+                        Aun no tienes solicitudes en tus servicios.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {serviceRequests.map((request) => (
+                            <article key={request.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                <div className="flex items-start justify-between gap-3 mb-3">
+                                    <div>
+                                        <h3 className="font-semibold text-slate-800 line-clamp-1">{request?.servicio?.titulo || "Servicio"}</h3>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Solicitante: {request?.usuario?.nombre || "Usuario"} {request?.usuario?.apellido || ""}
+                                        </p>
+                                    </div>
+                                    {getRequestStatusBadge(request.estado)}
+                                </div>
+
+                                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 min-h-[78px] mb-3">
+                                    {request.mensaje || "Sin mensaje."}
+                                </p>
+
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <p className="text-xs text-slate-500">
+                                        {request.created_at ? new Date(request.created_at).toLocaleString("es-CO") : "Fecha no disponible"}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            disabled={updatingRequestId === request.id || request.estado === "aceptada"}
+                                            onClick={() => updateServiceRequestStatus(request.id, "aceptada")}
+                                        >
+                                            <Check size={14} className="mr-1" /> Priorizar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                                            disabled={updatingRequestId === request.id || request.estado === "rechazada"}
+                                            onClick={() => updateServiceRequestStatus(request.id, "rechazada")}
+                                        >
+                                            <X size={14} className="mr-1" /> Rechazar
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="border-slate-200 text-slate-700 hover:bg-slate-50"
+                                            disabled={updatingRequestId === request.id || request.estado === "pendiente"}
+                                            onClick={() => updateServiceRequestStatus(request.id, "pendiente")}
+                                        >
+                                            <Clock size={14} className="mr-1" /> Pendiente
+                                        </Button>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                )}
+            </section>
 
             {/* Empty State */}
             {services.length === 0 && !loading && (

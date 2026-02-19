@@ -14,11 +14,13 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 
 import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
+import ExploreServices from "./dashboard-users/ExploreServices";
 import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
 import Applications from "./dashboard-users/Applications";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
 import UserMessages from "./dashboard-users/UserMessages";
+import UserPublicProfile from "./dashboard-users/UserPublicProfile";
 
 import AdminOverview from "./dashboard-admin/AdminOverview";
 import UserManagement from "./dashboard-admin/UserManagement";
@@ -81,6 +83,8 @@ function App() {
     switch (currentView) {
       case "explore":
         return <ExploreOpportunities />;
+      case "explore_services":
+        return <ExploreServices />;
       case "profile":
         return <UserProfile />;
       case "services":
@@ -89,6 +93,8 @@ function App() {
         return <Applications />;
       case "messages":
         return <UserMessages />;
+      case "public_profile":
+        return <UserPublicProfile onBack={() => setCurrentView("explore")} />;
       case "plans":
         return <PlanesUser />;
       default:

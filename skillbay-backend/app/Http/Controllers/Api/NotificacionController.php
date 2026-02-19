@@ -58,6 +58,41 @@ class NotificacionController extends Controller
         ]);
     }
 
+    public function resumen(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 401);
+        }
+
+        $query = Notificacion::query()->where('estado', '!=', 'Leido');
+        if (!($user->rol === 'admin' && $request->query('scope') === 'all')) {
+            $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
+        }
+
+        $raw = $query->get(['tipo']);
+        $counts = [
+            'sistema' => 0,
+            'postulacion' => 0,
+            'reporte' => 0,
+            'servicio' => 0,
+        ];
+
+        foreach ($raw as $item) {
+            $seccion = $this->mapearSeccion((string) ($item->tipo ?? 'sistema'));
+            if (!isset($counts[$seccion])) {
+                $counts[$seccion] = 0;
+            }
+            $counts[$seccion]++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'unread_total' => array_sum($counts),
+            'sections' => $counts,
+        ]);
+    }
+
     public function marcarLeida(Request $request, $id)
     {
         $user = $request->user();

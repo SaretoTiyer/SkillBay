@@ -19,7 +19,7 @@ export default function AdminDashboardLayout({
   onNavigate,
   onLogout,
 }) {
-  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const navItems = useMemo(
@@ -36,12 +36,14 @@ export default function AdminDashboardLayout({
 
   useEffect(() => {
     fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/admin/notificaciones?scope=all`, {
+      const response = await fetch(`${API_URL}/notificaciones/resumen?scope=all`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -49,13 +51,11 @@ export default function AdminDashboardLayout({
       });
       if (!response.ok) return;
       const data = await response.json();
-      setNotifications(Array.isArray(data?.notificaciones) ? data.notificaciones : []);
+      setUnreadCount(Number(data?.unread_total || 0));
     } catch (error) {
       console.error("Error fetching admin notifications:", error);
     }
   };
-
-  const unreadCount = notifications.filter((item) => item.estado !== "Leido").length;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -88,7 +88,7 @@ export default function AdminDashboardLayout({
 
           {showNotifications && (
             <div className="absolute right-0 top-12">
-              <NotificationCenter isAdmin />
+              <NotificationCenter isAdmin onActionComplete={fetchNotifications} />
             </div>
           )}
         </div>

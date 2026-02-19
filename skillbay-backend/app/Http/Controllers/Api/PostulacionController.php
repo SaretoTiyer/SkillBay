@@ -23,13 +23,79 @@ class PostulacionController extends Controller
 
         // Get applications made by the user, including service and service's client details
         $postulaciones = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
-            ->with(['servicio', 'servicio.cliente_usuario' => function($query) {
-                 $query->select('id_CorreoUsuario', 'nombre', 'apellido');
+            ->with(['servicio', 'servicio.cliente_usuario' => function ($query) {
+                $query->select('id_CorreoUsuario', 'nombre', 'apellido');
             }])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json($postulaciones);
+    }
+
+    /**
+     * Solicitudes recibidas para servicios del usuario autenticado.
+     */
+    public function solicitudesRecibidas(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $solicitudes = Postulacion::with([
+            'servicio:id_Servicio,titulo,id_Cliente,id_Categoria,imagen,estado',
+            'servicio.categoria:id_Categoria,nombre',
+            'usuario:id_CorreoUsuario,nombre,apellido,ciudad',
+        ])
+            ->whereHas('servicio', function ($query) use ($user) {
+                $query->where('id_Cliente', $user->id_CorreoUsuario);
+            })
+            ->orderByRaw("CASE estado WHEN 'pendiente' THEN 0 WHEN 'aceptada' THEN 1 WHEN 'rechazada' THEN 2 WHEN 'cancelada' THEN 3 ELSE 4 END")
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($solicitudes);
+    }
+
+    /**
+     * Priorizar o actualizar estado de una solicitud recibida por el dueno del servicio.
+     */
+    public function actualizarEstadoSolicitud(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $validated = $request->validate([
+            'estado' => 'required|in:pendiente,aceptada,rechazada',
+        ]);
+
+        $postulacion = Postulacion::with(['servicio'])
+            ->where('id', $id)
+            ->whereHas('servicio', function ($query) use ($user) {
+                $query->where('id_Cliente', $user->id_CorreoUsuario);
+            })
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
+        }
+
+        $postulacion->estado = $validated['estado'];
+        $postulacion->save();
+
+        Notificacion::create([
+            'mensaje' => 'Tu solicitud para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ahora esta ' . $validated['estado'] . '.',
+            'estado' => 'No leido',
+            'tipo' => 'postulacion',
+            'id_CorreoUsuario' => $postulacion->id_Usuario,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'postulacion' => $postulacion,
+        ]);
     }
 
     /**
@@ -52,6 +118,7 @@ class PostulacionController extends Controller
         // Prevent double application
         $exists = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
             ->where('id_Servicio', $request->id_Servicio)
+            ->where('estado', '!=', 'cancelada')
             ->exists();
 
         if ($exists) {
@@ -67,6 +134,11 @@ class PostulacionController extends Controller
             'estado' => 'pendiente'
         ]);
 
+        if ($user->rol === 'cliente') {
+            $user->rol = 'ofertante';
+            $user->save();
+        }
+
         $servicio = Servicio::find($request->id_Servicio);
         if ($servicio) {
             Notificacion::create([
@@ -78,6 +150,103 @@ class PostulacionController extends Controller
         }
 
         return response()->json($postulacion, 201);
+    }
+
+    /**
+     * Actualizar una postulacion del usuario autenticado.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $postulacion = Postulacion::where('id', $id)
+            ->where('id_Usuario', $user->id_CorreoUsuario)
+            ->with('servicio')
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Postulacion no encontrada.'], 404);
+        }
+
+        if ($postulacion->estado !== 'pendiente') {
+            return response()->json(['message' => 'Solo puedes editar postulaciones pendientes.'], 422);
+        }
+
+        $validated = $request->validate([
+            'mensaje' => 'required|string|min:5|max:2000',
+            'presupuesto' => 'nullable|numeric|min:0',
+            'tiempo_estimado' => 'nullable|string|max:191',
+        ]);
+
+        $postulacion->update($validated);
+
+        if ($postulacion->servicio) {
+            Notificacion::create([
+                'mensaje' => 'Una postulacion fue actualizada en tu servicio "' . $postulacion->servicio->titulo . '".',
+                'estado' => 'No leido',
+                'tipo' => 'postulacion',
+                'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'postulacion' => $postulacion,
+        ]);
+    }
+
+    /**
+     * Cancelar una postulacion del usuario autenticado.
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $postulacion = Postulacion::where('id', $id)
+            ->where('id_Usuario', $user->id_CorreoUsuario)
+            ->with('servicio')
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Postulacion no encontrada.'], 404);
+        }
+
+        if ($postulacion->estado === 'cancelada') {
+            return response()->json(['message' => 'La postulacion ya esta cancelada.'], 422);
+        }
+
+        $postulacion->estado = 'cancelada';
+        $postulacion->save();
+
+        if ($postulacion->servicio) {
+            Notificacion::create([
+                'mensaje' => 'Una postulacion fue cancelada en tu servicio "' . $postulacion->servicio->titulo . '".',
+                'estado' => 'No leido',
+                'tipo' => 'postulacion',
+                'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+            ]);
+        }
+
+        $pendientesActivas = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
+            ->whereIn('estado', ['pendiente', 'aceptada', 'rechazada'])
+            ->exists();
+
+        if ($user->rol === 'ofertante' && !$pendientesActivas) {
+            $user->rol = 'cliente';
+            $user->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Postulacion cancelada correctamente.',
+            'postulacion' => $postulacion,
+        ]);
     }
 
     /**
@@ -113,7 +282,7 @@ class PostulacionController extends Controller
         }
 
         $validated = $request->validate([
-            'estado' => 'required|in:pendiente,aceptada,rechazada',
+            'estado' => 'required|in:pendiente,aceptada,rechazada,cancelada',
         ]);
 
         $postulacion = Postulacion::with('servicio')->findOrFail($id);

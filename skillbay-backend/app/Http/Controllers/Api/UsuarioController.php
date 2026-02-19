@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Notificacion;
 use App\Models\Plan;
+use App\Models\Servicio;
 use App\Models\Usuario;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -363,6 +364,54 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cambiar el estado del usuario',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar todos los usuarios
+     */
+    public function perfilPublico(Request $request, $id)
+    {
+        try {
+            $viewer = $request->user();
+            if (!$viewer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 401);
+            }
+
+            $usuario = Usuario::select([
+                'id_CorreoUsuario',
+                'nombre',
+                'apellido',
+                'rol',
+                'ciudad',
+                'departamento',
+                'id_Plan',
+                'fechaRegistro',
+            ])->findOrFail($id);
+
+            $servicios = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
+                ->with('categoria:id_Categoria,nombre')
+                ->orderBy('created_at', 'desc')
+                ->get(['id_Servicio', 'titulo', 'descripcion', 'precio', 'estado', 'imagen', 'id_Categoria', 'created_at']);
+
+            return response()->json([
+                'success' => true,
+                'usuario' => $usuario,
+                'resumen' => [
+                    'totalServicios' => $servicios->count(),
+                    'serviciosActivos' => $servicios->where('estado', 'Activo')->count(),
+                ],
+                'servicios' => $servicios,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo cargar el perfil.',
                 'error' => $e->getMessage(),
             ], 500);
         }

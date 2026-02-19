@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Briefcase, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, X } from "lucide-react";
+import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
 import NotificationCenter from "./NotificationCenter";
@@ -8,7 +8,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const currentUser = useMemo(() => {
     try {
@@ -20,21 +20,24 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
 
   const navItems = [
     { name: "Explorar Oportunidades", view: "explore", icon: Home },
+    { name: "Explorar Services", view: "explore_services", icon: BriefcaseBusiness },
     { name: "Mi Perfil", view: "profile", icon: User },
-    { name: "Mis Servicios", view: "services", icon: Briefcase },
+    { name: "Mi Servicios", view: "services", icon: Briefcase },
     { name: "Postulaciones", view: "applications", icon: FileText },
     { name: "Mensajes", view: "messages", icon: MessageSquare },
     { name: "Planes", view: "plans", icon: CreditCard },
   ];
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotificationsSummary();
+    const interval = setInterval(fetchNotificationsSummary, 15000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotificationsSummary = async () => {
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/notificaciones`, {
+      const response = await fetch(`${API_URL}/notificaciones/resumen`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -42,13 +45,12 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
       });
       if (!response.ok) return;
       const data = await response.json();
-      setNotifications(Array.isArray(data?.notificaciones) ? data.notificaciones : []);
+      setUnreadCount(Number(data?.unread_total || 0));
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
   };
 
-  const unreadCount = notifications.filter((item) => item.estado !== "Leido").length;
   const initials = `${currentUser?.nombre?.[0] || "U"}${currentUser?.apellido?.[0] || ""}`.toUpperCase();
   const fullName = `${currentUser?.nombre || "Usuario"} ${currentUser?.apellido || ""}`.trim();
 
@@ -88,7 +90,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
 
               {notificationsOpen && (
                 <div className="absolute right-0 mt-2 z-50">
-                  <NotificationCenter />
+                  <NotificationCenter onActionComplete={fetchNotificationsSummary} />
                 </div>
               )}
             </div>

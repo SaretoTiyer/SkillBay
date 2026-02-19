@@ -9,12 +9,14 @@ const sections = [
   { key: "servicio", label: "Su servicio" },
 ];
 
-export default function NotificationCenter({ isAdmin = false }) {
+export default function NotificationCenter({ isAdmin = false, onActionComplete }) {
   const [currentSection, setCurrentSection] = useState("sistema");
   const [notifications, setNotifications] = useState([]);
+  const [sectionCounts, setSectionCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchSummary();
     fetchNotifications(currentSection);
   }, [currentSection]);
 
@@ -53,6 +55,25 @@ export default function NotificationCenter({ isAdmin = false }) {
     "Content-Type": "application/json",
   });
 
+  const fetchSummary = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const params = new URLSearchParams();
+      if (isAdmin) params.set("scope", "all");
+      const response = await fetch(`${API_URL}/notificaciones/resumen?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setSectionCounts(data?.sections || {});
+    } catch (error) {
+      console.error("Error notification summary:", error);
+    }
+  };
+
   const markAllRead = async () => {
     const params = new URLSearchParams();
     params.set("seccion", currentSection);
@@ -61,7 +82,9 @@ export default function NotificationCenter({ isAdmin = false }) {
       method: "PATCH",
       headers: requestHeaders(),
     });
+    fetchSummary();
     fetchNotifications(currentSection);
+    onActionComplete && onActionComplete();
   };
 
   const clearAll = async () => {
@@ -72,7 +95,9 @@ export default function NotificationCenter({ isAdmin = false }) {
       method: "DELETE",
       headers: requestHeaders(),
     });
+    fetchSummary();
     fetchNotifications(currentSection);
+    onActionComplete && onActionComplete();
   };
 
   const markRead = async (id) => {
@@ -80,7 +105,9 @@ export default function NotificationCenter({ isAdmin = false }) {
       method: "PATCH",
       headers: requestHeaders(),
     });
+    fetchSummary();
     fetchNotifications(currentSection);
+    onActionComplete && onActionComplete();
   };
 
   const removeOne = async (id) => {
@@ -88,7 +115,9 @@ export default function NotificationCenter({ isAdmin = false }) {
       method: "DELETE",
       headers: requestHeaders(),
     });
+    fetchSummary();
     fetchNotifications(currentSection);
+    onActionComplete && onActionComplete();
   };
 
   return (
@@ -109,10 +138,10 @@ export default function NotificationCenter({ isAdmin = false }) {
             key={section.key}
             onClick={() => setCurrentSection(section.key)}
             className={`px-2.5 py-1 rounded-full text-xs ${
-              currentSection === section.key ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+              currentSection === section.key ? "bg-blue-600 text-white" : (sectionCounts?.[section.key] > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700")
             }`}
           >
-            {section.label}
+            {section.label} {sectionCounts?.[section.key] > 0 ? `(${sectionCounts[section.key]})` : ""}
           </button>
         ))}
       </div>

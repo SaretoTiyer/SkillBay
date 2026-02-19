@@ -29,14 +29,18 @@ Route::get('/login', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UsuarioController::class, 'me']);
     Route::put('/user', [UsuarioController::class, 'update']);
+    Route::get('/usuarios/{id}/perfil', [UsuarioController::class, 'perfilPublico']);
     Route::get('/servicios/explore', [ServicioController::class, 'explore']);
     Route::apiResource('servicios', ServicioController::class);
-    Route::apiResource('postulaciones', PostulacionController::class)->only(['index', 'store']);
+    Route::apiResource('postulaciones', PostulacionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
+    Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
     Route::get('/categorias', function () {
         return \App\Models\Categoria::all();
     });
 
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
+    Route::get('/notificaciones/resumen', [NotificacionController::class, 'resumen']);
     Route::patch('/notificaciones/{id}/leer', [NotificacionController::class, 'marcarLeida']);
     Route::patch('/notificaciones/marcar-todas-leidas', [NotificacionController::class, 'marcarTodasLeidas']);
     Route::delete('/notificaciones/{id}', [NotificacionController::class, 'eliminar']);
