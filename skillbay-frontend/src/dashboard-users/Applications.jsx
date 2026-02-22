@@ -210,6 +210,8 @@ export default function Applications() {
 
   const pending = applications.filter((a) => a.estado === "pendiente");
   const accepted = applications.filter((a) => a.estado === "aceptada");
+  const inProgress = applications.filter((a) => a.estado === "en_progreso");
+  const completed = applications.filter((a) => a.estado === "completada");
   const rejected = applications.filter((a) => a.estado === "rechazada");
   const canceled = applications.filter((a) => a.estado === "cancelada");
 
@@ -219,6 +221,10 @@ export default function Applications() {
         return <Badge className="bg-amber-500 text-white"><Clock size={14} className="inline mr-1" />Pendiente</Badge>;
       case "aceptada":
         return <Badge className="bg-emerald-500 text-white"><CheckCircle size={14} className="inline mr-1" />Aceptada</Badge>;
+      case "en_progreso":
+        return <Badge className="bg-blue-500 text-white"><Clock size={14} className="inline mr-1" />En Progreso</Badge>;
+      case "completada":
+        return <Badge className="bg-purple-500 text-white"><CheckCircle size={14} className="inline mr-1" />Completada</Badge>;
       case "rechazada":
         return <Badge className="bg-red-500 text-white"><XCircle size={14} className="inline mr-1" />Rechazada</Badge>;
       case "cancelada":
@@ -234,6 +240,10 @@ export default function Applications() {
         return "border-l-amber-500";
       case "aceptada":
         return "border-l-emerald-500";
+      case "en_progreso":
+        return "border-l-blue-500";
+      case "completada":
+        return "border-l-purple-500";
       case "rechazada":
         return "border-l-red-500";
       case "cancelada":
@@ -340,12 +350,16 @@ export default function Applications() {
                 <TabsTrigger value="all" className="rounded-lg px-4 py-2">Todas ({applications.length})</TabsTrigger>
                 <TabsTrigger value="pending" className="rounded-lg px-4 py-2">Pendientes ({pending.length})</TabsTrigger>
                 <TabsTrigger value="accepted" className="rounded-lg px-4 py-2">Aceptadas ({accepted.length})</TabsTrigger>
+                <TabsTrigger value="in_progress" className="rounded-lg px-4 py-2">En Progreso ({inProgress.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="rounded-lg px-4 py-2">Completadas ({completed.length})</TabsTrigger>
                 <TabsTrigger value="rejected" className="rounded-lg px-4 py-2">Rechazadas ({rejected.length})</TabsTrigger>
                 <TabsTrigger value="cancelled" className="rounded-lg px-4 py-2">Canceladas ({canceled.length})</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="space-y-6">{applications.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
               <TabsContent value="pending" className="space-y-6">{pending.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
               <TabsContent value="accepted" className="space-y-6">{accepted.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
+              <TabsContent value="in_progress" className="space-y-6">{inProgress.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
+              <TabsContent value="completed" className="space-y-6">{completed.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
               <TabsContent value="rejected" className="space-y-6">{rejected.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
               <TabsContent value="cancelled" className="space-y-6">{canceled.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
             </Tabs>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Landmark, Loader2, ReceiptText, CheckCircle, Clock, Star, DollarSign, Shield, ArrowRight } from "lucide-react";
+import { CreditCard, Landmark, Loader2, ReceiptText, CheckCircle, Clock, DollarSign, Shield, ExternalLink } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 
@@ -73,33 +73,100 @@ export default function UserPayments() {
   const submitPlanPayment = async (e) => {
     e.preventDefault();
     if (!planForm.id_Plan) return;
+
+    const plan = plans.find((p) => p.id_Plan === planForm.id_Plan);
+    const precio = Number(plan?.precioMensual ?? 0);
+
     setProcessing(true);
     try {
-      const response = await fetch(`${API_URL}/pagos/plan`, {
+      // Crear preferencia de pago con MercadoPago
+      const response = await fetch(`${API_URL}/mp/crear-preferencia`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify(planForm),
+        body: JSON.stringify({ id_Plan: planForm.id_Plan }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "No se pudo procesar el pago del plan.");
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || "No se pudo iniciar el proceso de pago.");
+      }
 
-      const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
-      localStorage.setItem("usuario", JSON.stringify(updatedUser));
+      // Plan gratuito: activado directamente
+      if (data?.gratuito) {
+        const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
+        localStorage.setItem("usuario", JSON.stringify(updatedUser));
+        Swal.fire({
+          title: "¡Plan activado!",
+          text: `El plan ${plan?.nombre} ha sido activado exitosamente.`,
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        await loadData();
+        return;
+      }
 
-      Swal.fire({
-        title: "¡Pago aprobado!",
+      // Plan de pago: redirigir a MercadoPago Checkout Pro
+      const checkoutUrl = data?.sandbox_init_point || data?.init_point;
+      if (!checkoutUrl) throw new Error("No se recibió la URL de pago de MercadoPago.");
+
+      const { isConfirmed } = await Swal.fire({
+        title: `Pagar Plan ${plan?.nombre}`,
         html: `
-          <div class="text-center">
-            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="text-green-600" size={32} />
+          <div class="text-center py-2">
+            <p class="text-slate-600 mb-3">Serás redirigido a MercadoPago para completar tu pago de forma segura.</p>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
+              <p class="text-sm text-blue-700 font-medium">Monto a pagar</p>
+              <p class="text-2xl font-bold text-blue-800">$${precio.toLocaleString("es-CO")} COP</p>
+              <p class="text-xs text-blue-600">/ mes</p>
             </div>
-            <p class="text-slate-600">Tu plan ha sido actualizado exitosamente</p>
-            <p class="text-sm text-slate-500 mt-2">Referencia: ${data?.pago?.referenciaPago || "-"}</p>
+            <p class="text-xs text-slate-400">Referencia: ${data?.referencia || "-"}</p>
           </div>
         `,
-        icon: "success",
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonText: "Ir a MercadoPago",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#009ee3",
       });
-      await loadData();
+
+      if (isConfirmed) {
+        window.open(checkoutUrl, "_blank");
+        Swal.fire({
+          title: "Procesando pago...",
+          html: `
+            <div class="text-center py-4">
+              <p class="text-slate-600 mb-4">Completa el pago en la ventana de MercadoPago.</p>
+              <p class="text-sm text-slate-500">Una vez aprobado, tu plan se activará automáticamente.</p>
+              <p class="text-xs text-slate-400 mt-3">Referencia: ${data?.referencia || "-"}</p>
+            </div>
+          `,
+          icon: "info",
+          showConfirmButton: true,
+          confirmButtonText: "Ya pagué, verificar",
+          showCancelButton: true,
+          cancelButtonText: "Cerrar",
+        }).then(async (result) => {
+          if (result.isConfirmed && data?.referencia) {
+            // Verificar estado del pago
+            try {
+              const estadoRes = await fetch(`${API_URL}/mp/estado/${data.referencia}`, {
+                headers: authHeaders(),
+              });
+              const estadoData = await estadoRes.json();
+              if (estadoData?.aprobado || estadoData?.estado === "Completado") {
+                const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
+                localStorage.setItem("usuario", JSON.stringify(updatedUser));
+                Swal.fire({ title: "¡Plan activado!", icon: "success", timer: 2000, showConfirmButton: false });
+                await loadData();
+              } else {
+                Swal.fire("Estado del pago", `Estado: ${estadoData?.estado || "Pendiente"}`, "info");
+              }
+            } catch (err) {
+              console.error("Error al verificar estado:", err);
+            }
+          }
+        });
+      }
     } catch (error) {
       Swal.fire("Error", error.message || "No se pudo pagar el plan.", "error");
     } finally {
@@ -346,10 +413,15 @@ export default function UserPayments() {
               </div>
 
               <form onSubmit={submitPlanPayment} className="mt-6 pt-6 border-t border-slate-200">
+                {/* Indicador de pago seguro */}
+                <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2 mb-4">
+                  <ExternalLink size={12} />
+                  <span>Pago seguro procesado por MercadoPago</span>
+                </div>
                 <button
                   type="submit"
                   disabled={processing || !planForm.id_Plan}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                  className="w-full bg-[#009ee3] hover:bg-[#0082c0] disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                 >
                   {processing ? (
                     <>
@@ -358,8 +430,8 @@ export default function UserPayments() {
                     </>
                   ) : (
                     <>
-                      <ArrowRight size={20} />
-                      Suscribirse al plan
+                      <CreditCard size={20} />
+                      Pagar con MercadoPago
                     </>
                   )}
                 </button>

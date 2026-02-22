@@ -224,50 +224,6 @@ export default function ExploreOpportunities() {
     }
   };
 
-  const payFromOpportunity = async (service) => {
-    const { value: formValues } = await Swal.fire({
-      title: "Simular pago (origen postulación)",
-      html:
-        `<input id="pay-ident" class="swal2-input" placeholder="Identificación del cliente" />` +
-        `<input id="pay-post" class="swal2-input" placeholder="ID postulación (opcional)" />` +
-        `<select id="pay-method" class="swal2-select"><option value="virtual">Pago virtual</option><option value="efectivo">Pago en efectivo</option></select>` +
-        `<select id="pay-mode" class="swal2-select"><option value="virtual">Servicio virtual</option><option value="presencial">Servicio presencial</option></select>`,
-      showCancelButton: true,
-      confirmButtonText: "Registrar pago",
-      cancelButtonText: "Cancelar",
-      preConfirm: () => {
-        const identificacionCliente = document.getElementById("pay-ident")?.value?.trim();
-        const idPost = document.getElementById("pay-post")?.value?.trim();
-        const modalidadPago = document.getElementById("pay-method")?.value;
-        const modalidadServicio = document.getElementById("pay-mode")?.value;
-        if (!identificacionCliente) {
-          Swal.showValidationMessage("Debes ingresar la identificación del cliente.");
-          return false;
-        }
-        return { identificacionCliente, modalidadPago, modalidadServicio, id_Postulacion: idPost ? Number(idPost) : null };
-      },
-    });
-
-    if (!formValues) return;
-
-    try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/pagos/servicio`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ id_Servicio: service.id_Servicio, origenSolicitud: "postulacion", ...formValues }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "No se pudo registrar el pago.");
-      Swal.fire("Pago registrado", `Referencia: ${data?.pago?.referenciaPago || "-"}`, "success");
-    } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo registrar el pago.", "error");
-    }
-  };
 
   if (loading) {
     return (
@@ -480,12 +436,6 @@ export default function ExploreOpportunities() {
                     >
                       <Send size={16} />
                       Postular
-                    </button>
-                    <button
-                      onClick={() => payFromOpportunity(service)}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
-                    >
-                      Pagar
                     </button>
                     <button
                       onClick={() => reportService(service)}

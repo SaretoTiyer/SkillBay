@@ -393,11 +393,22 @@ export default function UserServices() {
             aceptada: 'bg-emerald-100 text-emerald-700',
             rechazada: 'bg-rose-100 text-rose-700',
             cancelada: 'bg-slate-100 text-slate-700',
+            en_progreso: 'bg-blue-100 text-blue-700',
+            completada: 'bg-purple-100 text-purple-700',
+        };
+
+        const labels = {
+            pendiente: 'Pendiente',
+            aceptada: 'Aceptada',
+            rechazada: 'Rechazada',
+            cancelada: 'Cancelada',
+            en_progreso: 'En Progreso',
+            completada: 'Completada',
         };
 
         return (
             <Badge className={`${tone[status] || 'bg-slate-100 text-slate-700'} border-0 px-3 py-1 font-medium`}>
-                {status || 'pendiente'}
+                {labels[status] || status || 'pendiente'}
             </Badge>
         );
     };
@@ -640,32 +651,97 @@ export default function UserServices() {
                                         {request.created_at ? new Date(request.created_at).toLocaleString("es-CO") : "Fecha no disponible"}
                                     </p>
                                     <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            disabled={updatingRequestId === request.id || request.estado === "aceptada"}
-                                            onClick={() => updateServiceRequestStatus(request.id, "aceptada")}
-                                        >
-                                            <Check size={14} className="mr-1" /> Priorizar
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="border-rose-200 text-rose-700 hover:bg-rose-50"
-                                            disabled={updatingRequestId === request.id || request.estado === "rechazada"}
-                                            onClick={() => updateServiceRequestStatus(request.id, "rechazada")}
-                                        >
-                                            <X size={14} className="mr-1" /> Rechazar
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="border-slate-200 text-slate-700 hover:bg-slate-50"
-                                            disabled={updatingRequestId === request.id || request.estado === "pendiente"}
-                                            onClick={() => updateServiceRequestStatus(request.id, "pendiente")}
-                                        >
-                                            <Clock size={14} className="mr-1" /> Pendiente
-                                        </Button>
+                                        {request.estado === "pendiente" && (
+                                            <>
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                    disabled={updatingRequestId === request.id}
+                                                    onClick={() => updateServiceRequestStatus(request.id, "aceptada")}
+                                                >
+                                                    <Check size={14} className="mr-1" /> Priorizar
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                                                    disabled={updatingRequestId === request.id}
+                                                    onClick={() => updateServiceRequestStatus(request.id, "rechazada")}
+                                                >
+                                                    <X size={14} className="mr-1" /> Rechazar
+                                                </Button>
+                                            </>
+                                        )}
+                                        {request.estado === "aceptada" && (
+                                            <Button
+                                                size="sm"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                                disabled={updatingRequestId === request.id}
+                                                onClick={() => updateServiceRequestStatus(request.id, "en_progreso")}
+                                            >
+                                                ▶ Iniciar Trabajo
+                                            </Button>
+                                        )}
+                                        {request.estado === "en_progreso" && (
+                                            <Button
+                                                size="sm"
+                                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                disabled={updatingRequestId === request.id}
+                                                onClick={async () => {
+                                                    const confirm = await Swal.fire({
+                                                        title: '¿Marcar trabajo como completado?',
+                                                        text: 'Esto habilitará el pago del servicio. Asegúrate de que el trabajo esté terminado.',
+                                                        icon: 'question',
+                                                        showCancelButton: true,
+                                                        confirmButtonText: 'Sí, está completado',
+                                                        cancelButtonText: 'Cancelar',
+                                                    });
+                                                    if (!confirm.isConfirmed) return;
+                                                    setUpdatingRequestId(request.id);
+                                                    try {
+                                                        const token = localStorage.getItem("access_token");
+                                                        const response = await fetch(`${API_URL}/postulaciones/${request.id}/completar`, {
+                                                            method: "PATCH",
+                                                            headers: {
+                                                                Authorization: `Bearer ${token}`,
+                                                                'Content-Type': 'application/json',
+                                                                'Accept': 'application/json'
+                                                            },
+                                                        });
+                                                        const data = await response.json();
+                                                        if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
+                                                        setServiceRequests((prev) =>
+                                                            prev.map((item) =>
+                                                                item.id === request.id ? { ...item, estado: 'completada' } : item
+                                                            )
+                                                        );
+                                                        Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado. El pago ya puede ser procesado.', 'success');
+                                                    } catch (error) {
+                                                        Swal.fire('Error', error.message, 'error');
+                                                    } finally {
+                                                        setUpdatingRequestId(null);
+                                                    }
+                                                }}
+                                            >
+                                                ✓ Marcar Completado
+                                            </Button>
+                                        )}
+                                        {request.estado === "completada" && (
+                                            <Badge className="bg-green-100 text-green-700 border-0 px-3 py-1">
+                                                ✅ Listo para pago
+                                            </Badge>
+                                        )}
+                                        {(request.estado === "rechazada" || request.estado === "cancelada") && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-slate-200 text-slate-700 hover:bg-slate-50"
+                                                disabled={updatingRequestId === request.id}
+                                                onClick={() => updateServiceRequestStatus(request.id, "pendiente")}
+                                            >
+                                                <Clock size={14} className="mr-1" /> Volver a Pendiente
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </article>

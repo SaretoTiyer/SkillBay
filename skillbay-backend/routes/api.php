@@ -1,10 +1,11 @@
-<?php 
+<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthRecoveryController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\MensajeController;
+use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PostulacionController;
@@ -28,6 +29,13 @@ Route::get('/categorias/publicas', function () {
     return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
 });
 
+// ── MercadoPago: rutas públicas (webhook y retornos no requieren auth) ──────
+Route::post('/mp/webhook', [MercadoPagoController::class, 'webhook']);
+Route::get('/mp/webhook', [MercadoPagoController::class, 'webhookTest']); // Para prueba de MercadoPago
+Route::get('/mp/success',  [MercadoPagoController::class, 'success']);
+Route::get('/mp/failure',  [MercadoPagoController::class, 'failure']);
+Route::get('/mp/pending',  [MercadoPagoController::class, 'pending']);
+
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
@@ -41,12 +49,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('postulaciones', PostulacionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
     Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
+    Route::patch('/postulaciones/{id}/completar', [PostulacionController::class, 'marcarCompletado']);
+    Route::get('/postulaciones/{id}/listo-pago', [PostulacionController::class, 'verificarListoParaPago']);
     Route::get('/categorias', function () {
         return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
     });
     Route::post('/pagos/plan', [PagoController::class, 'pagarPlan']);
     Route::post('/pagos/servicio', [PagoController::class, 'pagarServicio']);
     Route::get('/pagos/historial', [PagoController::class, 'historial']);
+
+    // ── MercadoPago: rutas autenticadas ──────────────────────────────────────
+    Route::post('/mp/crear-preferencia', [MercadoPagoController::class, 'crearPreferencia']);
+    Route::get('/mp/estado/{referencia}', [MercadoPagoController::class, 'estadoPago']);
 
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::get('/notificaciones/resumen', [NotificacionController::class, 'resumen']);

@@ -35,16 +35,17 @@ class PagoController extends Controller
         $precio = (float) ($plan->precioMensual ?? 0);
 
         $pago = PagoPlan::create([
-            'monto' => $precio,
-            'fechaPago' => now(),
-            'estado' => 'Completado',
-            'metodoPago' => 'Pasarela Simulada',
-            'modalidadPago' => 'virtual',
-            'referenciaPago' => $this->generarReferencia('plan'),
-            'fechaInicioPlan' => now()->toDateString(),
-            'fechaFinPlan' => now()->addMonth()->toDateString(),
+            'monto'            => $precio,
+            'fechaPago'        => now(),
+            'estado'           => 'Completado',
+            'metodoPago'       => 'Pasarela Simulada',
+            'modalidadPago'    => 'virtual',
+            'referenciaPago'   => $this->generarReferencia('plan'),
+            'fechaInicioPlan'  => now()->toDateString(),
+            'fechaFinPlan'     => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
-            'id_Plan' => $plan->id_Plan,
+            'id_Plan'          => $plan->id_Plan,
+            'mp_status'        => 'approved', // Simulado como aprobado
         ]);
 
         $user->id_Plan = $plan->id_Plan;
@@ -86,13 +87,25 @@ class PagoController extends Controller
         $monto = isset($validated['monto']) ? (float) $validated['monto'] : (float) ($servicio->precio ?? 0);
         $estado = $validated['modalidadPago'] === 'virtual' ? 'Completado' : 'Pendiente';
 
+        // Verificar que existe una postulación completada para este servicio
+        $postulacionCompletada = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+            ->where('estado', 'completada')
+            ->first();
+
+        if (!$postulacionCompletada) {
+            return response()->json([
+                'message' => 'No se puede procesar el pago. El trabajo debe estar marcado como completado por el cliente antes de pagar.',
+            ], 422);
+        }
+
         if (!empty($validated['id_Postulacion'])) {
             $postulacion = Postulacion::where('id', $validated['id_Postulacion'])
                 ->where('id_Servicio', $servicio->id_Servicio)
+                ->where('estado', 'completada')
                 ->first();
 
             if (!$postulacion) {
-                return response()->json(['message' => 'La postulacion no corresponde al servicio.'], 422);
+                return response()->json(['message' => 'La postulacion no corresponde al servicio o no esta completada.'], 422);
             }
         }
 

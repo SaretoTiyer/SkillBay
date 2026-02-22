@@ -68,7 +68,7 @@ class PostulacionController extends Controller
         }
 
         $validated = $request->validate([
-            'estado' => 'required|in:pendiente,aceptada,rechazada',
+            'estado' => 'required|in:pendiente,aceptada,rechazada,en_progreso',
         ]);
 
         $postulacion = Postulacion::with(['servicio'])
@@ -94,6 +94,80 @@ class PostulacionController extends Controller
 
         return response()->json([
             'success' => true,
+            'postulacion' => $postulacion,
+        ]);
+    }
+
+    /**
+     * El cliente (dueño del servicio) marca el trabajo como completado.
+     * Solo se puede marcar como completado si el estado actual es 'en_progreso'.
+     */
+    public function marcarCompletado(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $postulacion = Postulacion::with(['servicio'])
+            ->where('id', $id)
+            ->whereHas('servicio', function ($query) use ($user) {
+                $query->where('id_Cliente', $user->id_CorreoUsuario);
+            })
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
+        }
+
+        if ($postulacion->estado !== 'en_progreso') {
+            return response()->json(['message' => 'Solo se puede marcar como completado un trabajo en progreso.'], 422);
+        }
+
+        $postulacion->estado = 'completada';
+        $postulacion->save();
+
+        Notificacion::create([
+            'mensaje' => 'El trabajo para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ha sido marcado como completado. Ya puedes proceder con el pago.',
+            'estado' => 'No leido',
+            'tipo' => 'postulacion',
+            'id_CorreoUsuario' => $postulacion->id_Usuario,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Trabajo marcado como completado.',
+            'postulacion' => $postulacion,
+        ]);
+    }
+
+    /**
+     * Verificar si una postulación está lista para pago.
+     * Retorna true solo si el estado es 'completada'.
+     */
+    public function verificarListoParaPago(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $postulacion = Postulacion::with(['servicio', 'usuario'])
+            ->where('id', $id)
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Postulación no encontrada.'], 404);
+        }
+
+        // Solo el cliente (dueño del servicio) puede verificar
+        $esCliente = $postulacion->servicio && $postulacion->servicio->id_Cliente === $user->id_CorreoUsuario;
+
+        return response()->json([
+            'success' => true,
+            'listo_para_pago' => $postulacion->estado === 'completada',
+            'estado' => $postulacion->estado,
+            'es_cliente' => $esCliente,
             'postulacion' => $postulacion,
         ]);
     }
