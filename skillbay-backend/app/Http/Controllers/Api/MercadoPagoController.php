@@ -83,7 +83,7 @@ class MercadoPagoController extends Controller
                 'external_reference' => $referencia,
                 // NOTA: La notification_url puede causar errores si MercadoPago no puede acceder a ella
                 // En desarrollo, puedes comentarla o usar una URL válida
-                //'notification_url'   => $backendUrl . '/api/mp/webhook',
+                'notification_url'   => $backendUrl . '/api/mp/webhook',
                 'statement_descriptor' => 'SkillBay Plan ' . $plan->nombre,
                 'expires'            => false,
                 'metadata'           => array(

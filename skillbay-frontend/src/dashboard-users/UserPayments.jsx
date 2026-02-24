@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Landmark, Loader2, ReceiptText, CheckCircle, Clock, DollarSign, Shield, ExternalLink } from "lucide-react";
+import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, ExternalLink } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 
@@ -342,17 +342,6 @@ export default function UserPayments() {
           Planes de Suscripción
         </button>
         <button
-          onClick={() => setActiveTab("services")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-            activeTab === "services"
-              ? "bg-blue-600 text-white"
-              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-          }`}
-        >
-          <Landmark size={18} />
-          Pagar Servicios
-        </button>
-        <button
           onClick={() => setActiveTab("history")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
             activeTab === "history"
@@ -439,95 +428,6 @@ export default function UserPayments() {
             </div>
           )}
 
-          {activeTab === "services" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                <Landmark size={20} /> Pagar servicio
-              </h2>
-
-              {selectedService && (
-                <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                  <p className="text-sm text-slate-500">Servicio seleccionado</p>
-                  <p className="font-semibold text-slate-800 mt-1">{selectedService.titulo}</p>
-                  <p className="text-lg font-bold text-blue-600 mt-2">
-                    ${Number(selectedService.precio || 0).toLocaleString("es-CO")} COP
-                  </p>
-                </div>
-              )}
-
-              <form onSubmit={submitServicePayment} className="space-y-4">
-                <div>
-                  <label className="text-sm text-slate-600 font-medium">Servicio</label>
-                  <select
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={serviceForm.id_Servicio}
-                    onChange={(e) => setServiceForm((prev) => ({ ...prev, id_Servicio: e.target.value }))}
-                  >
-                    {services.map((service) => (
-                      <option key={service.id_Servicio} value={service.id_Servicio}>
-                        {service.titulo} - ${Number(service.precio || 0).toLocaleString("es-CO")} COP
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-slate-600 font-medium">Modalidad de pago</label>
-                    <select
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={serviceForm.modalidadPago}
-                      onChange={(e) => setServiceForm((prev) => ({ ...prev, modalidadPago: e.target.value }))}
-                    >
-                      <option value="virtual">Pago virtual</option>
-                      <option value="efectivo">Pago en efectivo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-600 font-medium">Modalidad del servicio</label>
-                    <select
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={serviceForm.modalidadServicio}
-                      onChange={(e) => setServiceForm((prev) => ({ ...prev, modalidadServicio: e.target.value }))}
-                    >
-                      <option value="virtual">Virtual</option>
-                      <option value="presencial">Presencial</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 font-medium">Identificación del cliente</label>
-                  <input
-                    type="text"
-                    placeholder="Ingresa la identificación"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={serviceForm.identificacionCliente}
-                    onChange={(e) => setServiceForm((prev) => ({ ...prev, identificacionCliente: e.target.value }))}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={processing || !serviceForm.id_Servicio || !serviceForm.identificacionCliente}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <DollarSign size={20} />
-                      Pagar servicio
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
-
           {activeTab === "history" && (
             <div className="bg-white border border-slate-200 rounded-2xl p-6">
               <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -558,33 +458,6 @@ export default function UserPayments() {
                   </div>
                 ) : (
                   <p className="text-slate-500 text-sm">No hay pagos de planes</p>
-                )}
-              </div>
-
-              {/* Pagos de servicios */}
-              <div>
-                <h3 className="font-medium text-slate-700 mb-3">Servicios</h3>
-                {history.pagos_servicio?.length > 0 ? (
-                  <div className="space-y-3">
-                    {history.pagos_servicio.map((pago) => (
-                      <div key={pago.id_PagoServicio} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-800">{pago.servicio?.titulo || "Servicio"}</p>
-                          <p className="text-sm text-slate-500">{new Date(pago.fechaPago).toLocaleDateString("es-CO")}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            pago.estado === 'aprobado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {pago.estado}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-500 text-sm">No hay pagos de servicios</p>
                 )}
               </div>
             </div>

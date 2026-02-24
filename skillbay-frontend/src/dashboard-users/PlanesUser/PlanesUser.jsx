@@ -246,7 +246,7 @@ export default function PlanesUser() {
   return (
     <div className="max-w-7xl mx-auto p-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4 mb-10">
-        <div className="bg-linear-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg shadow-blue-200">
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg shadow-blue-200">
           <CreditCard className="text-white h-8 w-8" />
         </div>
         <div>

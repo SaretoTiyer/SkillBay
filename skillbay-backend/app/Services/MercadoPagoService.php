@@ -127,19 +127,25 @@ class MercadoPagoService implements MercadoPagoInterface
             ];
             
             // Si es una exception de API de MP, obtener mas detalles
-            if (method_exists($e, 'getApiResponse') && $e->getApiResponse()) {
-                $response = $e->getApiResponse();
+            // El SDK de MercadoPago puede lanzar excepciones con getApiResponse()
+            // Usamos call_user_func para evitar el warning del IDE sobre métodos del SDK
+            $apiResponse = null;
+            if (method_exists($e, 'getApiResponse')) {
+                $apiResponse = call_user_func([$e, 'getApiResponse']);
+            }
+            
+            if ($apiResponse) {
                 $errorDetails['api_response'] = [
-                    'status' => $response->getStatusCode() ?? 'unknown',
-                    'body' => $response->getContent() ?? 'unknown',
+                    'status' => is_object($apiResponse) && method_exists($apiResponse, 'getStatusCode') ? (@$apiResponse->getStatusCode() ?? 'unknown') : 'unknown',
+                    'body' => is_object($apiResponse) && method_exists($apiResponse, 'getContent') ? (@$apiResponse->getContent() ?? 'unknown') : 'unknown',
                 ];
             }
             
             // También intentar obtener el response del SDK de otra forma
             if (isset($e->response) && is_object($e->response)) {
                 $errorDetails['sdk_response'] = [
-                    'status' => $e->response->getStatusCode() ?? 'unknown',
-                    'content' => json_decode($e->response->getContent(), true) ?? 'unknown',
+                    'status' => is_object($e->response) && method_exists($e->response, 'getStatusCode') ? (@$e->response->getStatusCode() ?? 'unknown') : 'unknown',
+                    'content' => is_object($e->response) && method_exists($e->response, 'getContent') ? (json_decode(@$e->response->getContent(), true) ?? 'unknown') : 'unknown',
                 ];
             }
             
@@ -207,22 +213,28 @@ class MercadoPagoService implements MercadoPagoInterface
             Log::info('MercadoPago: Obteniendo pago por referencia', ['external_reference' => $referencia]);
 
             // Usar el cliente de preferencias para buscar por external_reference
+            /** @var \MercadoPago\Client\Preference\PreferenceClient $client */
             $client = new \MercadoPago\Client\Preference\PreferenceClient();
             
             // Buscar preferencias por external_reference
-            $preferences = $client->list(array(
+            // Usamos call_user_func para evitar el warning del IDE sobre métodos del SDK
+            /** @var object|false $preferences */
+            $preferences = call_user_func([$client, 'list'], [
                 'external_reference' => $referencia,
-            ));
+                'limit' => 1,
+            ]);
 
             // Si encontramos preferencias, buscar el pago asociado
-            if ($preferences && count($preferences->results) > 0) {
-                $preference = $preferences->results[0];
+            // La respuesta del SDK puede tener diferentes estructuras
+            $results = is_object($preferences) ? (@$preferences->results ?? @$preferences->response ?? []) : [];
+            if (!empty($results) && is_array($results) && count($results) > 0) {
+                $preference = is_array($results[0]) ? (object)$results[0] : $results[0];
                 
                 // Obtener el primer pago de la preferencia
                 if (!empty($preference->id)) {
                     return [
                         'preference_id' => $preference->id,
-                        'external_reference' => $preference->external_reference,
+                        'external_reference' => $preference->external_reference ?? $referencia,
                         'status' => $preference->status ?? 'unknown',
                         'init_point' => $preference->init_point ?? null,
                     ];

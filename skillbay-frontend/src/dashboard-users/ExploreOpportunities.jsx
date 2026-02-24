@@ -37,6 +37,7 @@ export default function ExploreOpportunities() {
   const [query, setQuery] = useState("");
   const [selectedGrupo, setSelectedGrupo] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("");
+  const [selectedTipo, setSelectedTipo] = useState("oportunidad"); // 'servicio' o 'oportunidad' - por defecto oportunidades
   const [services, setServices] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +110,7 @@ export default function ExploreOpportunities() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedTipo]);
 
   const fetchData = async () => {
     try {
@@ -119,7 +120,13 @@ export default function ExploreOpportunities() {
         Accept: "application/json",
       };
 
-      const servicesRes = await fetch(`${API_URL}/servicios/explore`, { headers });
+      // Construir URL con parámetro de tipo
+      let url = `${API_URL}/servicios/explore`;
+      if (selectedTipo) {
+        url += `?tipo=${selectedTipo}`;
+      }
+
+      const servicesRes = await fetch(url, { headers });
       const servicesData = servicesRes.ok ? await servicesRes.json() : [];
       setServices(Array.isArray(servicesData) ? servicesData : []);
 
@@ -137,6 +144,7 @@ export default function ExploreOpportunities() {
     setQuery("");
     setSelectedGrupo("");
     setSelectedCategoria("");
+    setSelectedTipo("oportunidad"); // Volver a oportunidades por defecto
     setSortBy("recientes");
   };
 
@@ -281,7 +289,21 @@ export default function ExploreOpportunities() {
         {/* Panel de filtros expandibles */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Filtro por tipo */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipo</label>
+                <select
+                  value={selectedTipo}
+                  onChange={(e) => setSelectedTipo(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Todos</option>
+                  <option value="servicio">Servicios</option>
+                  <option value="oportunidad">Oportunidades</option>
+                </select>
+              </div>
+
               {/* Filtro por grupo (categoría padre) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoría Principal</label>
@@ -387,7 +409,14 @@ export default function ExploreOpportunities() {
                     }}
                   />
                   {/* Badge de categoría */}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex gap-1">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
+                      service.tipo === 'oportunidad' 
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                        : 'bg-blue-100 text-blue-700 border border-blue-200'
+                    }`}>
+                      {service.tipo === 'oportunidad' ? '💼 Oportunidad' : '🛠️ Servicio'}
+                    </span>
                     <span className="bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
                       {categoryName}
                     </span>
@@ -469,3 +498,4 @@ export default function ExploreOpportunities() {
     </div>
   );
 }
+

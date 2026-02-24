@@ -119,8 +119,8 @@ export default function ExploreServices() {
         Accept: "application/json",
       };
 
-      // Fetch servicios
-      const servicesRes = await fetch(`${API_URL}/servicios/explore`, { headers });
+      // Fetch servicios - siempre filtrar solo servicios
+      const servicesRes = await fetch(`${API_URL}/servicios/explore?tipo=servicio`, { headers });
       const servicesData = servicesRes.ok ? await servicesRes.json() : [];
       setServices(Array.isArray(servicesData) ? servicesData : []);
 

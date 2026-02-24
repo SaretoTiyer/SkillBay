@@ -22,6 +22,7 @@ class Servicio extends Model
         'tiempo_entrega',
         'id_Contratista',
         'id_Categoria',
+        'tipo', // 'servicio' o 'oportunidad'
     ];
 
     public function cliente()

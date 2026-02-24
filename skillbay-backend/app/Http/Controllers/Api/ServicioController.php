@@ -54,12 +54,30 @@ class ServicioController extends Controller
     public function explore(Request $request)
     {
         $user = $request->user();
+        $tipo = $request->query('tipo'); // filtrar por tipo: 'servicio' o 'oportunidad'
 
-        $servicios = Servicio::with(['categoria', 'cliente_usuario'])
+        // Obtener IDs de servicios/oportunidades donde el usuario ya tiene postulación activa
+        // Solo excluimos postulaciones pendientes o aceptadas - las rechazadas pueden reaplicar
+        $postulacionesActivas = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
+            ->whereIn('estado', ['pendiente', 'aceptada'])
+            ->pluck('id_Servicio')
+            ->toArray();
+
+        $query = Servicio::with(['categoria', 'cliente_usuario'])
             ->where('estado', 'Activo')
-            ->where('id_Cliente', '!=', $user->id_CorreoUsuario)
-            ->orderBy('fechaPublicacion', 'desc')
-            ->get();
+            ->where('id_Cliente', '!=', $user->id_CorreoUsuario);
+
+        // Excluir servicios donde el usuario ya tiene postulación activa
+        if (!empty($postulacionesActivas)) {
+            $query->whereNotIn('id_Servicio', $postulacionesActivas);
+        }
+
+        // Filtrar por tipo si se especifica
+        if ($tipo) {
+            $query->where('tipo', $tipo);
+        }
+
+        $servicios = $query->orderBy('fechaPublicacion', 'desc')->get();
 
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
@@ -88,6 +106,7 @@ class ServicioController extends Controller
             'id_Categoria' => 'required|exists:categorias,id_Categoria',
             'imagen' => 'nullable|image|max:2048', // 2MB Max
             'estado' => 'nullable|string|in:Activo,Borrador,Inactivo',
+            'tipo' => 'nullable|string|in:servicio,oportunidad',
         ]);
 
         if ($validator->fails()) {
@@ -111,6 +130,25 @@ class ServicioController extends Controller
         $data = $request->all();
         $data['id_Cliente'] = $user->id_CorreoUsuario;
         $data['estado'] = $data['estado'] ?? 'Activo';
+        
+        // Determinar el tipo según el rol del usuario:
+        // - Clientes crean oportunidades (necesitan servicios)
+        // - Ofertantes crean servicios (ofrecen servicios)
+        if (!isset($data['tipo'])) {
+            if ($user->rol === 'cliente') {
+                $data['tipo'] = 'oportunidad';
+            } else {
+                $data['tipo'] = 'servicio';
+            }
+        }
+
+        // Lógica de transición de roles:
+        // - Si el usuario es 'cliente' y crea un 'servicio', debe convertirse en 'ofertante'
+        // - Un cliente que crea oportunidades sigue siendo cliente
+        if ($user->rol === 'cliente' && isset($data['tipo']) && $data['tipo'] === 'servicio') {
+            $user->rol = 'ofertante';
+            $user->save();
+        }
 
         // Handle Image Upload
         if ($request->hasFile('imagen')) {

@@ -35,7 +35,8 @@ class MensajeController extends Controller
         $this->limpiarMensajesExpirados();
 
         $user = $request->user();
-        $postulaciones = Postulacion::with(['servicio:id_Servicio,titulo,id_Cliente', 'usuario:id_CorreoUsuario,nombre,apellido'])
+        $postulaciones = Postulacion::with(['servicio:id_Servicio,titulo,id_Cliente', 'usuario:id_CorreoUsuario,nombre,apellido,ciudad'])
+            ->select('id', 'id_Servicio', 'id_Usuario', 'mensaje', 'presupuesto', 'tiempo_estimado', 'estado', 'created_at', 'updated_at')
             ->where(function ($q) use ($user) {
                 $q->where('id_Usuario', $user->id_CorreoUsuario)
                     ->orWhereHas('servicio', function ($s) use ($user) {

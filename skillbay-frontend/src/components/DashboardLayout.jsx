@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Wallet, X } from "lucide-react";
+import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Users, Wallet, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
 import NotificationCenter from "./NotificationCenter";
@@ -73,7 +73,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const fullName = `${currentUser?.nombre || "Usuario"} ${currentUser?.apellido || ""}`.trim();
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#E2E8F0] via-[#f7fafc] to-[#E2E8F0]">
+    <div className="min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#f7fafc] to-[#E2E8F0]">
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-lg border-b border-[#E2E8F0]">
         <div className="flex items-center justify-between px-4 lg:px-6 h-16">
           <div className="flex items-center gap-4">
