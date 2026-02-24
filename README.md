@@ -757,8 +757,6 @@ Asegúrate de que `.gitignore` contenga la siguiente línea:
 ## 📞 Contacto
 
 - **Email**: skillbay.app@gmail.com
-- **Website**: https://skillbay.com
-- **GitHub Issues**: https://github.com/tu-usuario/SkillBay/issues
 
 ---
 
