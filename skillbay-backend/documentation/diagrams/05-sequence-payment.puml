@@ -1,0 +1,264 @@
+' SkillBay - Diagrama de Secuencia: Pagos con MercadoPago
+' Flujo de suscripción a planes y pago de servicios
+' Generado para análisis del sistema
+
+actor Usuario
+actor "Cliente\n(Servicio)" as Cliente
+participant "Frontend\n(React)" as Frontend
+participant "API Routes" as Routes
+participant "MercadoPagoController" as MPController
+participant "PagoController" as PController
+participant "MercadoPagoService" as MPService
+participant "MercadoPagoInterface" as MPInterface
+participant "PagoPlan\n(Model)" as PagoPlan
+participant "PagoServicio\n(Model)" as PagoServicio
+participant "Plan\n(Model)" as Plan
+participant "Usuario\n(Model)" as Usuario
+database "Database" as DB
+
+title Flujo de Pagos con MercadoPago
+
+' ============================================
+' PARTE 1: SUSCRIPCIÓN A PLAN
+' ============================================
+
+activate Usuario
+Usuario -> Frontend : Selecciona plan
+activate Frontend
+
+' Ver planes disponibles
+Frontend -> Routes : GET /api/planes
+activate Routes
+Routes -> Plan : listar()
+activate Plan
+Plan -> DB : SELECT * FROM plans
+activate DB
+DB --> Plan : [planes]
+deactivate DB
+Plan --> Routes : [planes]
+deactivate Routes
+Routes --> Frontend : [planes]
+deactivate Routes
+
+Frontend --> Usuario : Muestra planes disponibles
+deactivate Frontend
+
+Usuario -> Frontend : Selecciona plan y confirma pago
+activate Frontend
+Frontend -> Routes : POST /api/mercadopago/crear-preferencia\n{id_plan}
+activate Routes
+Routes -> MPController : crearPreferencia(id_plan)
+activate MPController
+
+' Obtener plan
+MPController -> Plan : busca()
+activate Plan
+Plan -> DB : SELECT * FROM plans\nWHERE id = id_plan
+activate DB
+DB --> Plan : plan
+deactivate DB
+Plan --> MPController : plan
+deactivate Plan
+
+' Obtener usuario actual
+MPController -> Usuario : obtiene usuario()
+activate Usuario
+Usuario -> DB : SELECT * FROM usuarios\nWHERE id = auth()->id
+activate DB
+DB --> Usuario : usuario
+deactivate DB
+Usuario --> MPController : usuario
+deactivate Usuario
+
+' Crear preferencia en MercadoPago
+MPController -> MPService : crearPreferenciaPago(usuario, plan)
+activate MPService
+activate MPInterface
+
+MPService -> MPInterface : crearPreference()
+activate MPInterface
+' Simulación de llamada a MercadoPago
+MPInterface --> MPService : preference_id, init_point
+deactivate MPInterface
+
+MPService --> MPController : {preference_id, init_point}
+deactivate MPService
+
+' Guardar registro de pago
+MPController -> PagoPlan : crea()
+activate PagoPlan
+PagoPlan -> DB : INSERT INTO pago_plans\n(monto, estado: PENDIENTE,\nmp_preference_id, etc.)
+activate DB
+DB --> PagoPlan : pago_plan creado
+deactivate DB
+PagoPlan --> MPController : pago_plan
+deactivate PagoPlan
+
+MPController --> Routes : {preference_id, init_point, pago_plan}
+deactivate MPController
+Routes --> Frontend : {preference_id, init_point}
+deactivate Routes
+
+' Redirigir a MercadoPago
+Frontend --> Usuario : Redirige a MercadoPago\n(init_point)
+deactivate Frontend
+
+Usuario -> "MercadoPago\n(externo)" : Completa pago
+activate "MercadoPago\n(externo)"
+"MercadoPago\n(externo)" --> "MercadoPago\n(externo)" : Procesa pago
+deactivate "MercadoPago\n(externo)"
+
+' Webhook - Notificación de pago
+"MercadoPago\n(externo)" -> Routes : POST /api/mercadopago/webhook\n(IPN notification)
+activate Routes
+Routes -> MPController : webhook(Request)
+activate MPController
+
+MPController -> MPService : procesarWebhook(payment_id)
+activate MPService
+
+MPService -> MPInterface : getPayment(payment_id)
+activate MPInterface
+MPInterface --> MPService : payment_status, etc.
+deactivate MPInterface
+
+alt Pago aprobado
+    MPService -> MPController : status: approved
+    MPController -> PagoPlan : actualiza estado()
+    activate PagoPlan
+    PagoPlan -> DB : UPDATE pago_plans\nSET mp_status = 'approved',\nmp_payment_id = ?, estado = 'APROBADO'
+    activate DB
+    DB --> PagoPlan : actualizado
+    deactivate DB
+    PagoPlan --> MPController : actualizado
+    deactivate PagoPlan
+    
+    MPController -> Usuario : actualiza plan()
+    activate Usuario
+    Usuario -> DB : UPDATE usuarios\nSET id_plan = plan_id
+    activate DB
+    DB --> Usuario : actualizado
+    deactivate DB
+    Usuario --> MPController : ok
+    deactivate Usuario
+    
+else Pago rechazado
+    MPService -> MPController : status: rejected
+    MPController -> PagoPlan : actualiza()
+    activate PagoPlan
+    PagoPlan -> DB : UPDATE pago_plans\nSET estado = 'RECHAZADO'
+    activate DB
+    DB --> PagoPlan : actualizado
+    deactivate DB
+    PagoPlan --> MPController : ok
+    deactivate PagoPlan
+end
+
+MPController --> Routes : 200 OK
+deactivate MPController
+Routes --> "MercadoPago\n(externo)" : Confirmación recibida
+deactivate Routes
+
+' Página de retorno
+Usuario -> Frontend : /api/mercadopago/success
+activate Frontend
+Frontend -> Routes : GET /api/mercadopago/estado/{pago_plan_id}
+activate Routes
+Routes -> MPController : estadoPago(pago_plan_id)
+activate MPController
+
+MPController -> PagoPlan : busca()
+activate PagoPlan
+PagoPlan -> DB : SELECT * FROM pago_plans\nWHERE id = ?
+activate DB
+DB --> PagoPlan : pago_plan
+deactivate DB
+PagoPlan --> MPController : pago_plan
+deactivate PagoPlan
+
+MPController --> Routes : {estado}
+deactivate MPController
+Routes --> Frontend : {estado}
+deactivate Routes
+Frontend --> Usuario : Muestra resultado del pago
+deactivate Frontend
+
+deactivate Usuario
+
+' ============================================
+' PARTE 2: PAGO DE SERVICIO COMPLETADO
+' ============================================
+
+activate Cliente
+Cliente -> Frontend : Confirma pago de servicio\n(tras completar trabajo)
+activate Frontend
+
+Frontend -> Routes : POST /api/pagos/servicio\n{id_postulacion}
+activate Routes
+Routes -> PController : pagarServicio(id_postulacion)
+activate PController
+
+PController -> PController : verifica trabajo completado()
+PController -> PagoServicio : crea()
+activate PagoServicio
+PagoServicio -> DB : INSERT INTO pago_servicios\n(monto, estado: PENDIENTE, etc.)
+activate DB
+DB --> PagoServicio : pago_servicio creado
+deactivate DB
+PagoServicio --> PController : ok
+deactivate PagoServicio
+
+PController --> Routes : {pago_servicio}
+deactivate PController
+Routes --> Frontend : {pago_servicio}
+deactivate Routes
+
+' Simulación de pago de servicio (simplificado)
+Frontend --> Cliente : Pago registrado\n(en espera de confirmación)
+deactivate Frontend
+
+' El cliente confirma manualmente el pago
+Cliente -> Frontend : Confirma recepción del servicio
+activate Frontend
+Frontend -> Routes : PUT /api/pagos/servicio/{id}/confirmar
+activate Routes
+Routes -> PController : confirmarPago(id)
+activate PController
+
+PController -> PagoServicio : actualiza()
+activate PagoServicio
+PagoServicio -> DB : UPDATE pago_servicios\nSET estado = 'APROBADO'
+activate DB
+DB --> PagoServicio : actualizado
+deactivate DB
+PagoServicio --> PController : ok
+deactivate PagoServicio
+
+PController --> Routes : {mensaje}
+deactivate PController
+Routes --> Frontend : {mensaje}
+deactivate Routes
+Frontend --> Cliente : Pago confirmado
+deactivate Frontend
+
+deactivate Cliente
+
+' ============================================
+' NOTAS
+' ============================================
+
+note right of MPController
+    Maneja la comunicación con
+    la API de MercadoPago para
+    preferencias y webhooks
+end note
+
+note right of MPService
+    Implementa la lógica de
+    negocio para pagos
+end note
+
+note right of "MercadoPago\n(externo)"
+    Sistema externo que procesa
+    los pagos realment
+end note

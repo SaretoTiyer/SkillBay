@@ -56,7 +56,7 @@ class MercadoPagoController extends Controller
         $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
         
         // Usar NGROK_URL si está configurada, si no usar APP_URL
-        $backendUrl = env('NGROK_URL', config('app.url', 'http://127.0.0.1:8000'));
+        //$backendUrl = env('NGROK_URL', config('app.url', 'http://127.0.0.1:8000'));
 
         try {
             $preferenceData = array(
@@ -83,7 +83,7 @@ class MercadoPagoController extends Controller
                 'external_reference' => $referencia,
                 // NOTA: La notification_url puede causar errores si MercadoPago no puede acceder a ella
                 // En desarrollo, puedes comentarla o usar una URL válida
-                'notification_url'   => $backendUrl . '/api/mp/webhook',
+                //'notification_url'   => $backendUrl . '/api/mp/webhook',
                 'statement_descriptor' => 'SkillBay Plan ' . $plan->nombre,
                 'expires'            => false,
                 'metadata'           => array(

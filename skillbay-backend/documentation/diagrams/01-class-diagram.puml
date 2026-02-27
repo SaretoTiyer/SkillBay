@@ -1,0 +1,253 @@
+' SkillBay - Diagrama de Clases UML
+' Marketplace de Servicios Profesionales
+' Generado para análisis del sistema
+
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+' ============================================
+' ENUMERACIONES
+' ============================================
+
+enum RolUsuario {
+    CLIENTE
+    CONTRATISTA
+    ADMIN
+}
+
+enum EstadoServicio {
+    ACTIVO
+    INACTIVO
+    COMPLETADO
+    CANCELADO
+}
+
+enum EstadoPostulacion {
+    PENDIENTE
+    ACEPTADA
+    RECHAZADA
+    EN_PROGRESO
+    COMPLETADA
+    CANCELADA
+}
+
+enum EstadoPago {
+    PENDIENTE
+    APROBADO
+    RECHAZADO
+    CANCELADO
+}
+
+enum TipoServicio {
+    SERVICIO
+    OPORTUNIDAD
+}
+
+' ============================================
+' CLASES BASE
+' ============================================
+
+class Usuario {
+    -id_CorreoUsuario: String (PK)
+    -id_Plan: String (FK)
+    -nombre: String
+    -apellido: String
+    -genero: String
+    -telefono: String
+    -ciudad: String
+    -departamento: String
+    -fechaNacimiento: Date
+    -password: String
+    -rol: RolUsuario
+    -bloqueado: Boolean
+    -fechaRegistro: DateTime
+    ---
+    +register()
+    +login()
+    +update()
+    +cambiarBloqueo()
+}
+
+class Plan {
+    -id_Plan: String (PK)
+    -nombre: String
+    -beneficios: Text
+    -precioMensual: Decimal
+    -limiteServiciosMes: Integer
+    ---
+    +getUsuarios()
+}
+
+class Categoria {
+    -id_Categoria: String (PK)
+    -nombre: String
+    -grupo: String
+    -descripcion: Text
+    -imagen: String
+    ---
+    +getServicios()
+}
+
+class Servicio {
+    -id_Servicio: Integer (PK)
+    -titulo: String
+    -descripcion: Text
+    -estado: EstadoServicio
+    -precio: Decimal
+    -imagen: String
+    -tiempo_entrega: Integer
+    -id_Cliente: String (FK)
+    -id_Contratista: String (FK, nullable)
+    -id_Categoria: String (FK)
+    -tipo: TipoServicio
+    ---
+    +getResenas()
+    +getPostulaciones()
+    +getPagos()
+}
+
+class Resena {
+    -id_Resena: Integer (PK)
+    -calificacion: Integer (1-5)
+    -comentario: Text
+    -fechaReseña: DateTime
+    -metodoPago: String
+    -id_Servicio: Integer (FK)
+    -id_CorreoUsuario: String (FK)
+    ---
+    +getUsuario()
+}
+
+class Postulacion {
+    -id_Postulacion: Integer (PK)
+    -id_Servicio: Integer (FK)
+    -id_Usuario: String (FK)
+    -mensaje: Text
+    -presupuesto: Decimal
+    -tiempo_estimado: Integer
+    -estado: EstadoPostulacion
+    -cancelada: Boolean
+    -aceptada_en: DateTime
+    -iniciado_en: DateTime
+    -completado_en: DateTime
+    ---
+    +getMensajes()
+    +getPagos()
+}
+
+class PagoPlan {
+    -id_PagoPlan: Integer (PK)
+    -monto: Decimal
+    -fechaPago: DateTime
+    -estado: EstadoPago
+    -metodoPago: String
+    -referenciaPago: String
+    -modalidadPago: String
+    -fechaInicioPlan: Date
+    -fechaFinPlan: Date
+    -id_CorreoUsuario: String (FK)
+    -id_Plan: String (FK)
+    -mp_preference_id: String
+    -mp_payment_id: String
+    -mp_status: String
+    ---
+    +estaAprobado(): Boolean
+    +estaVigente(): Boolean
+}
+
+class PagoServicio {
+    -id_PagoServicio: Integer (PK)
+    -monto: Decimal
+    -fechaPago: DateTime
+    -estado: EstadoPago
+    -metodoPago: String
+    -referenciaPago: String
+    -modalidadPago: String
+    -modalidadServicio: String
+    -identificacionCliente: String
+    -origenSolicitud: String
+    -id_Postulacion: Integer (FK)
+    -id_CorreoUsuario: String (FK)
+    -id_Servicio: Integer (FK)
+    ---
+    +getUsuario()
+}
+
+class Notificacion {
+    -id_Notificacion: Integer (PK)
+    -mensaje: Text
+    -estado: Boolean
+    -tipo: String
+    -id_CorreoUsuario: String (FK)
+    ---
+    +marcarLeida()
+}
+
+class Reporte {
+    -id_Reporte: Integer (PK)
+    -id_Reportador: String (FK)
+    -id_Reportado: String (FK)
+    -id_Servicio: Integer (FK, nullable)
+    -id_Postulacion: Integer (FK, nullable)
+    -motivo: Text
+    -estado: String
+    ---
+    +getReportador()
+    +getReportado()
+}
+
+class Mensaje {
+    -id_Mensaje: Integer (PK)
+    -id_Postulacion: Integer (FK)
+    -id_Emisor: String (FK)
+    -mensaje: Text
+    -expiraEn: DateTime
+    ---
+    +getEmisor()
+}
+
+' ============================================
+' RELACIONES
+' ============================================
+
+Usuario "1" -- "*" Plan : tiene >
+Usuario "*" -- "1" Plan : pertenece a >
+Usuario "1" -- "*" Categoria : crea servicios en >
+Categoria "1" -- "*" Servicio : agrupa >
+Usuario "1" -- "*" Servicio : ofrece >
+Usuario "1" -- "*" Servicio : es contratado en >
+Servicio "1" -- "*" Resena : tiene >
+Usuario "1" -- "*" Resena : recibe >
+Servicio "1" -- "*" Postulacion : recibe >
+Usuario "1" -- "*" Postulacion : realiza >
+Postulacion "1" -- "*" PagoServicio : genera >
+Usuario "1" -- "*" PagoServicio : realiza >
+PagoPlan "1" -- "1" Usuario : registra >
+PagoPlan "1" -- "1" Plan : corresponde >
+Usuario "1" -- "*" Notificacion : recibe >
+Usuario "1" -- "*" Reporte : realiza >
+Usuario "1" -- "*" Reporte : recibe >
+Usuario "1" -- "*" Mensaje : envía >
+Postulacion "1" -- "*" Mensaje : tiene >
+Servicio "1" -- "*" Reporte : recibe >
+Postulacion "1" -- "*" Reporte : recibe >
+
+' ============================================
+' NOTAS
+' ============================================
+
+note right of Usuario
+    El sistema permite que un usuario
+    sea simultáneamente cliente y 
+    contratista de servicios.
+end note
+
+note right of Servicio
+    Tipo: SERVICIO (ofrecido) u 
+    OPORTUNIDAD (buscado)
+end note
+
+note right of Postulacion
+    Flujo: PENDIENTE -> ACEPTADA -> 
+    EN_PROGRESO -> COMPLETADA
+end note

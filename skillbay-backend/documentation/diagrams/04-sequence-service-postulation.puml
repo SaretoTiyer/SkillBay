@@ -1,0 +1,304 @@
+' SkillBay - Diagrama de Secuencia: Servicios y Postulaciones
+' Flujo de crear servicio, postularse y completar trabajo
+' Generado para análisis del sistema
+
+actor "Cliente" as Cliente
+actor "Contratista" as Contratista
+participant "Frontend\n(React)" as FrontendC
+participant "Frontend\n(React)" as FrontendP
+participant "API Routes" as Routes
+participant "ServicioController" as SController
+participant "PostulacionController" as PController
+participant "Servicio\n(Model)" as Servicio
+participant "Postulacion\n(Model)" as Postulacion
+participant "Usuario\n(Model)" as Usuario
+participant "Categoria\n(Model)" as Categoria
+participant "Notificacion\n(Model)" as Notificacion
+database "Database" as DB
+
+title Flujo de Servicios y Postulaciones
+
+' ============================================
+' PARTE 1: CREAR SERVICIO
+' ============================================
+
+activate Cliente
+Cliente -> FrontendC : Accede a "Crear Servicio"
+activate FrontendC
+FrontendC -> Routes : GET /api/categorias
+activate Routes
+Routes -> Categoria : listar()
+activate Categoria
+Categoria -> DB : SELECT * FROM categorias
+activate DB
+DB --> Categoria : lista categorías
+deactivate DB
+Categoria --> Routes : [categorias]
+deactivate Categoria
+Routes --> FrontendC : [categorias]
+deactivate Routes
+FrontendC --> Cliente : Muestra formulario\ncon categorías
+deactivate FrontendC
+
+Cliente -> FrontendC : Completa formulario\n(título, descripción, precio, etc.)
+activate FrontendC
+FrontendC -> Routes : POST /api/servicios\n{datos}
+activate Routes
+Routes -> SController : store(Request)
+activate SController
+
+SController -> Servicio : crea nuevo servicio()
+activate Servicio
+Servicio -> DB : INSERT INTO servicios
+activate DB
+DB --> Servicio : servicio creado
+deactivate DB
+
+' Crear notificación para el cliente
+SController -> Notificacion : crea()
+activate Notificacion
+Notificacion -> DB : INSERT INTO notificacions
+activate DB
+DB --> Notificacion : notificación creada
+deactivate DB
+Notificacion --> SController : ok
+deactivate Notificacion
+
+SController --> Routes : {servicio}
+deactivate SController
+Routes --> FrontendC : {servicio}
+deactivate Routes
+FrontendC --> Cliente : Servicio creado exitosamente
+deactivate FrontendC
+
+deactivate Cliente
+
+' ============================================
+' PARTE 2: EXPLORAR Y POSTULARSE
+' ============================================
+
+activate Contratista
+Contratista -> FrontendP : Explora servicios disponibles
+activate FrontendP
+FrontendP -> Routes : GET /api/servicios/explore
+activate Routes
+Routes -> SController : explore(Request)
+activate SController
+
+SController -> Servicio : busca servicios()
+activate Servicio
+Servicio -> DB : SELECT * FROM servicios\nWHERE estado = 'ACTIVO'
+activate DB
+DB --> Servicio : lista servicios
+deactivate DB
+Servicio --> SController : [servicios]
+deactivate SController
+
+SController -> Categoria : carga categorías()
+activate Categoria
+Categoria -> DB : SELECT * FROM categorias
+activate DB
+DB --> Categoria : [categorias]
+deactivate DB
+Categoria --> SController : [categorias]
+deactivate SController
+
+SController --> Routes : {servicios, categorias}
+deactivate SController
+Routes --> FrontendP : {servicios, categorias}
+deactivate Routes
+FrontendP --> Contratista : Muestra servicios\ndisponibles
+deactivate FrontendP
+
+Contratista -> FrontendP : Selecciona servicio de interés
+activate FrontendP
+FrontendP -> Routes : GET /api/servicios/{id}
+activate Routes
+Routes -> SController : show(id)
+activate SController
+
+SController -> Servicio : busca por id()
+activate Servicio
+Servicio -> DB : SELECT * FROM servicios\nWHERE id = ?
+activate DB
+DB --> Servicio : servicio
+deactivate DB
+
+SController -> Usuario : carga cliente()
+activate Usuario
+Usuario -> DB : SELECT * FROM usuarios\nWHERE id = ?
+activate DB
+DB --> Usuario : cliente
+deactivate DB
+Usuario --> SController : cliente
+deactivate SController
+
+SController -> Postulacion : carga postulaciones()
+activate Postulacion
+Postulacion -> DB : SELECT * FROM postulacions\nWHERE id_servicio = ?
+activate DB
+DB --> Postulacion : [postulaciones]
+deactivate DB
+Postulacion --> SController : [postulaciones]
+deactivate SController
+
+SController --> Routes : {servicio, cliente, postulaciones}
+deactivate SController
+Routes --> FrontendP : {servicio, cliente, postulaciones}
+deactivate Routes
+FrontendP --> Contratista : Muestra detalle del servicio
+deactivate FrontendP
+
+' Postulación
+Contratista -> FrontendP : Envía postulación\n(mensaje, presupuesto, tiempo)
+activate FrontendP
+FrontendP -> Routes : POST /api/postulaciones\n{datos}
+activate Routes
+Routes -> PController : store(Request)
+activate PController
+
+PController -> Postulacion : crea()
+activate Postulacion
+Postulacion -> DB : INSERT INTO postulacions
+activate DB
+DB --> Postulacion : postulación creada
+deactivate DB
+Postulacion --> PController : postulación
+deactivate Postulacion
+
+' Notificar al cliente
+PController -> Notificacion : crea()
+activate Notificacion
+Notificacion -> DB : INSERT INTO notificacions\n(mensaje: nueva postulación)
+activate DB
+DB --> Notificacion : notificación creada
+deactivate DB
+Notificacion --> PController : ok
+deactivate Notificacion
+
+PController --> Routes : {postulacion}
+deactivate PController
+Routes --> FrontendP : {postulacion}
+deactivate Routes
+FrontendP --> Contratista : Postulación enviada
+deactivate FrontendP
+
+deactivate Contratista
+
+' ============================================
+' PARTE 3: ACEPTAR Y COMPLETAR
+' ============================================
+
+activate Cliente
+Cliente -> FrontendC : Ve solicitudes recibidas
+activate FrontendC
+FrontendC -> Routes : GET /api/postulaciones/solicitudes
+activate Routes
+Routes -> PController : solicitudesRecibidas()
+activate PController
+
+PController -> Postulacion : busca()
+activate Postulacion
+Postulacion -> DB : SELECT * FROM postulacion\nWHERE id_servicio IN (mis servicios)
+activate DB
+DB --> Postulacion : [solicitudes]
+deactivate DB
+Postulacion --> PController : [solicitudes]
+deactivate PController
+
+PController --> Routes : [solicitudes]
+deactivate PController
+Routes --> FrontendC : [solicitudes]
+deactivate Routes
+FrontendC --> Cliente : Muestra solicitudes\nrecibidas
+deactivate FrontendC
+
+Cliente -> FrontendC : Acepta postulación
+activate FrontendC
+FrontendC -> Routes : PUT /api/postulaciones/{id}/estado\n{estado: "ACEPTADA"}
+activate Routes
+Routes -> PController : actualizarEstadoSolicitud(id, estado)
+activate PController
+
+PController -> Postulacion : actualiza()
+activate Postulacion
+Postulacion -> DB : UPDATE postulacion\nSET estado = 'ACEPTADA'
+activate DB
+DB --> Postulacion : actualizado
+deactivate DB
+
+Postulacion -> Postulacion : registra fecha aceptación()
+Postulacion --> PController : actualizado
+deactivate Postulacion
+
+' Notificar al contratista
+PController -> Notificacion : crea()
+activate Notificacion
+Notificacion -> DB : INSERT INTO notificacions\n(mensaje: postulación aceptada)
+activate DB
+DB --> Notificacion : notificación creada
+deactivate DB
+Notificacion --> PController : ok
+deactivate Notificacion
+
+PController --> Routes : {postulacion}
+deactivate PController
+Routes --> FrontendC : {postulacion}
+deactivate Routes
+FrontendC --> Cliente : Postulación aceptada
+deactivate FrontendC
+
+' Completar trabajo
+Cliente -> FrontendC : Marca trabajo completado
+activate FrontendC
+FrontendC -> Routes : PUT /api/postulaciones/{id}/completar
+activate Routes
+Routes -> PController : marcarCompletado(id)
+activate PController
+
+PController -> Postulacion : actualiza()
+activate Postulacion
+Postulacion -> DB : UPDATE postulacion\nSET estado = 'COMPLETADA'
+activate DB
+DB --> Postulacion : actualizado
+deactivate DB
+Postulacion --> PController : actualizado
+deactivate PController
+
+' Notificar al contratista
+PController -> Notificacion : crea()
+activate Notificacion
+Notificacion -> DB : INSERT INTO notificacions\n(mensaje: trabajo completado)
+activate DB
+DB --> Notificacion : notificación creada
+deactivate DB
+Notificacion --> PController : ok
+deactivate Notificacion
+
+PController --> Routes : {mensaje: completado}
+deactivate PController
+Routes --> FrontendC : {mensaje}
+deactivate Routes
+FrontendC --> Cliente : Trabajo marcado como completado
+deactivate FrontendC
+
+deactivate Cliente
+
+' ============================================
+' NOTAS
+' ============================================
+
+note right of Postulacion
+    Estados: PENDIENTE → ACEPTADA → 
+    EN_PROGRESO → COMPLETADA
+end note
+
+note right of Cliente
+    El cliente es quien publica
+    el servicio y recibe postulaciones
+end note
+
+note right of Contratista
+    El contratista se postula a
+    servicios y espera aceptación
+end note

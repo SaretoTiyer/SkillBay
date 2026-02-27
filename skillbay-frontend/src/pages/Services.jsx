@@ -105,7 +105,7 @@ export default function Services({ onNavigate }) {
   return (
     <div className="min-h-screen pt-20">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-16 px-4">
+      <section className="bg-linear-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-3xl lg:text-4xl font-bold mb-4">
             Encuentra el servicio perfecto para tus necesidades
@@ -123,7 +123,7 @@ export default function Services({ onNavigate }) {
                 placeholder="Buscar servicios por nombre o categoría..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                className=" bg-[#dfdfdf] w-full pl-12 pr-4 py-4 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               />
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function Services({ onNavigate }) {
           )}
 
           {/* Banner de registro */}
-          <div className="mt-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center">
+          <div className="mt-12 bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white text-center">
             <h3 className="text-2xl font-bold mb-3">¿Ofreces servicios?</h3>
             <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
               Únete a SkillBay y encuentra clientes que necesitan tus habilidades. Crea tu perfil y comienza a ofrecer tus servicios hoy mismo.

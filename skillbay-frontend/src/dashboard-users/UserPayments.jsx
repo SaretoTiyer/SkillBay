@@ -311,7 +311,7 @@ export default function UserPayments() {
 
       {/* Plan actual destacado */}
       {currentPlan && (
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 mb-6 text-white">
+        <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-6 mb-6 text-white">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <p className="text-blue-100 text-sm font-medium">Plan activo</p>
@@ -500,7 +500,7 @@ export default function UserPayments() {
                 <span className="text-sm text-slate-700">Pago virtual</span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
-                <DollarSign size={18} className="text-slate-500" />
+                <CreditCard size={18} className="text-slate-500" />
                 <span className="text-sm text-slate-700">Pago en efectivo</span>
               </div>
             </div>

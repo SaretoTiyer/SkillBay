@@ -1,0 +1,210 @@
+' SkillBay - Diagrama de Componentes
+' Arquitectura del Sistema
+' Generado para análisis del sistema
+
+skinparam componentStyle rectangle
+
+title Arquitectura del Sistema SkillBay
+
+' ============================================
+' CAPA DE PRESENTACIÓN (Frontend)
+' ============================================
+
+package "Frontend (React)" {
+    [App.jsx] as FE1
+    [Navbar] as FE2
+    [DashboardLayout] as FE3
+    [Pages\n(Login, Register, Services, etc.)] as FE4
+    [Components\n(UI Components)] as FE5
+    [API Client\n(axios)] as FE6
+}
+
+' ============================================
+' CAPA DE API (Backend - Laravel)
+' ============================================
+
+package "API Layer (Laravel)" {
+    [API Routes\n(routes/api.php)] as API1
+    [Middleware\n(Auth, CORS)] as API2
+}
+
+' ============================================
+' CONTROLADORES
+' ============================================
+
+package "Controllers" {
+    [UsuarioController] as C1
+    [ServicioController] as C2
+    [CategoriaController] as C3
+    [PostulacionController] as C4
+    [PagoController] as C5
+    [PlanController] as C6
+    [ResenaController] as C7
+    [NotificacionController] as C8
+    [ReporteController] as C9
+    [MensajeController] as C10
+    [AdminController] as C11
+    [MercadoPagoController] as C12
+    [AuthRecoveryController] as C13
+}
+
+' ============================================
+' MODELOS / ENTIDADES
+' ============================================
+
+package "Models (Eloquent)" {
+    [Usuario] as M1
+    [Plan] as M2
+    [Categoria] as M3
+    [Servicio] as M4
+    [Postulacion] as M5
+    [PagoPlan] as M6
+    [PagoServicio] as M7
+    [Resena] as M8
+    [Notificacion] as M9
+    [Reporte] as M10
+    [Mensaje] as M11
+}
+
+' ============================================
+' SERVICIOS
+' ============================================
+
+package "Services" {
+    [MercadoPagoService] as S1
+    [MercadoPagoInterface] as S2
+    [MercadoPagoSimuladorService] as S3
+}
+
+' ============================================
+' BASE DE DATOS
+' ============================================
+
+database "MySQL Database" {
+    [usuarios] as T1
+    [plans] as T2
+    [categorias] as T3
+    [servicios] as T4
+    [postulacion] as T5
+    [pago_plans] as T6
+    [pago_servicios] as T7
+    [resenas] as T8
+    [notificacion] as T9
+    [reportes] as T10
+    [mensajes] as T11
+}
+
+' ============================================
+' SISTEMAS EXTERNOS
+' ============================================
+
+component "MercadoPago API" as EXT_MP {
+    [Payment API] as EXT_MP1
+    [Preference API] as EXT_MP2
+    [Webhook/IPN] as EXT_MP3
+}
+
+' ============================================
+' RELACIONES - Frontend a API
+' ============================================
+
+FE1 --> FE2 : Navegación
+FE1 --> FE3 : Layout
+FE1 --> FE4 : Páginas
+FE3 --> FE2 : Contiene
+FE4 --> FE5 : Usa componentes
+FE6 --> API1 : HTTP Requests
+
+' ============================================
+' RELACIONES - API a Controladores
+' ============================================
+
+API1 --> C1 : /api/usuarios
+API1 --> C2 : /api/servicios
+API1 --> C3 : /api/categorias
+API1 --> C4 : /api/postulaciones
+API1 --> C5 : /api/pagos
+API1 --> C6 : /api/planes
+API1 --> C7 : /api/resenas
+API1 --> C8 : /api/notificaciones
+API1 --> C9 : /api/reportes
+API1 --> C10 : /api/mensajes
+API1 --> C11 : /api/admin
+API1 --> C12 : /api/mercadopago
+API1 --> C13 : /api/recovery
+
+API2 --> API1 : Autenticación\ny CORS
+
+' ============================================
+' RELACIONES - Controladores a Modelos
+' ============================================
+
+C1 --> M1 : CRUD Usuario
+C2 --> M4 : CRUD Servicio
+C2 --> M3 : belongsTo Categoria
+C2 --> M1 : belongsTo Usuario
+C3 --> M3 : CRUD Categoria
+C4 --> M5 : CRUD Postulacion
+C4 --> M4 : belongsTo Servicio
+C4 --> M1 : belongsTo Usuario
+C5 --> M6 : CRUD PagoPlan
+C5 --> M7 : CRUD PagoServicio
+C5 --> M2 : belongsTo Plan
+C5 --> M1 : belongsTo Usuario
+C6 --> M2 : CRUD Plan
+C7 --> M8 : CRUD Resena
+C7 --> M4 : belongsTo Servicio
+C7 --> M1 : belongsTo Usuario
+C8 --> M9 : CRUD Notificacion
+C8 --> M1 : belongsTo Usuario
+C9 --> M10 : CRUD Reporte
+C10 --> M11 : CRUD Mensaje
+C12 --> S1 : Payment Service
+C12 --> M6 : belongsTo PagoPlan
+C12 --> M1 : belongsTo Usuario
+
+' ============================================
+' RELACIONES - Modelos a Tablas
+' ============================================
+
+M1 --> T1 : usuarios
+M2 --> T2 : plans
+M3 --> T3 : categorias
+M4 --> T4 : servicios
+M5 --> T5 : postulacion
+M6 --> T6 : pago_plans
+M7 --> T7 : pago_servicios
+M8 --> T8 : resenas
+M9 --> T9 : notificacion
+M10 --> T10 : reportes
+M11 --> T11 : mensajes
+
+' ============================================
+' RELACIONES - Servicios
+' ============================================
+
+C12 --> S1 : usa
+S1 --> S2 : implements
+S2 --> EXT_MP1 : API calls
+S2 --> EXT_MP2 : API calls
+S2 --> EXT_MP3 : Webhook
+EXT_MP --> S1 : Notificaciones
+
+' Simulador
+S3 --> S2 : implements
+
+' ============================================
+' NOTAS
+' ============================================
+
+note right of FE6
+    Cliente HTTP que\ncomunica con API
+end note
+
+note right of API2
+    Verifica token JWT\ny permisos
+end note
+
+note right of S2
+    Interfaz que define\noperaciones de pago
+end note

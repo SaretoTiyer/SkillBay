@@ -710,31 +710,6 @@ SOFTWARE.
 
 ---
 
-## 📋 Trabajo Futuro
-
-### Funcionalidades Planeadas
-
-- [ ] Sistema de portafolio para ofertantes de servicios
-- [ ] Chat en tiempo real con WebSockets
-- [ ] Sistema de messaging Push
-- [ ] Integración con más pasarelas de pago (PayPal, Stripe)
-- [ ] Sistema de favoritos/seguimiento de usuarios
-- [ ] Dashboard de analytics para ofertantes
-- [ ] Sistema de disputas y mediación
-- [ ] Aplicación móvil (React Native)
-- [ ] Sistema de verificación de identidad (KYC)
-- [ ] Integración con calendarios externos
-
-### Mejoras Técnicas
-
-- [ ] Implementar TypeScript en el frontend
-- [ ] Agregar tests unitarios y de integración
-- [ ] Implementar GraphQL como alternativa a REST
-- [ ] Optimizar rendimiento con caching Redis
-- [ ] Implementar Docker para despliegue
-- [ ] Configurar CI/CD con GitHub Actions
-
----
 
 ## ⚙️ Exclusión del Directorio `.kilocodemodes`
 

@@ -1,0 +1,181 @@
+' SkillBay - Diagrama de Casos de Uso UML
+' Marketplace de Servicios Profesionales
+' Generado para análisis del sistema
+
+left to right direction
+skinparam packageStyle rectangle
+
+' ============================================
+' ACTORES
+' ============================================
+
+actor "Usuario (Cliente)" as Cliente
+actor "Usuario (Contratista)" as Contratista
+actor "Administrador" as Admin
+actor "Sistema de Pago (MercadoPago)" as MercadoPago
+
+' ============================================
+' PAQUETES / MÓDULOS
+' ============================================
+
+rectangle "Autenticación" {
+    usecase "UC01: Registrarse" as UC01
+    usecase "UC02: Iniciar Sesión" as UC02
+    usecase "UC03: Cerrar Sesión" as UC03
+    usecase "UC04: Recuperar Contraseña" as UC04
+    usecase "UC05: Actualizar Perfil" as UC05
+}
+
+rectangle "Gestión de Servicios" {
+    usecase "UC06: Crear Servicio" as UC06
+    usecase "UC07: Editar Servicio" as UC07
+    usecase "UC08: Eliminar Servicio" as UC08
+    usecase "UC09: Explorar Servicios" as UC09
+    usecase "UC10: Buscar por Categoría" as UC10
+}
+
+rectangle "Postulaciones" {
+    usecase "UC11: Postular a Servicio" as UC11
+    usecase "UC12: Ver Mis Postulaciones" as UC12
+    usecase "UC13: Ver Solicitudes Recibidas" as UC13
+    usecase "UC14: Aceptar Postulación" as UC14
+    usecase "UC15: Rechazar Postulación" as UC15
+    usecase "UC16: Iniciar Trabajo" as UC16
+    usecase "UC17: Completar Trabajo" as UC17
+    usecase "UC18: Cancelar Postulación" as UC18
+}
+
+rectangle "Pagos" {
+    usecase "UC19: Pagar Plan de Suscripción" as UC19
+    usecase "UC20: Pagar Servicio Completado" as UC20
+    usecase "UC21: Ver Historial de Pagos" as UC21
+    usecase "UC22: Consultar Estado de Pago" as UC22
+}
+
+rectangle "Suscripciones" {
+    usecase "UC23: Ver Planes Disponibles" as UC23
+    usecase "UC24: Seleccionar Plan" as UC24
+    usecase "UC25: Actualizar Plan" as UC25
+}
+
+rectangle "Comunicación" {
+    usecase "UC26: Enviar Mensaje" as UC26
+    usecase "UC27: Ver Conversaciones" as UC27
+    usecase "UC28: Recibir Notificaciones" as UC28
+    usecase "UC29: Marcar Notificación Leída" as UC29
+    usecase "UC30: Escribir Reseña" as UC30
+    usecase "UC31: Ver Reseñas de Servicio" as UC31
+}
+
+rectangle "Moderación" {
+    usecase "UC32: Reportar Usuario" as UC32
+    usecase "UC33: Reportar Servicio" as UC33
+    usecase "UC34: Bloquear/Desbloquear Usuario" as UC34
+}
+
+rectangle "Administración" {
+    usecase "UC35: Gestionar Categorías" as UC35
+    usecase "UC36: Gestionar Planes" as UC36
+    usecase "UC37: Ver Dashboard Admin" as UC37
+    usecase "UC38: Ver Métricas del Sistema" as UC38
+    usecase "UC39: Gestionar Reportes" as UC39
+    usecase "UC40: Gestionar Usuarios" as UC40
+}
+
+' ============================================
+' RELACIONES ACTOR - CASO DE USO
+' ============================================
+
+' Cliente puede hacer
+Cliente --> UC01
+Cliente --> UC02
+Cliente --> UC03
+Cliente --> UC04
+Cliente --> UC05
+Cliente --> UC09
+Cliente --> UC10
+Cliente --> UC11
+Cliente --> UC12
+Cliente --> UC19
+Cliente --> UC20
+Cliente --> UC21
+Cliente --> UC26
+Cliente --> UC27
+Cliente --> UC28
+Cliente --> UC29
+Cliente --> UC30
+Cliente --> UC32
+Cliente --> UC33
+
+' Contratista puede hacer
+Contratista --> UC02
+Contratista --> UC03
+Contratista --> UC04
+Contratista --> UC05
+Contratista --> UC06
+Contratista --> UC07
+Contratista --> UC08
+Contratista --> UC09
+Contratista --> UC10
+Contratista --> UC12
+Contratista --> UC13
+Contratista --> UC14
+Contratista --> UC15
+Contratista --> UC16
+Contratista --> UC17
+Contratista --> UC18
+Contratista --> UC19
+Contratista --> UC20
+Contratista --> UC21
+Contratista --> UC23
+Contratista --> UC24
+Contratista --> UC26
+Contratista --> UC27
+Contratista --> UC28
+Contratista --> UC29
+Contratista --> UC31
+Contratista --> UC32
+Contratista --> UC33
+
+' Admin puede hacer
+Admin --> UC35
+Admin --> UC36
+Admin --> UC37
+Admin --> UC38
+Admin --> UC39
+Admin --> UC40
+Admin --> UC34
+
+' Sistema de Pago
+MercadoPago --> UC19
+MercadoPago --> UC20
+MercadoPago --> UC22
+
+' ============================================
+' INCLUDES Y EXTENDS
+' ============================================
+
+UC19 .> UC24 : <<includes>>
+UC24 .> UC23 : <<includes>>
+UC20 .> UC17 : <<extends>>
+UC14 .> UC16 : <<extends>>
+UC16 .> UC17 : <<extends>>
+
+' ============================================
+' NOTAS
+' ============================================
+
+note right of Cliente
+    El Cliente es quien busca y 
+    contrata servicios.
+end note
+
+note right of Contratista
+    El Contratista ofrece servicios
+    y acepta trabajos.
+end note
+
+note right of UC06
+    Los límites de servicios 
+    dependen del Plan activo.
+end note
