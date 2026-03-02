@@ -395,7 +395,7 @@ class UsuarioController extends Controller
             ])->findOrFail($id);
 
             $servicios = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
-                ->with('categoria:id_Categoria,nombre')
+                ->with('categoria:id_Categoria,nombre,grupo')
                 ->orderBy('created_at', 'desc')
                 ->get(['id_Servicio', 'titulo', 'descripcion', 'precio', 'estado', 'imagen', 'id_Categoria', 'created_at']);
 

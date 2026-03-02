@@ -10,8 +10,8 @@ return new class extends Migration
         $driver = DB::connection()->getDriverName();
         
         if ($driver === 'mysql') {
-            // MySQL: modificar la columna ENUM para agregar 'en_progreso' y 'completada'
-            DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada','cancelada','en_progreso','completada') NOT NULL DEFAULT 'pendiente'");
+            // MySQL: modificar la columna ENUM para agregar 'en_progreso', 'completada' y 'pagada'
+            DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada','cancelada','en_progreso','completada','pagada') NOT NULL DEFAULT 'pendiente'");
         }
         // SQLite: los ENUMs son solo texto, no se necesita modificar
     }

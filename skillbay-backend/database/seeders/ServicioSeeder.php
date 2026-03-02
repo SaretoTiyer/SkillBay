@@ -22,7 +22,7 @@ class ServicioSeeder extends Seeder
             'estado' => 'Activo',
             'precio' => 500000,
             'tiempo_entrega' => '5 días',
-            'id_Categoria' => 'web',
+            'id_Categoria' => 'tec_desarrollo_web',
             'tipo' => 'servicio',
         ]);
 
@@ -33,7 +33,7 @@ class ServicioSeeder extends Seeder
             'estado' => 'Activo',
             'precio' => 200000,
             'tiempo_entrega' => '3 días',
-            'id_Categoria' => 'design',
+            'id_Categoria' => 'tec_diseno_grafico',
             'tipo' => 'servicio',
         ]);
 

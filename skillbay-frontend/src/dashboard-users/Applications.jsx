@@ -6,19 +6,14 @@ import {
   CheckCircle, 
   Clock, 
   DollarSign, 
-  FileText, 
   Loader2, 
-  MessageSquare, 
-  Plus, 
-  Search, 
+  MessageSquare,
   Send,
   User, 
   XCircle,
   Briefcase,
-  Target,
-  Gift,
   FileCheck,
-  Upload
+  Star
 } from "lucide-react";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -27,15 +22,11 @@ import { Button } from "../components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
-export default function Applications() {
+export default function Applications({ defaultTab }) {
   const [applications, setApplications] = useState([]);
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
-  const [oportunidades, setOportunidades] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOportunidad, setSelectedOportunidad] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
   
   // Estado para el chat de postulaciones recibidas
   const [selectedPostulacion, setSelectedPostulacion] = useState(null);
@@ -43,45 +34,18 @@ export default function Applications() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
 
-  const currentUser = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("usuario") || "{}");
-    } catch {
-      return {};
-    }
-  }, []);
+  // Determinar la pestaña inicial basada en defaultTab
+  const getInitialTab = () => {
+    if (defaultTab === "received") return "received";
+    return "sent";
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
-  // Estados para el formulario de crear oportunidad
-  const [categorias, setCategorias] = useState([]);
-  const [formData, setFormData] = useState({
-    titulo: "",
-    descripcion: "",
-    id_Categoria: "",
-    grupo: "",
-    tipoOportunidad: "empleo",
-    requisitos: "",
-    beneficios: "",
-    fechaLimite: "",
-    precio: "",
-    tiempoEntrega: ""
+  const authHeaders = (json = false) => ({
+    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+    Accept: "application/json",
+    ...(json ? { "Content-Type": "application/json" } : {}),
   });
-  const [imagen, setImagen] = useState(null);
-  const [formErrors, setFormErrors] = useState({});
-  const [creando, setCreando] = useState(false);
-
-  // Grupos de categorías
-  const grupos = useMemo(() => {
-    const gruposSet = new Set(categorias.map(c => c.grupo).filter(Boolean));
-    return Array.from(gruposSet).sort();
-  }, [categorias]);
-
-  // Subcategorías del grupo seleccionado
-  const subcategorias = useMemo(() => {
-    if (!formData.grupo) return [];
-    return categorias
-      .filter(c => c.grupo === formData.grupo)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [formData.grupo, categorias]);
 
   useEffect(() => {
     fetchData();
@@ -92,33 +56,12 @@ export default function Applications() {
       setLoading(true);
       await Promise.all([
         fetchApplications(),
-        fetchSolicitudesRecibidas(),
-        fetchOportunidades(),
-        fetchCategorias()
+        fetchSolicitudesRecibidas()
       ]);
     } finally {
       setLoading(false);
     }
   };
-
-  const fetchCategorias = async () => {
-    try {
-      const response = await fetch(`${API_URL}/categorias`, { headers: authHeaders() });
-      if (!response.ok) return;
-      const data = await response.json();
-      // El backend puede devolver { categorias: [...] } o directamente un array
-      const categoriasData = data.categorias || data;
-      setCategorias(Array.isArray(categoriasData) ? categoriasData : []);
-    } catch (err) {
-      console.error("Error fetching categorias:", err);
-    }
-  };
-
-  const authHeaders = (json = false) => ({
-    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-    Accept: "application/json",
-    ...(json ? { "Content-Type": "application/json" } : {}),
-  });
 
   const fetchApplications = async () => {
     try {
@@ -136,20 +79,9 @@ export default function Applications() {
       const response = await fetch(`${API_URL}/servicios/solicitudes`, { headers: authHeaders() });
       if (!response.ok) return;
       const data = await response.json();
-      setSolicitudesRecibidas(Array.isArray(data) ? data : []);
+      setSolicitudesRecibidas(Array.isArray(data.solicitudes) ? data.solicitudes : []);
     } catch (err) {
       console.error("Error fetching solicitudes:", err);
-    }
-  };
-
-  const fetchOportunidades = async () => {
-    try {
-      const response = await fetch(`${API_URL}/servicios/explore`, { headers: authHeaders() });
-      if (!response.ok) return;
-      const data = await response.json();
-      setOportunidades(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error fetching oportunidades:", err);
     }
   };
 
@@ -158,155 +90,6 @@ export default function Applications() {
     localStorage.setItem("profile_target_user", idCorreo);
     localStorage.setItem("currentView", "public_profile");
     window.location.reload();
-  };
-
-  // Manejar cambios en el formulario
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Limpiar error del campo
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: null }));
-    }
-    // Limpiar subcategoría si cambia el grupo
-    if (name === "grupo") {
-      setFormData(prev => ({ ...prev, id_Categoria: "" }));
-    }
-  };
-
-  // Validar formulario
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.titulo.trim()) errors.titulo = "El título es requerido";
-    if (!formData.descripcion.trim()) errors.descripcion = "La descripción es requerida";
-    if (!formData.id_Categoria) errors.id_Categoria = "La categoría es requerida";
-    if (!formData.grupo) errors.grupo = "El grupo es requerido";
-    if (!formData.tipoOportunidad) errors.tipoOportunidad = "El tipo de oportunidad es requerido";
-    if (formData.precio && isNaN(Number(formData.precio.replace(/,/g, "")))) {
-      errors.precio = "El presupuesto debe ser un número válido";
-    }
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Crear oportunidad
-  const crearOportunidad = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      Swal.fire("Errores en el formulario", "Por favor completa todos los campos requeridos.", "warning");
-      return;
-    }
-
-    setCreando(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("titulo", formData.titulo.trim());
-      formDataToSend.append("descripcion", formData.descripcion.trim());
-      formDataToSend.append("id_Categoria", formData.id_Categoria);
-      formDataToSend.append("tipo", "oportunidad");
-      formDataToSend.append("estado", "Activo");
-      
-      if (formData.requisitos) formDataToSend.append("requisitos", formData.requisitos.trim());
-      if (formData.beneficios) formDataToSend.append("beneficios", formData.beneficios.trim());
-      if (formData.fechaLimite) formDataToSend.append("fecha_limite", formData.fechaLimite);
-      if (formData.precio) formDataToSend.append("precio", formData.precio.replace(/,/g, ""));
-      if (formData.tiempoEntrega) formDataToSend.append("tiempo_entrega", formData.tiempoEntrega);
-      if (imagen) formDataToSend.append("imagen", imagen);
-
-      const response = await fetch(`${API_URL}/servicios`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          Accept: "application/json",
-        },
-        body: formDataToSend,
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || data?.errors?.titulo?.[0] || "No se pudo crear la oportunidad.");
-
-      Swal.fire({
-        icon: "success",
-        title: "¡Oportunidad creada!",
-        text: "Tu oportunidad ha sido publicada exitosamente.",
-        timer: 2000,
-        showConfirmButton: false
-      });
-
-      // Limpiar formulario
-      setFormData({
-        titulo: "",
-        descripcion: "",
-        id_Categoria: "",
-        grupo: "",
-        tipoOportunidad: "empleo",
-        requisitos: "",
-        beneficios: "",
-        fechaLimite: "",
-        precio: "",
-        tiempoEntrega: ""
-      });
-      setImagen(null);
-      setFormErrors({});
-      
-      // Recargar datos
-      fetchData();
-    } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo crear la oportunidad.", "error");
-    } finally {
-      setCreando(false);
-    }
-  };
-  const submitPostulacion = async () => {
-    if (!selectedOportunidad) {
-      Swal.fire("Selecciona una oportunidad", "Debes seleccionar una oportunidad para postularte.", "warning");
-      return;
-    }
-
-    const { value: mensaje } = await Swal.fire({
-      title: "Enviar postulación",
-      input: "textarea",
-      inputLabel: "Mensaje de postulación",
-      inputPlaceholder: "Explica por qué eres una buena opción para esta oportunidad...",
-      inputAttributes: { maxlength: "2000" },
-      showCancelButton: true,
-      confirmButtonText: "Enviar",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        const text = String(value || "").trim();
-        if (!text) {
-          Swal.showValidationMessage("Debes escribir un mensaje para postularte.");
-          return false;
-        }
-        return text;
-      },
-    });
-
-    if (!mensaje) return;
-
-    setSubmitting(true);
-    try {
-      const response = await fetch(`${API_URL}/postulaciones`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({ 
-          id_Servicio: selectedOportunidad.id_Servicio, 
-          mensaje 
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "No se pudo registrar la postulación.");
-      
-      Swal.fire("Enviado", "Tu postulación fue enviada.", "success");
-      setSelectedOportunidad(null);
-      fetchApplications();
-    } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la postulación.", "error");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // Funciones para messaging en postulaciones recibidas
@@ -390,122 +173,164 @@ export default function Applications() {
 
   const cancelProposal = async (application) => {
     const result = await Swal.fire({
-      title: "Cancelar postulacion",
-      text: "La propuesta pasara a estado cancelada.",
+      title: "Cancelar postulación",
+      text: "La propuesta pasará a estado cancelada.",
       showCancelButton: true,
-      confirmButtonText: "Cancelar postulacion",
+      confirmButtonText: "Cancelar postulación",
     });
     if (!result.isConfirmed) return;
+    
     const response = await fetch(`${API_URL}/postulaciones/${application.id}`, {
       method: "DELETE",
       headers: authHeaders(),
     });
     const data = await response.json();
     if (!response.ok) return Swal.fire("Error", data?.message || "No se pudo cancelar.", "error");
-    Swal.fire("Listo", "Postulacion cancelada.", "success");
+    Swal.fire("Listo", "Postulación cancelada.", "success");
     fetchApplications();
   };
 
-  // Filtrar oportunidades
-  const filteredOportunidades = useMemo(() => {
-    if (!searchTerm) return oportunidades;
-    const term = searchTerm.toLowerCase();
-    return oportunidades.filter(op => 
-      op.titulo?.toLowerCase().includes(term) ||
-      op.descripcion?.toLowerCase().includes(term) ||
-      op.categoria?.nombre?.toLowerCase().includes(term)
-    );
-  }, [oportunidades, searchTerm]);
-
+  // Filtrar aplicaciones por estado
   const pending = applications.filter((a) => a.estado === "pendiente");
   const accepted = applications.filter((a) => a.estado === "aceptada");
   const inProgress = applications.filter((a) => a.estado === "en_progreso");
   const completed = applications.filter((a) => a.estado === "completada");
+  const paid = applications.filter((a) => a.estado === "pagada");
   const rejected = applications.filter((a) => a.estado === "rechazada");
   const canceled = applications.filter((a) => a.estado === "cancelada");
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "pendiente":
-        return <Badge className="bg-amber-500 text-white"><Clock size={14} className="inline mr-1" />Pendiente</Badge>;
-      case "aceptada":
-        return <Badge className="bg-emerald-500 text-white"><CheckCircle size={14} className="inline mr-1" />Aceptada</Badge>;
-      case "en_progreso":
-        return <Badge className="bg-blue-500 text-white"><Clock size={14} className="inline mr-1" />En Progreso</Badge>;
-      case "completada":
-        return <Badge className="bg-purple-500 text-white"><CheckCircle size={14} className="inline mr-1" />Completada</Badge>;
-      case "rechazada":
-        return <Badge className="bg-red-500 text-white"><XCircle size={14} className="inline mr-1" />Rechazada</Badge>;
-      case "cancelada":
-        return <Badge className="bg-slate-500 text-white"><XCircle size={14} className="inline mr-1" />Cancelada</Badge>;
-      default:
-        return <Badge className="bg-slate-500 text-white">{status}</Badge>;
-    }
+    const statusConfig = {
+      pendiente: { bg: "bg-amber-500", icon: Clock, label: "Pendiente" },
+      aceptada: { bg: "bg-emerald-500", icon: CheckCircle, label: "Aceptada" },
+      en_progreso: { bg: "bg-blue-500", icon: Clock, label: "En Progreso" },
+      completada: { bg: "bg-purple-500", icon: CheckCircle, label: "Completada" },
+      pagada: { bg: "bg-green-500", icon: DollarSign, label: "Pagada" },
+      rechazada: { bg: "bg-red-500", icon: XCircle, label: "Rechazada" },
+      cancelada: { bg: "bg-slate-500", icon: XCircle, label: "Cancelada" },
+    };
+    const config = statusConfig[status] || { bg: "bg-slate-500", icon: Clock, label: status };
+    const Icon = config.icon;
+    
+    return (
+      <Badge className={`${config.bg} text-white border-0 px-2 py-0.5 text-xs`}>
+        <Icon size={12} className="inline mr-1" />
+        {config.label}
+      </Badge>
+    );
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "pendiente":
-        return "border-l-amber-500";
-      case "aceptada":
-        return "border-l-emerald-500";
-      case "en_progreso":
-        return "border-l-blue-500";
-      case "completada":
-        return "border-l-purple-500";
-      case "rechazada":
-        return "border-l-red-500";
-      case "cancelada":
-        return "border-l-slate-500";
-      default:
-        return "border-l-gray-300";
-    }
+    const colors = {
+      pendiente: "border-l-amber-500",
+      aceptada: "border-l-emerald-500",
+      en_progreso: "border-l-blue-500",
+      completada: "border-l-purple-500",
+      pagada: "border-l-green-500",
+      rechazada: "border-l-red-500",
+      cancelada: "border-l-slate-500",
+    };
+    return colors[status] || "border-l-gray-300";
   };
 
+  // Componente Card para postulación enviada
   const ApplicationCard = ({ application }) => (
-    <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden`}>
-      <div className="grid md:grid-cols-[200px_1fr] gap-6">
-        <div className="h-48 md:h-auto">
-          <ImageWithFallback src={resolveImageUrl(application.servicio?.imagen)} alt={application.servicio?.titulo || "Servicio"} className="w-full h-full object-cover" />
-        </div>
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">{application.servicio?.titulo}</h3>
-              <p className="text-slate-500 text-sm">{application.servicio?.descripcion}</p>
-            </div>
+    <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden hover:shadow-lg transition-shadow`}>
+      <div className="grid md:grid-cols-[180px_1fr] gap-5">
+        <div className="h-44 md:h-auto relative">
+          <ImageWithFallback 
+            src={resolveImageUrl(application.servicio?.imagen)} 
+            alt={application.servicio?.titulo || "Servicio"} 
+            className="w-full h-full object-cover" 
+          />
+          <div className="absolute top-3 right-3">
             {getStatusBadge(application.estado)}
           </div>
+        </div>
+        <div className="p-5">
+          <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1">
+            {application.servicio?.titulo}
+          </h3>
+          <p className="text-slate-500 text-sm line-clamp-2 mb-4">
+            {application.servicio?.descripcion}
+          </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm text-slate-500">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
             <div className="flex items-center gap-2">
-              <User size={16} className="text-blue-500" />
-              <button onClick={() => openPublicProfile(application.servicio?.cliente_usuario?.id_CorreoUsuario)} className="truncate text-blue-600 hover:underline">
+              <User size={14} className="text-blue-500" />
+              <button 
+                onClick={() => openPublicProfile(application.servicio?.cliente_usuario?.id_CorreoUsuario)} 
+                className="text-blue-600 hover:underline truncate"
+              >
                 {application.servicio?.cliente_usuario?.nombre || "Cliente"}
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <DollarSign size={16} className="text-emerald-500" />
-              <span>{application.presupuesto ? `$${Number(application.presupuesto).toLocaleString("es-CO")}` : "A convenir"}</span>
+              <DollarSign size={14} className="text-emerald-500" />
+              <span className="text-slate-600">
+                ${Number(application.servicio?.precio || 0).toLocaleString("es-CO")}
+              </span>
             </div>
             <div className="flex items-center gap-2 col-span-2">
-              <Calendar size={16} className="text-indigo-500" />
-              <span>{new Date(application.created_at).toLocaleDateString("es-CO")}</span>
+              <Calendar size={14} className="text-indigo-500" />
+              <span className="text-slate-500 text-xs">
+                {application.created_at ? new Date(application.created_at).toLocaleDateString("es-CO") : "Fecha no disponible"}
+              </span>
             </div>
-          </div>
-
-          <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
-            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><FileText size={14} /> Tu propuesta</h4>
-            <p className="text-sm text-slate-600 italic">"{application.mensaje}"</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {application.estado === "pendiente" && (
-              <>
-                <Button variant="outline" className="border-amber-200 text-amber-700" onClick={() => cancelProposal(application)}>
-                  Cancelar Postulación
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => cancelProposal(application)}
+              >
+                <XCircle size={14} className="mr-1" /> Cancelar
+              </Button>
+            )}
+            {application.estado === "aceptada" && (
+              <Badge className="bg-emerald-100 text-emerald-700 border-0">
+                <CheckCircle size={12} className="mr-1" /> Aceptado
+              </Badge>
+            )}
+            {application.estado === "en_progreso" && (
+              <Badge className="bg-blue-100 text-blue-700 border-0">
+                <Briefcase size={12} className="mr-1" /> En Progreso
+              </Badge>
+            )}
+            {application.estado === "completada" && (
+              <div className="flex gap-2 flex-wrap">
+                <Badge className="bg-purple-100 text-purple-700 border-0">
+                  <FileCheck size={12} className="mr-1" /> Completada - Esperando pago
+                </Badge>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_URL}/postulaciones/${application.id}/cobrar`, {
+                        method: "POST",
+                        headers: authHeaders(),
+                      });
+                      const data = await response.json();
+                      if (!response.ok) throw new Error(data?.message || "Error al cobrar.");
+                      fetchApplications();
+                      Swal.fire('¡Cobrado!', 'El pago ha sido cobrado exitosamente.', 'success');
+                    } catch (error) {
+                      Swal.fire('Error', error.message, 'error');
+                    }
+                  }}
+                >
+                  <DollarSign size={14} className="mr-1" /> Cobrar
                 </Button>
-              </>
+              </div>
+            )}
+            {application.estado === "pagada" && (
+              <Badge className="bg-green-500 text-white border-0">
+                <DollarSign size={12} className="mr-1" /> Pagada
+              </Badge>
             )}
           </div>
         </div>
@@ -513,75 +338,204 @@ export default function Applications() {
     </div>
   );
 
-  // Card para postulaciones recibidas
-  const ReceivedApplicationCard = ({ postulacion }) => (
-    <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(postulacion.estado)} overflow-hidden`}>
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
-              {postulacion.usuario?.nombre?.[0] || "U"}{postulacion.usuario?.apellido?.[0] || ""}
-            </div>
-            <div>
-              <p className="font-medium text-slate-800">
-                {postulacion.usuario?.nombre} {postulacion.usuario?.apellido}
-              </p>
-              <p className="text-sm text-slate-500">{postulacion.usuario?.ciudad || "Sin ciudad"}</p>
-            </div>
+  // Componente Card para solicitud recibida
+  const ReceivedRequestCard = ({ request }) => (
+    <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(request.estado)} overflow-hidden hover:shadow-lg transition-shadow`}>
+      <div className="p-5">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
+              {request?.servicio?.titulo || "Servicio"}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Postulante: {request?.usuario?.nombre || "Usuario"} {request?.usuario?.apellido || ""}
+            </p>
           </div>
-          {getStatusBadge(postulacion.estado)}
+          {getStatusBadge(request.estado)}
         </div>
 
-        <div className="bg-slate-50 rounded-xl p-4 mb-4">
-          <div className="flex items-center gap-4 text-sm text-slate-600 mb-3">
-            {postulacion.presupuesto && (
-              <span className="flex items-center gap-1">
-                <DollarSign size={16} className="text-emerald-500" />
-                ${Number(postulacion.presupuesto).toLocaleString("es-CO")}
-              </span>
+        <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 mb-4 min-h-[60px]">
+          {request.mensaje || "Sin mensaje."}
+        </p>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">
+            {request.created_at ? new Date(request.created_at).toLocaleString("es-CO") : "Fecha no disponible"}
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {request.estado === "pendiente" && (
+              <>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => updateStatus(request.id, "aceptada")}
+                >
+                  <CheckCircle size={14} className="mr-1" /> Aceptar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                  onClick={() => updateStatus(request.id, "rechazada")}
+                >
+                  <XCircle size={14} className="mr-1" /> Rechazar
+                </Button>
+              </>
             )}
-            {postulacion.tiempo_estimado && (
-              <span className="flex items-center gap-1">
-                <Clock size={16} className="text-blue-500" />
-                {postulacion.tiempo_estimado}
-              </span>
+            {request.estado === "aceptada" && (
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => updateStatus(request.id, "en_progreso")}
+              >
+                ▶ Iniciar Trabajo
+              </Button>
             )}
-            <span className="text-slate-400">
-              {new Date(postulacion.created_at).toLocaleDateString("es-CO")}
-            </span>
+            {request.estado === "en_progreso" && (
+              <Button
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={async () => {
+                  const confirm = await Swal.fire({
+                    title: '¿Marcar trabajo como completado?',
+                    text: 'Esto habilitará el pago del servicio.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, está completado',
+                    cancelButtonText: 'Cancelar',
+                  });
+                  if (!confirm.isConfirmed) return;
+                  try {
+                    const response = await fetch(`${API_URL}/postulaciones/${request.id}/completar`, {
+                      method: "PATCH",
+                      headers: authHeaders(true),
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
+                    fetchSolicitudesRecibidas();
+                    Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado.', 'success');
+                  } catch (error) {
+                    Swal.fire('Error', error.message, 'error');
+                  }
+                }}
+              >
+                ✓ Marcar Completado
+              </Button>
+            )}
+            {request.estado === "completada" && (
+              <div className="flex gap-2 flex-wrap items-center">
+                <Badge className="bg-green-100 text-green-700 border-0 px-3 py-1">
+                  ✅ Listo para pago
+                </Badge>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={async () => {
+                    const confirm = await Swal.fire({
+                      title: '¿Proceder con el pago?',
+                      text: 'Se procesará el pago del servicio.',
+                      icon: 'question',
+                      showCancelButton: true,
+                      confirmButtonText: 'Sí, pagar',
+                      cancelButtonText: 'Cancelar',
+                    });
+                    if (!confirm.isConfirmed) return;
+                    try {
+                      const response = await fetch(`${API_URL}/pagos/servicio`, {
+                        method: "POST",
+                        headers: authHeaders(true),
+                        body: JSON.stringify({
+                          id_Servicio: request.servicio.id_Servicio,
+                          modalidadPago: 'virtual',
+                          modalidadServicio: 'presencial',
+                          identificacionCliente: '12345678',
+                          origenSolicitud: 'postulacion',
+                          id_Postulacion: request.id,
+                          monto: request.servicio.precio || 0
+                        }),
+                      });
+                      const data = await response.json();
+                      if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
+                      fetchSolicitudesRecibidas();
+                      Swal.fire('¡Pago exitoso!', 'El pago ha sido procesado.', 'success');
+                    } catch (error) {
+                      Swal.fire('Error', error.message, 'error');
+                    }
+                  }}
+                >
+                  <DollarSign size={14} className="mr-1" /> Pagar
+                </Button>
+              </div>
+            )}
+            {request.estado === "pagada" && (
+              <div className="flex gap-2 flex-wrap items-center">
+                <Badge className="bg-green-500 text-white border-0 px-3 py-1">
+                  ✅ Pagada
+                </Badge>
+                <Button
+                  size="sm"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                  onClick={async () => {
+                    const { value: rating } = await Swal.fire({
+                      title: 'Califica el servicio',
+                      input: 'range',
+                      inputLabel: 'Calificación (1-5 estrellas)',
+                      inputAttributes: {
+                        min: 1,
+                        max: 5,
+                        step: 1
+                      },
+                      inputValue: 5,
+                      showCancelButton: true,
+                      confirmButtonText: 'Calificar',
+                      cancelButtonText: 'Cancelar',
+                    });
+                    
+                    if (!rating) return;
+                    
+                    const { value: comment } = await Swal.fire({
+                      title: 'Deja un comentario (opcional)',
+                      input: 'textarea',
+                      inputPlaceholder: 'Escribe tu experiencia con el servicio...',
+                      showCancelButton: true,
+                      confirmButtonText: 'Enviar',
+                      cancelButtonText: 'Cancelar',
+                    });
+                    
+                    try {
+                      const response = await fetch(`${API_URL}/resenas`, {
+                        method: "POST",
+                        headers: authHeaders(true),
+                        body: JSON.stringify({
+                          id_Servicio: request.servicio.id_Servicio,
+                          calificacion: parseInt(rating),
+                          comentario: comment || ''
+                        }),
+                      });
+                      const data = await response.json();
+                      if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+                      fetchSolicitudesRecibidas();
+                      Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+                    } catch (error) {
+                      Swal.fire('Error', error.message, 'error');
+                    }
+                  }}
+                >
+                  <Star size={14} className="mr-1" /> Calificar
+                </Button>
+              </div>
+            )}
+            {(request.estado === "rechazada" || request.estado === "cancelada") && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-slate-200 text-slate-700 hover:bg-slate-50"
+                onClick={() => updateStatus(request.id, "pendiente")}
+              >
+                <Clock size={14} className="mr-1" /> Volver a Pendiente
+              </Button>
+            )}
           </div>
-          {postulacion.mensaje && (
-            <div className="border-t border-slate-200 pt-3 mt-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Mensaje de presentación</p>
-              <p className="text-sm text-slate-700 italic">"{postulacion.mensaje}"</p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => openPublicProfile(postulacion.id_Usuario)}>
-            <User size={16} className="mr-1" /> Ver Perfil
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => openChat(postulacion)}>
-            <MessageSquare size={16} className="mr-1" /> Mensajes
-          </Button>
-
-          {postulacion.estado === "pendiente" && (
-            <>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => updateStatus(postulacion.id, "aceptada")}>
-                <CheckCircle size={16} className="mr-1" /> Aceptar
-              </Button>
-              <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => updateStatus(postulacion.id, "rechazada")}>
-                <XCircle size={16} className="mr-1" /> Rechazar
-              </Button>
-            </>
-          )}
-
-          {postulacion.estado === "aceptada" && (
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => updateStatus(postulacion.id, "en_progreso")}>
-              <Clock size={16} className="mr-1" /> Iniciar Trabajo
-            </Button>
-          )}
         </div>
       </div>
     </div>
@@ -589,437 +543,121 @@ export default function Applications() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Postulaciones</h1>
-        <p className="text-slate-500 mt-1">Gestiona tus postulaciones enviadas y recibidas</p>
+    <div className="max-w-7xl mx-auto p-6 animate-in fade-in duration-500 font-sans">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="bg-linear-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg shadow-blue-200">
+            <Briefcase className="text-white h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Mis Postulaciones</h1>
+            <p className="text-slate-500 font-medium">Gestiona tus postulaciones y solicitudes recibidas</p>
+          </div>
+        </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-4">
-          <div className="flex"><AlertCircle className="h-5 w-5 text-red-500" /><div className="ml-3"><p className="text-sm text-red-700">{error}</p></div></div>
-        </div>
-      )}
-
-      <Tabs defaultValue="sent" className="w-full">
-        <TabsList className="bg-white p-1 rounded-xl border border-slate-200 mb-8 inline-flex h-auto">
-          <TabsTrigger value="sent" className="rounded-lg px-4 py-2">Mis Postulaciones Enviadas</TabsTrigger>
-          <TabsTrigger value="apply" className="rounded-lg px-4 py-2">Crear Oportunidad</TabsTrigger>
-          <TabsTrigger value="received" className="rounded-lg px-4 py-2">Postulaciones Recibidas ({solicitudesRecibidas.length})</TabsTrigger>
+      {/* Tabs */}
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl h-12 mb-8">
+          <TabsTrigger 
+            value="sent" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
+          >
+            📤 Mis Postulaciones Enviadas ({applications.length})
+          </TabsTrigger>
+          <TabsTrigger 
+            value="received" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
+          >
+            📥 Solicitudes Recibidas ({solicitudesRecibidas.length})
+          </TabsTrigger>
         </TabsList>
 
-        {/* Pestaña: Mis Postulaciones Enviadas */}
-        <TabsContent value="sent">
+        {/* Tab: Mis Postulaciones Enviadas */}
+        <TabsContent value="sent" className="space-y-4">
+          {/* Sub-filters */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+            >
+              Todas ({applications.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-50"
+            >
+              Pendientes ({pending.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            >
+              Aceptadas ({accepted.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
+            >
+              En Progreso ({inProgress.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full border-purple-200 text-purple-700 hover:bg-purple-50"
+            >
+              Completadas ({completed.length})
+            </Button>
+          </div>
+
           {applications.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">No tienes postulaciones enviadas</h3>
-              <p className="text-slate-500">Explora las oportunidades disponibles y postula</p>
+            <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-center">
+              <div className="bg-white p-6 rounded-full shadow-sm mb-6">
+                <Send size={48} className="text-slate-300" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes postulaciones</h3>
+              <p className="text-slate-500 max-w-md">
+                Explora las oportunidades disponibles y postula a los servicios que te interesen.
+              </p>
             </div>
           ) : (
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="bg-white p-1 rounded-xl border border-slate-200 mb-8 inline-flex h-auto">
-                <TabsTrigger value="all" className="rounded-lg px-4 py-2">Todas ({applications.length})</TabsTrigger>
-                <TabsTrigger value="pending" className="rounded-lg px-4 py-2">Pendientes ({pending.length})</TabsTrigger>
-                <TabsTrigger value="accepted" className="rounded-lg px-4 py-2">Aceptadas ({accepted.length})</TabsTrigger>
-                <TabsTrigger value="in_progress" className="rounded-lg px-4 py-2">En Progreso ({inProgress.length})</TabsTrigger>
-                <TabsTrigger value="completed" className="rounded-lg px-4 py-2">Completadas ({completed.length})</TabsTrigger>
-                <TabsTrigger value="rejected" className="rounded-lg px-4 py-2">Rechazadas ({rejected.length})</TabsTrigger>
-                <TabsTrigger value="cancelled" className="rounded-lg px-4 py-2">Canceladas ({canceled.length})</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all" className="space-y-6">{applications.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="pending" className="space-y-6">{pending.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="accepted" className="space-y-6">{accepted.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="in_progress" className="space-y-6">{inProgress.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="completed" className="space-y-6">{completed.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="rejected" className="space-y-6">{rejected.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-              <TabsContent value="cancelled" className="space-y-6">{canceled.map((a) => <ApplicationCard key={a.id} application={a} />)}</TabsContent>
-            </Tabs>
+            <div className="grid grid-cols-1 gap-4">
+              {applications.map((application) => (
+                <ApplicationCard key={application.id} application={application} />
+              ))}
+            </div>
           )}
         </TabsContent>
 
-        {/* Pestaña: Crear Oportunidad */}
-        <TabsContent value="apply">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                  <Briefcase className="w-6 h-6 text-emerald-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">Crear Nueva Oportunidad</h2>
-                  <p className="text-sm text-slate-500">Publica una oportunidad y recibe postulaciones de profesionales</p>
-                </div>
-              </div>
-
-              <form onSubmit={crearOportunidad} className="space-y-6">
-                {/* Título */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Título de la Oportunidad <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="titulo"
-                    value={formData.titulo}
-                    onChange={handleFormChange}
-                    placeholder="Ej: Se busca Desarrollador Web Senior"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                      formErrors.titulo ? "border-red-500" : "border-slate-200"
-                    }`}
-                  />
-                  {formErrors.titulo && <p className="text-red-500 text-sm mt-1">{formErrors.titulo}</p>}
-                </div>
-
-                {/* Descripción */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Descripción Detallada <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="descripcion"
-                    value={formData.descripcion}
-                    onChange={handleFormChange}
-                    rows={4}
-                    placeholder="Describe detalladamente en qué consiste la oportunidad..."
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none ${
-                      formErrors.descripcion ? "border-red-500" : "border-slate-200"
-                    }`}
-                  />
-                  {formErrors.descripcion && <p className="text-red-500 text-sm mt-1">{formErrors.descripcion}</p>}
-                </div>
-
-                {/* Grupo y Categoría */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Grupo de Categoría <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="grupo"
-                      value={formData.grupo}
-                      onChange={handleFormChange}
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        formErrors.grupo ? "border-red-500" : "border-slate-200"
-                      }`}
-                    >
-                      <option value="">Selecciona un grupo</option>
-                      {grupos.map(grupo => (
-                        <option key={grupo} value={grupo}>{grupo}</option>
-                      ))}
-                    </select>
-                    {formErrors.grupo && <p className="text-red-500 text-sm mt-1">{formErrors.grupo}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Categoría <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="id_Categoria"
-                      value={formData.id_Categoria}
-                      onChange={handleFormChange}
-                      disabled={!formData.grupo}
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 ${
-                        formErrors.id_Categoria ? "border-red-500" : "border-slate-200"
-                      }`}
-                    >
-                      <option value="">{formData.grupo ? "Selecciona una categoría" : "Selecciona un grupo primero"}</option>
-                      {subcategorias.map(cat => (
-                        <option key={cat.id_Categoria} value={cat.id_Categoria}>{cat.nombre}</option>
-                      ))}
-                    </select>
-                    {formErrors.id_Categoria && <p className="text-red-500 text-sm mt-1">{formErrors.id_Categoria}</p>}
-                  </div>
-                </div>
-
-                {/* Tipo de Oportunidad */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Tipo de Oportunidad <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { value: "empleo", label: "Empleo", icon: "💼" },
-                      { value: "proyecto", label: "Proyecto", icon: "📋" },
-                      { value: "practica", label: "Práctica", icon: "🎓" },
-                      { value: "freelance", label: "Freelance", icon: "🚀" }
-                    ].map((tipo) => (
-                      <label
-                        key={tipo.value}
-                        className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
-                          formData.tipoOportunidad === tipo.value
-                            ? "border-emerald-500 bg-emerald-50"
-                            : "border-slate-200 hover:border-emerald-300"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="tipoOportunidad"
-                          value={tipo.value}
-                          checked={formData.tipoOportunidad === tipo.value}
-                          onChange={handleFormChange}
-                          className="sr-only"
-                        />
-                        <span className="text-xl">{tipo.icon}</span>
-                        <span className="text-sm font-medium text-slate-700">{tipo.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Presupuesto y Tiempo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Presupuesto (COP)
-                    </label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input
-                        type="text"
-                        name="precio"
-                        value={formData.precio}
-                        onChange={handleFormChange}
-                        placeholder="Ej: 5,000,000"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                          formErrors.precio ? "border-red-500" : "border-slate-200"
-                        }`}
-                      />
-                    </div>
-                    {formErrors.precio && <p className="text-red-500 text-sm mt-1">{formErrors.precio}</p>}
-                    <p className="text-xs text-slate-500 mt-1">Dejar vacío si es a convenir</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Tiempo de Entrega / Duración
-                    </label>
-                    <select
-                      name="tiempoEntrega"
-                      value={formData.tiempoEntrega}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="">Selecciona una opción</option>
-                      <option value="1 semana">1 semana</option>
-                      <option value="2 semanas">2 semanas</option>
-                      <option value="1 mes">1 mes</option>
-                      <option value="2 meses">2 meses</option>
-                      <option value="3 meses">3 meses</option>
-                      <option value="6 meses">6 meses</option>
-                      <option value="Tiempo completo">Tiempo completo</option>
-                      <option value="Medio tiempo">Medio tiempo</option>
-                      <option value="Por proyecto">Por proyecto</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Fecha límite */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Fecha Límite de Postulación
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      type="date"
-                      name="fechaLimite"
-                      value={formData.fechaLimite}
-                      onChange={handleFormChange}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Requisitos */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    <FileCheck className="inline w-4 h-4 mr-1" />
-                    Requisitos
-                  </label>
-                  <textarea
-                    name="requisitos"
-                    value={formData.requisitos}
-                    onChange={handleFormChange}
-                    rows={3}
-                    placeholder="Lista los requisitos que deben cumplir los postulantes..."
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                  />
-                </div>
-
-                {/* Beneficios */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    <Gift className="inline w-4 h-4 mr-1" />
-                    Beneficios
-                  </label>
-                  <textarea
-                    name="beneficios"
-                    value={formData.beneficios}
-                    onChange={handleFormChange}
-                    rows={3}
-                    placeholder="Describe los beneficios que ofrece esta oportunidad..."
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                  />
-                </div>
-
-                {/* Imagen */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Imagen de la Oportunidad
-                  </label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setImagen(e.target.files[0])}
-                      className="hidden"
-                      id="imagen-oportunidad"
-                    />
-                    <label htmlFor="imagen-oportunidad" className="cursor-pointer">
-                      {imagen ? (
-                        <div className="relative inline-block">
-                          <img
-                            src={URL.createObjectURL(imagen)}
-                            alt="Preview"
-                            className="max-h-40 rounded-lg mx-auto"
-                          />
-                          <p className="text-sm text-emerald-600 mt-2">{imagen.name}</p>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                          <p className="text-sm text-slate-500">
-                            Arrastra una imagen o <span className="text-emerald-600 font-medium">haz clic para seleccionar</span>
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">PNG, JPG hasta 2MB</p>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                </div>
-
-                {/* Botón de envío */}
-                <div className="pt-4 border-t border-slate-100">
-                  <Button
-                    type="submit"
-                    disabled={creando}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3"
-                  >
-                    {creando ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={20} />
-                        Publicando Oportunidad...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2" size={20} />
-                        Publicar Oportunidad
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-center text-xs text-slate-500 mt-3">
-                    Al publicar, tu oportunidad será visible para todos los usuarios de SkillBay
-                  </p>
-                </div>
-              </form>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Pestaña: Postulaciones Recibidas */}
-        <TabsContent value="received">
+        {/* Tab: Solicitudes Recibidas */}
+        <TabsContent value="received" className="space-y-4">
           {solicitudesRecibidas.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200">
-              <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">No tienes postulaciones recibidas</h3>
-              <p className="text-slate-500">Las postulaciones de los usuarios aparecerán aquí cuando publiques oportunidades.</p>
+            <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-center">
+              <div className="bg-white p-6 rounded-full shadow-sm mb-6">
+                <MessageSquare size={48} className="text-slate-300" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes solicitudes</h3>
+              <p className="text-slate-500 max-w-md">
+                Cuando alguien se postule a tus servicios, podrás ver las solicitudes aquí.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              <div className="xl:col-span-2 space-y-4">
-                {solicitudesRecibidas.map((postulacion) => (
-                  <ReceivedApplicationCard key={postulacion.id} postulacion={postulacion} />
-                ))}
-              </div>
-              
-              {/* Panel de chat */}
-              <div className="xl:col-span-1">
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 sticky top-24">
-                  <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                    <MessageSquare size={18} />
-                    Conversación
-                  </h3>
-                  
-                  {!selectedPostulacion ? (
-                    <p className="text-sm text-slate-500 text-center py-8">
-                      Selecciona una postulación para ver los mensajes
-                    </p>
-                  ) : (
-                    <div className="flex flex-col h-[400px]">
-                      <div className="pb-3 mb-3 border-b border-slate-100">
-                        <p className="font-medium text-slate-700">{selectedPostulacion.servicio?.titulo}</p>
-                        <p className="text-sm text-slate-500">
-                          Con: {selectedPostulacion.usuario?.nombre} {selectedPostulacion.usuario?.apellido}
-                        </p>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1">
-                        {loadingMessages ? (
-                          <div className="flex justify-center py-4">
-                            <Loader2 className="animate-spin text-blue-500" />
-                          </div>
-                        ) : messages.length === 0 ? (
-                          <p className="text-sm text-slate-500 text-center py-4">Sin mensajes aún.</p>
-                        ) : (
-                          messages.map((msg) => (
-                            <div 
-                              key={msg.id_Mensaje} 
-                              className={`p-3 rounded-lg ${
-                                msg.id_Emisor === currentUser.id_CorreoUsuario 
-                                  ? "bg-blue-50 border border-blue-100 ml-4" 
-                                  : "bg-slate-50 border border-slate-100 mr-4"
-                              }`}
-                            >
-                              <p className="text-xs text-slate-500 mb-1">
-                                {msg.emisor?.nombre || msg.id_Emisor} - {" "}
-                                {new Date(msg.created_at).toLocaleString("es-CO")}
-                              </p>
-                              <p className="text-sm text-slate-700">{msg.mensaje}</p>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {selectedPostulacion.estado !== "rechazada" && selectedPostulacion.estado !== "cancelada" && (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                            placeholder="Escribe un mensaje..."
-                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm"
-                          />
-                          <Button 
-                            onClick={sendMessage}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <Send size={16} />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {solicitudesRecibidas.map((request) => (
+                <ReceivedRequestCard key={request.id} request={request} />
+              ))}
             </div>
           )}
         </TabsContent>

@@ -23,9 +23,9 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
 
   const navItems = [
     { name: "Explorar Oportunidades", view: "explore", icon: Home },
-    { name: "Explorar Services", view: "explore_services", icon: BriefcaseBusiness },
+    { name: "Explorar Servicios", view: "explore_services", icon: BriefcaseBusiness },
     { name: "Mi Perfil", view: "profile", icon: User },
-    { name: "Mi Servicios", view: "services", icon: Briefcase },
+    { name: "Mis Servicios", view: "services", icon: Briefcase },
     { name: "Postulaciones", view: "applications", icon: FileText },
     { name: "Mensajes", view: "messages", icon: MessageSquare },
     { name: "Planes", view: "plans", icon: CreditCard },

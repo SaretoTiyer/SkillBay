@@ -44,7 +44,7 @@ class PostulacionController extends Controller
 
         $solicitudes = Postulacion::with([
             'servicio:id_Servicio,titulo,id_Cliente,id_Categoria,imagen,estado',
-            'servicio.categoria:id_Categoria,nombre',
+            'servicio.categoria:id_Categoria,nombre,grupo',
             'usuario:id_CorreoUsuario,nombre,apellido,ciudad',
         ])
             ->whereHas('servicio', function ($query) use ($user) {
@@ -54,7 +54,7 @@ class PostulacionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json($solicitudes);
+        return response()->json(['solicitudes' => $solicitudes]);
     }
 
     /**
@@ -138,6 +138,68 @@ class PostulacionController extends Controller
             'success' => true,
             'message' => 'Trabajo marcado como completado.',
             'postulacion' => $postulacion,
+        ]);
+    }
+
+    /**
+     * El ofertante cobra el pago después de que el cliente pagó.
+     * Solo puede cobrar si la postulación está completada y ya existe un pago registrado.
+     */
+    public function cobrar(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $postulacion = Postulacion::with(['servicio'])
+            ->where('id', $id)
+            ->where('id_Usuario', $user->id_CorreoUsuario)
+            ->first();
+
+        if (!$postulacion) {
+            return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
+        }
+
+        if ($postulacion->estado !== 'completada') {
+            return response()->json(['message' => 'Solo se puede cobrar un trabajo completado.'], 422);
+        }
+
+        // Verificar si ya existe un pago para esta postulación
+        $pago = \App\Models\PagoServicio::where('id_Postulacion', $id)
+            ->where('estado', 'Completado')
+            ->first();
+
+        if (!$pago) {
+            return response()->json([
+                'message' => 'No se puede cobrar. El cliente aún no ha realizado el pago.',
+            ], 422);
+        }
+
+        // Actualizar el estado de la postulación a 'pagada'
+        $postulacion->estado = 'pagada';
+        $postulacion->save();
+
+        Notificacion::create([
+            'mensaje' => 'Has cobrado el pago para "' . ($postulacion->servicio->titulo ?? 'servicio') . '". Gracias por tu trabajo.',
+            'estado' => 'No leido',
+            'tipo' => 'postulacion',
+            'id_CorreoUsuario' => $user->id_CorreoUsuario,
+        ]);
+
+        // Notificar al cliente
+        Notificacion::create([
+            'mensaje' => 'El proveedor ha cobrado el pago para "' . ($postulacion->servicio->titulo ?? 'servicio') . '". Ya puedes dejar una calificación.',
+            'estado' => 'No leido',
+            'tipo' => 'postulacion',
+            'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pago cobrado exitosamente.',
+            'postulacion' => $postulacion,
+            'pago' => $pago,
         ]);
     }
 
@@ -308,7 +370,7 @@ class PostulacionController extends Controller
         }
 
         $pendientesActivas = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
-            ->whereIn('estado', ['pendiente', 'aceptada', 'rechazada'])
+            ->whereIn('estado', ['pendiente', 'aceptada'])
             ->exists();
 
         if ($user->rol === 'ofertante' && !$pendientesActivas) {

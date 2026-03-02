@@ -185,7 +185,7 @@ export default function UserProfile() {
                 <div className="lg:col-span-1">
                     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-4">
                         {/* Cover */}
-                        <div className="h-24 bg-gradient-to-r from-blue-600 to-blue-700 relative">
+                        <div className="h-24 bg-linear-to-r from-blue-600 to-blue-700 relative">
                             {isEditing && (
                                 <button className="absolute top-3 right-3 p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
                                     <Camera className="text-white" size={16} />
@@ -196,7 +196,7 @@ export default function UserProfile() {
                         {/* Avatar */}
                         <div className="px-6 pb-6">
                             <div className="relative -mt-12 mb-4">
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-md">
+                                <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-md">
                                     {profileData.name.charAt(0).toUpperCase()}
                                 </div>
                                 {isEditing && (

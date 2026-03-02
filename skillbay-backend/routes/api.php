@@ -45,11 +45,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UsuarioController::class, 'update']);
     Route::get('/usuarios/{id}/perfil', [UsuarioController::class, 'perfilPublico']);
     Route::get('/servicios/explore', [ServicioController::class, 'explore']);
+    // Rutas específicas de solicitudes - deben estar ANTES de apiResource
+    // Solicitudes recibidas
+    Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
+    Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
+    // Solicitudes enviadas
     Route::apiResource('servicios', ServicioController::class);
     Route::apiResource('postulaciones', PostulacionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
     Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
     Route::patch('/postulaciones/{id}/completar', [PostulacionController::class, 'marcarCompletado']);
+    Route::post('/postulaciones/{id}/cobrar', [PostulacionController::class, 'cobrar']);
     Route::get('/postulaciones/{id}/listo-pago', [PostulacionController::class, 'verificarListoParaPago']);
     Route::get('/categorias', function () {
         return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();

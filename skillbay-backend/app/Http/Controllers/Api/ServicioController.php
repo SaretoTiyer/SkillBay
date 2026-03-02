@@ -34,10 +34,18 @@ class ServicioController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $servicios = Servicio::where('id_Cliente', $user->id_CorreoUsuario)
+        $tipo = $request->query('tipo'); // filtrar por tipo: 'servicio' o 'oportunidad'
+
+        $query = Servicio::where('id_Cliente', $user->id_CorreoUsuario)
             ->with('categoria')
-            ->orderBy('fechaPublicacion', 'desc')
-            ->get();
+            ->orderBy('fechaPublicacion', 'desc');
+
+        // Filtrar por tipo si se especifica
+        if ($tipo) {
+            $query->where('tipo', $tipo);
+        }
+
+        $servicios = $query->get();
 
         // Transformar respuesta para incluir URL completa de la imagen
         $servicios->transform(function ($servicio) {
@@ -47,7 +55,10 @@ class ServicioController extends Controller
             return $servicio;
         });
 
-        return response()->json($servicios);
+        return response()->json([
+            'servicios' => $servicios,
+            'total' => $servicios->count()
+        ]);
     }
 
     // Explorar servicios publicados por otros usuarios

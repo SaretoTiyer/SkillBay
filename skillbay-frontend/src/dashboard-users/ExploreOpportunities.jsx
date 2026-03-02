@@ -87,9 +87,13 @@ export default function ExploreOpportunities() {
       );
     }
 
-    // Filtrar por categoría específica
+    // Filtrar por grupo (categoría principal) o categoría específica (subcategoría)
     if (selectedCategoria) {
+      // Si hay subcategoría seleccionada, filtrar por esa categoría específica
       filtered = filtered.filter((s) => s.id_Categoria === selectedCategoria);
+    } else if (selectedGrupo) {
+      // Si hay grupo seleccionado pero no subcategoría, filtrar por el grupo
+      filtered = filtered.filter((s) => s.categoria?.grupo === selectedGrupo);
     }
 
     // Ordenar
@@ -106,7 +110,7 @@ export default function ExploreOpportunities() {
     }
 
     return filtered;
-  }, [services, query, selectedCategoria, sortBy]);
+  }, [services, query, selectedCategoria, selectedGrupo, sortBy]);
 
   useEffect(() => {
     fetchData();

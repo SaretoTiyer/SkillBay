@@ -27,9 +27,22 @@ export default function Services({ onNavigate }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
 
+  // Efecto para cargar datos al inicio
   useEffect(() => {
     loadPublicData();
   }, []);
+
+  // Efecto para scroll automático cuando cambia el grupo seleccionado
+  useEffect(() => {
+    if (selectedGroup) {
+      const serviciosSection = document.getElementById('servicios-section');
+      if (serviciosSection) {
+        setTimeout(() => {
+          serviciosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [selectedGroup]);
 
   const loadPublicData = async () => {
     try {
@@ -205,7 +218,7 @@ export default function Services({ onNavigate }) {
       </section>
 
       {/* Servicios */}
-      <section className="bg-slate-50 border-t border-slate-200">
+      <section id="servicios-section" className="bg-slate-50 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="flex items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-bold text-slate-800">

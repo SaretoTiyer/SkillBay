@@ -5,10 +5,21 @@ input::-webkit-inner-spin-button {
     margin: 0;
 }
 
-button {
+button, select {
     cursor: pointer;
 }
 
-select{
-    cursor: pointer;
+/* --- Estilos Globales para SelectContent --- */
+@layer components {
+  /* Usamos el data-slot que tiene tu componente original */
+  [data-slot="select-content"] {
+    @apply max-h-60 rounded-xl border-slate-200 bg-white shadow-lg;
+    @apply focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-500;
+    @apply overflow-hidden transition-all;
+  }
+
+  /* Opcional: Estilo para los items dentro del select */
+  [data-slot="select-item"] {
+    @apply cursor-pointer hover:bg-slate-50 focus:bg-slate-50 outline-none;
+  }
 }
