@@ -96,7 +96,7 @@ export default function CreateService() {
             
             if (categoriasArray.length > 0) {
                 console.log("Setting categories:", categoriasArray);
-                console.log("Groups found:", [...new Set(categoriasArray.map(cat => cat.grupo))].filter(Boolean));
+                [...new Set(categoriasArray.map(cat => cat.grupo))].filter(Boolean);
                 setCategories(categoriasArray);
             } else {
                 console.error("No categories found in response:", data);

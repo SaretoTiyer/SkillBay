@@ -25,6 +25,8 @@ class PostulacionController extends Controller
         $postulaciones = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
             ->with(['servicio', 'servicio.cliente_usuario' => function ($query) {
                 $query->select('id_CorreoUsuario', 'nombre', 'apellido');
+            }, 'usuario' => function ($query) {
+                $query->select('id_CorreoUsuario', 'nombre', 'apellido');
             }])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -111,11 +113,13 @@ class PostulacionController extends Controller
     }
 
     /**
-     * El cliente (dueño del servicio) marca el trabajo como completado.
+     * El cliente (quien paga) marca el trabajo como completado.
      * Solo se puede marcar como completado si el estado actual es 'en_progreso'.
      *
-     * SOLUCIÓN MÉTODO 2: Cuando todas las postulaciones del servicio están
-     * finalizadas (completadas o pagadas), el servicio se marca como Completado.
+     * FLUJO A (postulante): el cliente (id_Cliente del servicio) marca completado
+     * FLUJO B (solicitante): el cliente (id_Usuario de la postulación) marca completado
+     *
+     * Cuando todas las postulaciones del servicio están finalizadas, el servicio se marca como Completado.
      */
     public function marcarCompletado(Request $request, $id)
     {
@@ -124,15 +128,26 @@ class PostulacionController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        // Buscar la postulación con su servicio
         $postulacion = Postulacion::with(['servicio'])
             ->where('id', $id)
-            ->whereHas('servicio', function ($query) use ($user) {
-                $query->where('id_Cliente', $user->id_CorreoUsuario);
-            })
             ->first();
 
         if (!$postulacion) {
-            return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
+            return response()->json(['message' => 'Solicitud no encontrada.'], 404);
+        }
+
+        // Determinar quién es el cliente (quien paga) según el tipo de flujo
+        // FLUJO A (postulante): el cliente es id_Cliente del servicio
+        // FLUJO B (solicitante): el cliente es id_Usuario de la postulación
+        $esFlujoPosta = $postulacion->tipo_postulacion === 'postulante';
+        $emailClienteQuePaga = $esFlujoPosta
+            ? $postulacion->servicio?->id_Cliente   // FLUJO A: dueño de la oportunidad
+            : $postulacion->id_Usuario;             // FLUJO B: quien solicitó el servicio
+
+        // Solo el cliente (quien paga) puede marcar como completado
+        if ($user->id_CorreoUsuario !== $emailClienteQuePaga) {
+            return response()->json(['message' => 'No autorizado para marcar este trabajo como completado.'], 403);
         }
 
         if ($postulacion->estado !== 'en_progreso') {
@@ -142,10 +157,7 @@ class PostulacionController extends Controller
         $postulacion->estado = 'completada';
         $postulacion->save();
 
-        // ============================================================
-        // SOLUCIÓN MÉTODO 2: Verificar si todas las postulaciones
-        // del servicio están finalizadas para actualizar su estado
-        // ============================================================
+        // Actualizar estado del servicio si no hay postulaciones activas restantes
         $servicio = $postulacion->servicio;
         if ($servicio) {
             $postulacionesRestantes = Postulacion::where('id_Servicio', $servicio->id_Servicio)
@@ -153,18 +165,23 @@ class PostulacionController extends Controller
                 ->whereNotIn('estado', ['completada', 'pagada', 'rechazada', 'cancelada'])
                 ->count();
 
-            // Si no hay postulaciones restantes activas, marcar el servicio como Completado
             if ($postulacionesRestantes === 0) {
                 $servicio->estado = 'Completado';
                 $servicio->save();
             }
         }
 
+        // Notificar al OFERTANTE (quien ejecutó el trabajo) que el trabajo fue aceptado
+        // FLUJO A: ofertante = id_Usuario / FLUJO B: ofertante = id_Cliente del servicio
+        $emailOfertante = $esFlujoPosta
+            ? $postulacion->id_Usuario
+            : $postulacion->servicio?->id_Cliente;
+
         Notificacion::create([
-            'mensaje' => 'El trabajo para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ha sido marcado como completado. Ya puedes proceder con el pago.',
+            'mensaje' => 'El trabajo para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ha sido marcado como completado. El cliente procederá con el pago.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
-            'id_CorreoUsuario' => $postulacion->id_Usuario,
+            'id_CorreoUsuario' => $emailOfertante,
         ]);
 
         return response()->json([

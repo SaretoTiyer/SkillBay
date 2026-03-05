@@ -9,7 +9,8 @@ import {
   Star,
   XCircle,
   Briefcase,
-  Users
+  Users,
+  FileCheck
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../../config/api";
@@ -199,7 +200,7 @@ export default function ReceivedApplications() {
                     <Users size={12} className="mr-1" /> Solicitud de Servicio
                   </Badge>
                 ) : (
-                  <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
+                  <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
                     <Briefcase size={12} className="mr-1" /> Solicitud de Oportunidad
                   </Badge>
                 )}
@@ -253,42 +254,92 @@ export default function ReceivedApplications() {
                 </Button>
               )}
               {request.estado === "en_progreso" && (
-                <Button
-                  size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                  onClick={async () => {
-                    const confirm = await Swal.fire({
-                      title: '¿Marcar trabajo como completado?',
-                      text: 'Esto notificará al cliente para que proceda con el pago.',
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonText: 'Sí, está completado',
-                      cancelButtonText: 'Cancelar',
-                    });
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      const response = await fetch(`${API_URL}/postulaciones/${request.id}/completar`, {
-                        method: "PATCH",
-                        headers: authHeaders(true),
+                requestType === 'oportunidad' ? (
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={async () => {
+                      const confirm = await Swal.fire({
+                        title: '¿Marcar trabajo como completado?',
+                        text: 'Confirmas que el trabajo fue realizado correctamente.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, está completado',
+                        cancelButtonText: 'Cancelar',
                       });
-                      const data = await response.json();
-                      if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
-                      fetchSolicitudesRecibidas();
-                      Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado. El cliente será notificado para realizar el pago.', 'success');
-                    } catch (error) {
-                      Swal.fire('Error', error.message, 'error');
-                    }
-                  }}
-                >
-                  ✓ Marcar Completado
-                </Button>
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        const response = await fetch(`${API_URL}/postulaciones/${request.id}/completar`, {
+                          method: "PATCH",
+                          headers: authHeaders(true),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
+                        fetchSolicitudesRecibidas();
+                        Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado. El cliente será notificado para realizar el pago.', 'success');
+                      } catch (error) {
+                        Swal.fire('Error', error.message, 'error');
+                      }
+                    }}
+                  >
+                    ✓ Marcar Completado
+                  </Button>
+                ) : (
+                  <Badge className="bg-blue-100 text-blue-700 border-0 px-3 py-1">
+                    <Briefcase size={12} className="mr-1" /> Trabajo en progreso — esperando confirmación del cliente
+                  </Badge>
+                )
               )}
               {request.estado === "completada" && (
-                // El proveedor NO inicia el pago — solo espera que el cliente pague.
-                // El botón de pago está en SentApplications (vista del solicitante/cliente).
-                <Badge className="bg-amber-100 text-amber-700 border-0 px-3 py-1">
-                  ⏳ Esperando pago del cliente
-                </Badge>
+                requestType === 'oportunidad' ? (
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <Badge className="bg-purple-100 text-purple-700 border-0 px-3 py-1">
+                      <FileCheck size={12} className="mr-1" /> Trabajo completado — Realiza el pago
+                    </Badge>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={async () => {
+                        const confirm = await Swal.fire({
+                          title: '¿Pagar al postulante?',
+                          text: 'El pago será realizado al postulante que completó el trabajo.',
+                          icon: 'question',
+                          showCancelButton: true,
+                          confirmButtonText: 'Sí, pagar al postulante',
+                          cancelButtonText: 'Cancelar',
+                        });
+                        if (!confirm.isConfirmed) return;
+                        try {
+                          const response = await fetch(`${API_URL}/pagos/servicio`, {
+                            method: "POST",
+                            headers: authHeaders(true),
+                            body: JSON.stringify({
+                              id_Servicio: request.servicio.id_Servicio,
+                              modalidadPago: 'virtual',
+                              modalidadServicio: 'presencial',
+                              identificacionCliente: '12345678',
+                              origenSolicitud: 'postulacion',
+                              id_Postulacion: request.id,
+                              monto: request.presupuesto || request.servicio?.precio || 0
+                            }),
+                          });
+                          const data = await response.json();
+                          if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
+                          fetchSolicitudesRecibidas();
+                          Swal.fire('¡Pago exitoso!', 'El pago ha sido procesado y el postulante será notificado.', 'success');
+                        } catch (error) {
+                          Swal.fire('Error', error.message, 'error');
+                        }
+                      }}
+                    >
+                      <DollarSign size={14} className="mr-1" /> Pagar al postulante
+                    </Button>
+                  </div>
+                ) : (
+                  <Badge className="bg-amber-100 text-amber-700 border-0 px-3 py-1">
+                    ⏳ Esperando pago del cliente
+                  </Badge>
+                )
               )}
               {request.estado === "pagada" && (
                 <div className="flex gap-2 flex-wrap items-center">
@@ -403,16 +454,16 @@ export default function ReceivedApplications() {
       {solicitudesOportunidad.length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-4">
-            <div className="bg-purple-100 p-2 rounded-xl">
-              <Briefcase size={20} className="text-purple-700" />
+            <div className="bg-blue-100 p-2 rounded-xl">
+              <Briefcase size={20} className="text-blue-700" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-purple-700">Aceptar Postulante</h2>
+              <h2 className="text-lg font-bold text-blue-700">Aceptar Postulante</h2>
               <p className="text-xs text-slate-500">
                 Personas que se postularon a tus oportunidades publicadas
               </p>
             </div>
-            <Badge className="bg-purple-100 text-purple-700 border-0 ml-auto">
+            <Badge className="bg-purple-100 text-blue-700 border-0 ml-auto">
               {solicitudesOportunidad.length}
             </Badge>
           </div>

@@ -60,7 +60,7 @@ class Postulacion extends Model
      */
     public function getTipoPostulacion(): string
     {
-        return $this->tipo_postulacion ?? 'postulant';
+        return $this->tipo_postulacion ?? 'postulante';
     }
 
     /**

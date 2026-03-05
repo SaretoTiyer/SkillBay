@@ -85,6 +85,46 @@ export default function SentApplications() {
     return 'Postulador';     // El que respondió a la oportunidad
   };
 
+  // Función para obtener el nombre completo del usuario junto con su rol
+  const getUserInfo = (application) => {
+    if (!application.servicio) {
+      return <span className="text-blue-600 text-xs">Postulador</span>;
+    }
+    
+    // Obtenemos el nombre del cliente/dueño del servicio (cliente_usuario)
+    const clienteDelServicio = application.servicio.cliente_usuario;
+    const nombreCliente = clienteDelServicio 
+      ? `${clienteDelServicio.nombre || ''} ${clienteDelServicio.apellido || ''}`.trim()
+      : (application.servicio.id_Cliente || 'Cliente');
+    
+    // Obtenemos el nombre del aplicante (usuario que realizó la postulación)
+    const aplicante = application.usuario;
+    const nombreAplicante = aplicante
+      ? `${aplicante.nombre || ''} ${aplicante.apellido || ''}`.trim()
+      : 'Aplicante';
+    
+    // Determinamos el rol según tipo_postulacion
+    const tipoPostulacion = application.tipo_postulacion || 'postulante';
+    
+    if (tipoPostulacion === 'solicitante') {
+      // El usuario solicitó un servicio -> muestra el nombre del ofertante (dueño del servicio)
+      return (
+        <span className="text-xs">
+          <span className="text-amber-600 font-medium">{nombreCliente}</span>
+          <span className="text-slate-400"> (Ofertante)</span>
+        </span>
+      );
+    } else {
+      // El usuario se postuló a una oportunidad -> muestra el nombre del cliente
+      return (
+        <span className="text-xs">
+          <span className="text-blue-600 font-medium">{nombreCliente}</span>
+          <span className="text-slate-400"> (Cliente)</span>
+        </span>
+      );
+    }
+  };
+
   const cancelProposal = async (application) => {
     const result = await Swal.fire({
       title: "Cancelar postulación",
@@ -196,10 +236,8 @@ export default function SentApplications() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
             <div className="flex items-center gap-2">
               <User size={14} className="text-blue-500" />
-              <span className="text-slate-400 text-xs">Rol:</span>
-              <span className={`font-medium text-xs ${currentUserEmail === application.servicio?.id_Cliente ? 'text-amber-600' : 'text-blue-600'}`}>
-                {getUserRole(application)}
-              </span>
+              <span className="text-slate-400 text-xs">Usuario:</span>
+              {getUserInfo(application)}
             </div>
             <div className="flex items-center gap-2">
               <DollarSign size={14} className="text-emerald-500" />
@@ -232,9 +270,46 @@ export default function SentApplications() {
               </Badge>
             )}
             {application.estado === "en_progreso" && (
-              <Badge className="bg-blue-100 text-blue-700 border-0">
-                <Briefcase size={12} className="mr-1" /> En Progreso
-              </Badge>
+              application.tipo_postulacion === 'solicitante' ? (
+                <div className="flex gap-2 flex-wrap">
+                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                    <Briefcase size={12} className="mr-1" /> En Progreso
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={async () => {
+                      const confirm = await Swal.fire({
+                        title: '¿Marcar trabajo como completado?',
+                        text: 'Esto notificará al ofertante para que espere el pago.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, está completado',
+                        cancelButtonText: 'Cancelar',
+                      });
+                      if (!confirm.isConfirmed) return;
+                      try {
+                        const response = await fetch(`${API_URL}/postulaciones/${application.id}/completar`, {
+                          method: "PATCH",
+                          headers: authHeaders(true),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
+                        fetchApplications();
+                        Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado. El ofertante será notificado.', 'success');
+                      } catch (error) {
+                        Swal.fire('Error', error.message, 'error');
+                      }
+                    }}
+                  >
+                    <FileCheck size={14} className="mr-1" /> ✓ Marcar Completado
+                  </Button>
+                </div>
+              ) : (
+                <Badge className="bg-blue-100 text-blue-700 border-0">
+                  <Briefcase size={12} className="mr-1" /> En Progreso
+                </Badge>
+              )
             )}
             {application.estado === "completada" && application.tipo_postulacion === 'solicitante' && (
               <div className="flex gap-2 flex-wrap">
@@ -265,7 +340,7 @@ export default function SentApplications() {
                           identificacionCliente: '12345678',
                           origenSolicitud: 'postulacion',
                           id_Postulacion: application.id,
-                          monto: application.servicio.precio || 0
+                          monto: application.presupuesto || application.servicio?.precio || 0
                         }),
                       });
                       const data = await response.json();

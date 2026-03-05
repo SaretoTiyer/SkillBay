@@ -117,6 +117,13 @@ class PagoController extends Controller
         $idClientePaga = $postulacion->getUsuarioQuePaga();
         $idPrestadorRecibe = $postulacion->getUsuarioQueRecibe();
 
+        // Verificar que el usuario autenticado es el pagador legítimo
+        if ($user->id_CorreoUsuario !== $idClientePaga) {
+            return response()->json([
+                'message' => 'No tienes permiso para realizar este pago.',
+            ], 403);
+        }
+
         $pago = PagoServicio::create([
             'monto' => $monto,
             'fechaPago' => now(),
@@ -135,6 +142,12 @@ class PagoController extends Controller
             'id_Pagador'  => $idClientePaga,       // El que PAGA
             'id_Receptor' => $idPrestadorRecibe,   // El que RECIBE
         ]);
+
+        // Actualizar el estado de la postulación a 'pagada' automáticamente
+        if ($postulacion && $postulacion->estado === 'completada') {
+            $postulacion->estado = 'pagada';
+            $postulacion->save();
+        }
 
         // Notificación al RECEPTOR (quien recibe el pago)
         Notificacion::create([
