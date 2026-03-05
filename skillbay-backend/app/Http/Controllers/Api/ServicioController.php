@@ -74,6 +74,14 @@ class ServicioController extends Controller
             ->pluck('id_Servicio')
             ->toArray();
 
+        // ============================================================
+        // SOLUCIÓN MÉTODO 1: Excluir servicios con postulaciones
+        // completadas o pagadas (oportunidades ya finalizadas)
+        // ============================================================
+        $serviciosFinalizados = Postulacion::whereIn('estado', ['completada', 'pagada'])
+            ->pluck('id_Servicio')
+            ->toArray();
+
         $query = Servicio::with(['categoria', 'cliente_usuario'])
             ->where('estado', 'Activo')
             ->where('id_Cliente', '!=', $user->id_CorreoUsuario);
@@ -81,6 +89,11 @@ class ServicioController extends Controller
         // Excluir servicios donde el usuario ya tiene postulación activa
         if (!empty($postulacionesActivas)) {
             $query->whereNotIn('id_Servicio', $postulacionesActivas);
+        }
+
+        // Excluir servicios/oportunidades que ya han sido completados o pagados
+        if (!empty($serviciosFinalizados)) {
+            $query->whereNotIn('id_Servicio', $serviciosFinalizados);
         }
 
         // Filtrar por tipo si se especifica
@@ -174,15 +187,9 @@ class ServicioController extends Controller
 
         $servicio = Servicio::create($data);
 
-        if ($user->rol === 'ofertante') {
-            $tienePostulaciones = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
-                ->whereIn('estado', ['pendiente', 'aceptada', 'rechazada'])
-                ->exists();
-            if (!$tienePostulaciones) {
-                $user->rol = 'cliente';
-                $user->save();
-            }
-        }
+        // NOTA: Se eliminó la lógica de reversión automática de ofertante a cliente
+        // Un usuario que crea un servicio (oferta) permanece como ofertante
+        // La reversión solo debe ocurrir si el usuario elimina todos sus servicios activos
 
         if ($servicio->imagen) {
             $servicio->imagen = asset('storage/' . $servicio->imagen);

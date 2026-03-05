@@ -180,7 +180,13 @@ export default function ExploreServices() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ id_Servicio: service.id_Servicio, mensaje }),
+        // Tipo 'solicitante': el usuario solicita un servicio a un ofertante
+        // El solicitante paga al proveedor (ofertante del servicio)
+        body: JSON.stringify({ 
+          id_Servicio: service.id_Servicio, 
+          mensaje,
+          tipo_postulacion: 'solicitante' 
+        }),
       });
 
       const data = await response.json();

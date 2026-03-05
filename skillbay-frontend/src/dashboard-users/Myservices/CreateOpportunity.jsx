@@ -220,7 +220,7 @@ export default function CreateOpportunity() {
                 title: editingOpportunity ? 'Oportunidad actualizada' : 'Oportunidad creada',
                 text: editingOpportunity 
                     ? 'Tu necesidad ha sido actualizada correctamente.' 
-                    : 'Tu búsqueda ha sido publicada. Los ofertantes podrán verla y contactarte.',
+                    : 'Tu Oportunidad ha sido publicada. Los ofertantes podrán verla y contactarte.',
                 timer: 2500,
                 showConfirmButton: false,
             });
@@ -388,7 +388,7 @@ export default function CreateOpportunity() {
                             onClick={handleNewOpportunity}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95"
                         >
-                            <Plus className="mr-2 h-5 w-5" /> Nueva Búsqueda
+                            <Plus className="mr-2 h-5 w-5" /> Nueva Oportunidad
                         </Button>
                     </DialogTrigger>
 
@@ -400,7 +400,7 @@ export default function CreateOpportunity() {
                                         <Edit className="text-blue-600" /> : 
                                         <Search className="text-blue-600" />
                                     }
-                                    {editingOpportunity ? "Editar Necesidad" : "Publicar una Búsqueda"}
+                                    {editingOpportunity ? "Editar Necesidad" : "Publicar una Oportunidad"}
                                 </DialogTitle>
                                 <p className="text-sm text-slate-500 mt-1">
                                     Describe lo que necesitas. Los profesionales te contactarán con sus propuestas.
@@ -412,7 +412,7 @@ export default function CreateOpportunity() {
                                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
                                     <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
                                     <div className="text-sm text-blue-800">
-                                        <strong>¿Qué es una búsqueda?</strong> Es cuando necesitas un servicio y quieres que los profesionales te encuentren. 
+                                        <strong>¿Qué es una Oportunidad?</strong> Es cuando necesitas un servicio y quieres que los profesionales te encuentren. 
                                         Escribe qué necesitas, tu precio y cuándo lo necesitas.
                                     </div>
                                 </div>
@@ -628,7 +628,7 @@ export default function CreateOpportunity() {
                                     {submitting ? (
                                         <Loader2 className="animate-spin mr-2" />
                                     ) : (
-                                        <>{editingOpportunity ? "Guardar Cambios" : "Publicar Búsqueda"}</>
+                                        <>{editingOpportunity ? "Guardar Cambios" : "Publicar Oportunidad"}</>
                                     )}
                                 </Button>
                             </DialogFooter>
@@ -643,15 +643,15 @@ export default function CreateOpportunity() {
                     <div className="bg-white p-6 rounded-full shadow-sm mb-6">
                         <Search size={48} className="text-slate-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes búsquedas activas</h3>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes Oportunidades activas</h3>
                     <p className="text-slate-500 max-w-md mb-8">
-                        ¿Necesitas ayuda con algo? Publica una búsqueda y los profesionales te contactarán con sus propuestas.
+                        ¿Necesitas ayuda con algo? Publica una Oportunidad y los profesionales te contactarán con sus propuestas.
                     </p>
                     <Button
                         onClick={handleNewOpportunity}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl shadow-lg shadow-blue-200 transition-transform active:scale-95"
                     >
-                        Publicar mi primera búsqueda
+                        Publicar mi primera Oportunidad
                     </Button>
                 </div>
             )}

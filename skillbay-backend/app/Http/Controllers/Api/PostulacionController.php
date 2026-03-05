@@ -29,6 +29,12 @@ class PostulacionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Agregar tipo_postulacion a cada postulación para uso del frontend
+        $postulaciones->transform(function ($postulacion) {
+            $postulacion->tipo_postulacion = $postulacion->tipo_postulacion ?? 'postulante';
+            return $postulacion;
+        });
+
         return response()->json($postulaciones);
     }
 
@@ -43,7 +49,7 @@ class PostulacionController extends Controller
         }
 
         $solicitudes = Postulacion::with([
-            'servicio:id_Servicio,titulo,id_Cliente,id_Categoria,imagen,estado',
+            'servicio:id_Servicio,titulo,id_Cliente,id_Categoria,imagen,estado,tipo',
             'servicio.categoria:id_Categoria,nombre,grupo',
             'usuario:id_CorreoUsuario,nombre,apellido,ciudad',
         ])
@@ -53,6 +59,12 @@ class PostulacionController extends Controller
             ->orderByRaw("CASE estado WHEN 'pendiente' THEN 0 WHEN 'aceptada' THEN 1 WHEN 'rechazada' THEN 2 WHEN 'cancelada' THEN 3 ELSE 4 END")
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // Agregar tipo_postulacion a cada solicitud para uso del frontend
+        $solicitudes->transform(function ($solicitud) {
+            $solicitud->tipo_postulacion = $solicitud->tipo_postulacion ?? 'postulante';
+            return $solicitud;
+        });
 
         return response()->json(['solicitudes' => $solicitudes]);
     }
@@ -101,6 +113,9 @@ class PostulacionController extends Controller
     /**
      * El cliente (dueño del servicio) marca el trabajo como completado.
      * Solo se puede marcar como completado si el estado actual es 'en_progreso'.
+     *
+     * SOLUCIÓN MÉTODO 2: Cuando todas las postulaciones del servicio están
+     * finalizadas (completadas o pagadas), el servicio se marca como Completado.
      */
     public function marcarCompletado(Request $request, $id)
     {
@@ -126,6 +141,24 @@ class PostulacionController extends Controller
 
         $postulacion->estado = 'completada';
         $postulacion->save();
+
+        // ============================================================
+        // SOLUCIÓN MÉTODO 2: Verificar si todas las postulaciones
+        // del servicio están finalizadas para actualizar su estado
+        // ============================================================
+        $servicio = $postulacion->servicio;
+        if ($servicio) {
+            $postulacionesRestantes = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+                ->where('id', '!=', $postulacion->id)
+                ->whereNotIn('estado', ['completada', 'pagada', 'rechazada', 'cancelada'])
+                ->count();
+
+            // Si no hay postulaciones restantes activas, marcar el servicio como Completado
+            if ($postulacionesRestantes === 0) {
+                $servicio->estado = 'Completado';
+                $servicio->save();
+            }
+        }
 
         Notificacion::create([
             'mensaje' => 'El trabajo para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ha sido marcado como completado. Ya puedes proceder con el pago.',
@@ -249,7 +282,26 @@ class PostulacionController extends Controller
             'mensaje' => 'required|string',
             'presupuesto' => 'nullable|numeric',
             'tiempo_estimado' => 'nullable|string',
+            'tipo_postulacion' => 'nullable|in:postulante,solicitante',
         ]);
+
+        // Determinar el tipo de postulación:
+        // - 'postulante': el usuario aplica a una oportunidad (el cliente paga al postulante)
+        // - 'solicitante': el usuario solicita un servicio a un ofertante (el solicitante paga al proveedor)
+        // Si no se especifica, se determina automáticamente según el tipo de servicio
+        $tipoPostulacion = $request->tipo_postulacion;
+
+        if (!$tipoPostulacion) {
+            $servicio = Servicio::find($request->id_Servicio);
+            // Determinar el tipo según el tipo del servicio:
+            // - 'oportunidad': el usuario aplica a una necesidad publicada → es 'postulante'
+            //   (el dueño de la oportunidad pagará al postulante seleccionado)
+            // - 'servicio': el usuario solicita un servicio ofertado → es 'solicitante'
+            //   (el solicitante pagará al proveedor del servicio)
+            $tipoPostulacion = ($servicio && $servicio->tipo === 'oportunidad')
+                ? 'postulante'
+                : 'solicitante';
+        }
 
         // Prevent double application
         $exists = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
@@ -267,9 +319,11 @@ class PostulacionController extends Controller
             'mensaje' => $request->mensaje,
             'presupuesto' => $request->presupuesto,
             'tiempo_estimado' => $request->tiempo_estimado,
-            'estado' => 'pendiente'
+            'estado' => 'pendiente',
+            'tipo_postulacion' => $tipoPostulacion
         ]);
 
+        // Conversión de rol: Cliente → Ofertante al postulan (una vez ofertante, permanece permanentemente)
         if ($user->rol === 'cliente') {
             $user->rol = 'ofertante';
             $user->save();
@@ -373,10 +427,9 @@ class PostulacionController extends Controller
             ->whereIn('estado', ['pendiente', 'aceptada'])
             ->exists();
 
-        if ($user->rol === 'ofertante' && !$pendientesActivas) {
-            $user->rol = 'cliente';
-            $user->save();
-        }
+        // NOTA: Se eliminó la reversión automática de ofertante a cliente
+        // Un usuario que se postula permanece con su rol actual
+        // La transición de roles solo ocurre al crear servicios (ver ServicioController)
 
         return response()->json([
             'success' => true,

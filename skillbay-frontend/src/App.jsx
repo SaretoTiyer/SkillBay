@@ -21,7 +21,8 @@ import ExploreServices from "./dashboard-users/ExploreServices";
 import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
 import UserPayments from "./dashboard-users/UserPayments";
-import Applications from "./dashboard-users/Applications";
+import Applications from "./dashboard-users/MyApplications/MyApplications";
+import NotificationsPage from "./dashboard-users/Notifications/NotificationsPage";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
 import UserMessages from "./dashboard-users/UserMessages";
 import UserPublicProfile from "./dashboard-users/UserPublicProfile";
@@ -112,6 +113,8 @@ function App() {
         return <UserPayments />;
       case "applications":
         return <Applications />;
+      case "notifications":
+        return <NotificationsPage />;
       case "messages":
         return <UserMessages />;
       case "public_profile":

@@ -27,12 +27,14 @@ export default function Applications({ defaultTab }) {
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
   
   // Estado para el chat de postulaciones recibidas
   const [selectedPostulacion, setSelectedPostulacion] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
+  const [filter, setFilter] = useState("all");
 
   // Determinar la pestaña inicial basada en defaultTab
   const getInitialTab = () => {
@@ -49,7 +51,22 @@ export default function Applications({ defaultTab }) {
 
   useEffect(() => {
     fetchData();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/user`, { headers: authHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.usuario) {
+          setCurrentUserEmail(data.usuario.id_CorreoUsuario);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -190,14 +207,44 @@ export default function Applications({ defaultTab }) {
     fetchApplications();
   };
 
-  // Filtrar aplicaciones por estado
-  const pending = applications.filter((a) => a.estado === "pendiente");
-  const accepted = applications.filter((a) => a.estado === "aceptada");
-  const inProgress = applications.filter((a) => a.estado === "en_progreso");
-  const completed = applications.filter((a) => a.estado === "completada");
-  const paid = applications.filter((a) => a.estado === "pagada");
-  const rejected = applications.filter((a) => a.estado === "rechazada");
-  const canceled = applications.filter((a) => a.estado === "cancelada");
+  // ============================================
+  // CONFIGURACIÓN CENTRALIZADA DE ESTADOS
+  // ============================================
+  const ESTADOS = {
+    pendiente: { label: 'Pendientes', color: 'amber', key: 'pendiente' },
+    aceptada: { label: 'Aceptadas', color: 'emerald', key: 'aceptada' },
+    en_progreso: { label: 'En Progreso', color: 'blue', key: 'en_progreso' },
+    completada: { label: 'Completadas', color: 'purple', key: 'completada' },
+    pagada: { label: 'Pagadas', color: 'green', key: 'pagada' },
+    rechazada: { label: 'Rechazadas', color: 'red', key: 'rechazada' },
+    cancelada: { label: 'Canceladas', color: 'slate', key: 'cancelada' },
+  };
+
+  // Función reutilizable para filtrar por estado
+  const filterByEstado = (apps, estado) => apps.filter((a) => a.estado === estado);
+
+  // Función reutilizable para obtener conteos
+  const getCounts = (apps, estadoActual) => {
+    const counts = {};
+    Object.keys(ESTADOS).forEach((key) => {
+      counts[key === 'en_progreso' ? 'inProgress' : key] = filterByEstado(apps, key).length;
+    });
+    return counts;
+  };
+
+  // Obtener aplicaciones filtradas según el estado seleccionado
+  const filteredApplications = filter === 'all' 
+    ? applications 
+    : filterByEstado(applications, filter);
+
+  // Calcular conteos
+  const counts = getCounts(applications, filter);
+
+  // Función reutilizable para generar las clases de color del botón
+  const getFilterButtonClass = (color, isActive) => {
+    if (isActive) return '';
+    return `border-${color}-200 text-${color}-700 hover:bg-${color}-50`;
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -233,6 +280,22 @@ export default function Applications({ defaultTab }) {
     return colors[status] || "border-l-gray-300";
   };
 
+  // Función para determinar el rol del usuario en la relación
+  // Según la lógica: un usuario puede ser tanto cliente como ofertante
+  // Si el usuario actual es el cliente del servicio → es "Solicitante" (está pidiendo ayuda)
+  // Si el usuario actual es quien se postuló → es "Postulador" (ofrece su trabajo)
+  const getUserRole = (application) => {
+    if (!currentUserEmail || !application.servicio) return 'Postulador';
+    
+    // El cliente del servicio es quien creó la oportunidad/servicio
+    const clienteEmail = application.servicio.id_Cliente;
+    
+    if (currentUserEmail === clienteEmail) {
+      return 'Solicitante';  // El que publicó la oportunidad
+    }
+    return 'Postulador';     // El que respondió a la oportunidad
+  };
+
   // Componente Card para postulación enviada
   const ApplicationCard = ({ application }) => (
     <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden hover:shadow-lg transition-shadow`}>
@@ -258,12 +321,10 @@ export default function Applications({ defaultTab }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
             <div className="flex items-center gap-2">
               <User size={14} className="text-blue-500" />
-              <button 
-                onClick={() => openPublicProfile(application.servicio?.cliente_usuario?.id_CorreoUsuario)} 
-                className="text-blue-600 hover:underline truncate"
-              >
-                {application.servicio?.cliente_usuario?.nombre || "Cliente"}
-              </button>
+              <span className="text-slate-400 text-xs">Rol:</span>
+              <span className={`font-medium text-xs ${currentUserEmail === application.servicio?.id_Cliente ? 'text-amber-600' : 'text-blue-600'}`}>
+                {getUserRole(application)}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign size={14} className="text-emerald-500" />
@@ -433,10 +494,10 @@ export default function Applications({ defaultTab }) {
                   onClick={async () => {
                     const confirm = await Swal.fire({
                       title: '¿Proceder con el pago?',
-                      text: 'Se procesará el pago del servicio.',
+                      text: 'El pago será realizado al proveedor (ofertante seleccionado) de esta oportunidad.',
                       icon: 'question',
                       showCancelButton: true,
-                      confirmButtonText: 'Sí, pagar',
+                      confirmButtonText: 'Sí, pagar al proveedor',
                       cancelButtonText: 'Cancelar',
                     });
                     if (!confirm.isConfirmed) return;
@@ -583,58 +644,42 @@ export default function Applications({ defaultTab }) {
 
         {/* Tab: Mis Postulaciones Enviadas */}
         <TabsContent value="sent" className="space-y-4">
-          {/* Sub-filters */}
+          {/* Sub-filters - Generados dinámicamente desde configuración centralizada */}
           <div className="flex flex-wrap gap-2 mb-6">
             <Button
-              variant="outline"
+              variant={filter === "all" ? "default" : "outline"}
               size="sm"
               className="rounded-full"
+              onClick={() => setFilter("all")}
             >
               Todas ({applications.length})
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-50"
-            >
-              Pendientes ({pending.length})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-            >
-              Aceptadas ({accepted.length})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
-            >
-              En Progreso ({inProgress.length})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full border-purple-200 text-purple-700 hover:bg-purple-50"
-            >
-              Completadas ({completed.length})
-            </Button>
+            {Object.entries(ESTADOS).map(([key, config]) => (
+              <Button
+                key={key}
+                variant={filter === key ? "default" : "outline"}
+                size="sm"
+                className={`rounded-full ${filter !== "all" && filter !== key ? getFilterButtonClass(config.color, false) : ""}`}
+                onClick={() => setFilter(key)}
+              >
+                {config.label} ({counts[key === 'en_progreso' ? 'inProgress' : key]})
+              </Button>
+            ))}
           </div>
 
-          {applications.length === 0 ? (
+          {filteredApplications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-center">
               <div className="bg-white p-6 rounded-full shadow-sm mb-6">
                 <Send size={48} className="text-slate-300" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes postulaciones</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">{filter === 'all' ? 'No tienes postulaciones' : 'No hay postulaciones con este estado'}</h3>
               <p className="text-slate-500 max-w-md">
-                Explora las oportunidades disponibles y postula a los servicios que te interesen.
+                {filter === 'all' ? 'Explora las oportunidades disponibles y postula a los servicios que te interesen.' : 'Prueba seleccionando otro filtro o explorando más servicios.'}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {applications.map((application) => (
+              {filteredApplications.map((application) => (
                 <ApplicationCard key={application.id} application={application} />
               ))}
             </div>

@@ -29,6 +29,12 @@ class NotificacionController extends Controller
         $query = Notificacion::query();
 
         if ($user->rol === 'admin' && $request->query('scope') === 'all') {
+            // El admin solo debe ver notificaciones dirigidas a su rol
+            // (tipo 'reporte' y 'admin') más sus notificaciones personales
+            $query->where(function ($q) use ($user) {
+                $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                  ->orWhereIn('tipo', ['reporte', 'admin']);
+            });
             $query->orderBy('created_at', 'desc');
         } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario)
@@ -66,7 +72,14 @@ class NotificacionController extends Controller
         }
 
         $query = Notificacion::query()->where('estado', '!=', 'Leido');
-        if (!($user->rol === 'admin' && $request->query('scope') === 'all')) {
+        
+        // CORRECCIÓN: Si es admin con scope=all, filtrar por notificaciones del rol admin
+        if ($user->rol === 'admin' && $request->query('scope') === 'all') {
+            $query->where(function ($q) use ($user) {
+                $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                  ->orWhereIn('tipo', ['reporte', 'admin']);
+            });
+        } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
         }
 
@@ -113,7 +126,13 @@ class NotificacionController extends Controller
         $user = $request->user();
         $query = Notificacion::query();
 
-        if ($user->rol !== 'admin' || $request->query('scope') !== 'all') {
+        // CORRECCIÓN: Si es admin con scope=all, filtrar por notificaciones del rol admin
+        if ($user->rol === 'admin' && $request->query('scope') === 'all') {
+            $query->where(function ($q) use ($user) {
+                $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                  ->orWhereIn('tipo', ['reporte', 'admin']);
+            });
+        } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
         }
 
@@ -151,7 +170,13 @@ class NotificacionController extends Controller
         $user = $request->user();
         $query = Notificacion::query();
 
-        if ($user->rol !== 'admin' || $request->query('scope') !== 'all') {
+        // CORRECCIÓN: Si es admin con scope=all, filtrar por notificaciones del rol admin
+        if ($user->rol === 'admin' && $request->query('scope') === 'all') {
+            $query->where(function ($q) use ($user) {
+                $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                  ->orWhereIn('tipo', ['reporte', 'admin']);
+            });
+        } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
         }
 

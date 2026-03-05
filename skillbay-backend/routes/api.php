@@ -43,6 +43,7 @@ Route::get('/login', function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UsuarioController::class, 'me']);
     Route::put('/user', [UsuarioController::class, 'update']);
+    Route::post('/user/imagen-perfil', [UsuarioController::class, 'uploadProfileImage']);
     Route::get('/usuarios/{id}/perfil', [UsuarioController::class, 'perfilPublico']);
     Route::get('/servicios/explore', [ServicioController::class, 'explore']);
     // Rutas específicas de solicitudes - deben estar ANTES de apiResource
@@ -78,6 +79,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reportes', [ReporteController::class, 'store']);
     Route::post('/resenas', [ResenaController::class, 'store']);
     Route::get('/resenas/servicio/{id}', [ResenaController::class, 'porServicio']);
+    // Rutas autenticadas para reseñas
+    Route::get('/resenas/usuario/{id}', [ResenaController::class, 'porUsuario']);
+    Route::get('/resenas/usuario/{id}/hechas', [ResenaController::class, 'porUsuarioHechas']);
+    Route::get('/resenas/usuario/{id}/promedio', [ResenaController::class, 'promedioPorUsuario']);
 
     Route::get('/mensajes/conversaciones', [MensajeController::class, 'conversaciones']);
     Route::get('/postulaciones/{idPostulacion}/mensajes', [MensajeController::class, 'index']);

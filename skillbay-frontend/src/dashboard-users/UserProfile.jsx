@@ -31,6 +31,7 @@ export default function UserProfile() {
     const [servicesHired, setServicesHired] = useState([]);
     const [reviews, setReviews] = useState([]);
     const [activeTab, setActiveTab] = useState("info");
+    const [profileImage, setProfileImage] = useState(null);
 
     const [profileData, setProfileData] = useState({
         name: "",
@@ -58,15 +59,24 @@ export default function UserProfile() {
             const token = localStorage.getItem("access_token");
             if (!token) return;
 
-            const [userRes, servicesRes, reviewsRes] = await Promise.all([
+            const [userRes, servicesRes] = await Promise.all([
                 fetch(`${API_URL}/user`, { headers: authHeaders() }),
                 fetch(`${API_URL}/servicios`, { headers: authHeaders() }),
-                fetch(`${API_URL}/resenas`, { headers: authHeaders() }).catch(() => ({ ok: true, json: () => ({ resenas: [] }) })),
             ]);
 
             const userData = await userRes.json();
             const servicesData = await servicesRes.json();
-            const reviewsData = await reviewsRes.json();
+
+            // Fetch reviews after getting user data
+            let reviewsData = { resenas: [] };
+            if (userData.usuario) {
+                try {
+                    const reviewsRes = await fetch(`${API_URL}/resenas/usuario/${userData.usuario.id_CorreoUsuario}`, { headers: authHeaders() });
+                    reviewsData = await reviewsRes.json();
+                } catch (e) {
+                    console.error("Error fetching reviews:", e);
+                }
+            }
 
             if (userData.usuario) {
                 const user = userData.usuario;
@@ -79,6 +89,10 @@ export default function UserProfile() {
                     title: user.rol || "Usuario",
                     memberSince: user.created_at ? new Date(user.created_at).toLocaleDateString("es-CO", { year: "numeric", month: "long" }) : "",
                 }));
+                // Cargar imagen de perfil existente
+                if (user.imagen_perfil) {
+                    setProfileImage(user.imagen_perfil);
+                }
             }
 
             const services = Array.isArray(servicesData) ? servicesData : [];
@@ -161,6 +175,56 @@ export default function UserProfile() {
         fetchProfile();
     };
 
+    const handleProfileImageClick = async () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('imagen_perfil', file);
+
+            try {
+                const token = localStorage.getItem("access_token");
+                const response = await fetch(`${API_URL}/user/imagen-perfil`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    setProfileImage(data.imagen_perfil);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Foto actualizada',
+                        text: 'Tu foto de perfil ha sido actualizada.',
+                        timer: 1500,
+                        showConfirmButton: false,
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'No se pudo subir la imagen.',
+                    });
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error de conexión.',
+                });
+            }
+        };
+        input.click();
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -200,7 +264,11 @@ export default function UserProfile() {
                                     {profileData.name.charAt(0).toUpperCase()}
                                 </div>
                                 {isEditing && (
-                                    <button className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-slate-200">
+                                    <button 
+                                        className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-slate-200"
+                                        onClick={handleProfileImageClick}
+                                        aria-label="Cambiar foto de perfil"
+                                    >
                                         <Camera size={14} className="text-blue-600" />
                                     </button>
                                 )}
@@ -212,12 +280,13 @@ export default function UserProfile() {
 
                             {/* Rating */}
                             <div className="flex items-center gap-2 mt-3">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${profileData.rating || '0'} de 5 estrellas`}>
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <Star
                                             key={star}
                                             size={16}
                                             className={star <= Math.round(profileData.rating) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
+                                            aria-hidden="true"
                                         />
                                     ))}
                                 </div>
@@ -438,12 +507,13 @@ export default function UserProfile() {
                                         {reviews.map((review, idx) => (
                                             <div key={idx} className="p-4 bg-slate-50 rounded-xl">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${review.calificacion} de 5 estrellas`}>
                                                         {[1, 2, 3, 4, 5].map((star) => (
                                                             <Star
                                                                 key={star}
                                                                 size={14}
                                                                 className={star <= review.calificacion ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
+                                                                aria-hidden="true"
                                                             />
                                                         ))}
                                                     </div>

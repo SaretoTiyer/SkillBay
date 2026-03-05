@@ -166,7 +166,6 @@ export default function Login({ onNavigate, onLogin }) {
                                     name="id_CorreoUsuario"
                                     value={formData.id_CorreoUsuario}
                                     onChange={handleChange}
-                                    required
                                     placeholder="correo@ejemplo.com"
                                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2 focus:border-[#2B6CB0] focus:ring-[#2B6CB0]"
                                     autoComplete="email"
@@ -181,7 +180,6 @@ export default function Login({ onNavigate, onLogin }) {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        required
                                         minLength={8}
                                         placeholder="••••••••"
                                         className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10 focus:border-[#2B6CB0] focus:ring-[#2B6CB0]"

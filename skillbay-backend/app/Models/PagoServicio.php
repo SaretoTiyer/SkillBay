@@ -22,19 +22,75 @@ class PagoServicio extends Model
         'identificacionCliente',
         'origenSolicitud',
         'id_Postulacion',
-        'id_CorreoUsuario',
         'id_Servicio',
+        // Campos para flujo correcto de dinero:
+        // - id_Pagador:  quien transfiere el dinero (el cliente que solicita el servicio)
+        // - id_Receptor: quien recibe el dinero (el proveedor que ejecuta el servicio)
+        'id_Pagador',   // Quién paga
+        'id_Receptor',  // Quién recibe
     ];
 
-    public function servicio() {
+    /**
+     * Servicio relacionado con este pago
+     */
+    public function servicio()
+    {
         return $this->belongsTo(Servicio::class, 'id_Servicio');
     }
 
-    public function postulacion() {
+    /**
+     * Postulación relacionada con este pago
+     */
+    public function postulacion()
+    {
         return $this->belongsTo(Postulacion::class, 'id_Postulacion');
     }
 
-    public function usuario() {
-        return $this->belongsTo(Usuario::class, 'id_CorreoUsuario', 'id_CorreoUsuario');
+    /**
+     * Pagador: usuario que realiza el pago (cliente que solicita el servicio)
+     */
+    public function pagador()
+    {
+        return $this->belongsTo(Usuario::class, 'id_Pagador', 'id_CorreoUsuario');
+    }
+
+    /**
+     * Receptor: usuario que recibe el pago (proveedor que ejecuta el servicio)
+     */
+    public function receptor()
+    {
+        return $this->belongsTo(Usuario::class, 'id_Receptor', 'id_CorreoUsuario');
+    }
+
+    /**
+     * Alias de compatibilidad: cliente = pagador
+     */
+    public function cliente()
+    {
+        return $this->pagador();
+    }
+
+    /**
+     * Alias de compatibilidad: prestador = receptor
+     */
+    public function prestador()
+    {
+        return $this->receptor();
+    }
+
+    /**
+     * Obtiene el email del usuario que pagó
+     */
+    public function getUsuarioQuePaga(): ?string
+    {
+        return $this->id_Pagador;
+    }
+
+    /**
+     * Obtiene el email del usuario que recibió el pago
+     */
+    public function getUsuarioQueRecibe(): ?string
+    {
+        return $this->id_Receptor;
     }
 }

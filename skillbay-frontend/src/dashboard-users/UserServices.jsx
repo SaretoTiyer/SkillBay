@@ -53,19 +53,13 @@ export default function UserServices() {
                         value="create-opportunity" 
                         className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
                     >
-                        🔍 Crear Búsqueda
+                        🔍 Crear Oportunidad
                     </TabsTrigger>
                     <TabsTrigger 
                         value="my-services" 
                         className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
                     >
                         💼 Mis Servicios
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="received-requests" 
-                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
-                    >
-                        📥 Solicitudes
                     </TabsTrigger>
                 </TabsList>
 
@@ -74,7 +68,7 @@ export default function UserServices() {
                     <CreateService />
                 </TabsContent>
 
-                {/* Tab: Crear Búsqueda */}
+                {/* Tab: Crear Oportunidad */}
                 <TabsContent value="create-opportunity" className="mt-6">
                     <CreateOpportunity />
                 </TabsContent>
@@ -84,10 +78,6 @@ export default function UserServices() {
                     <MyServices />
                 </TabsContent>
 
-                {/* Tab: Solicitudes */}
-                <TabsContent value="received-requests" className="mt-6">
-                    <ReceivedRequests />
-                </TabsContent>
             </Tabs>
         </div>
     );

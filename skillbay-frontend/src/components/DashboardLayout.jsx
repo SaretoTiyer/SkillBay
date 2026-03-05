@@ -2,15 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Users, Wallet, X } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
-import NotificationCenter from "./NotificationCenter";
 
 export default function DashboardLayout({ children, currentView, onNavigate, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const notificationRef = useRef(null);
   const profileMenuRef = useRef(null);
 
   const currentUser = useMemo(() => {
@@ -40,9 +37,6 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setNotificationsOpen(false);
-      }
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setProfileMenuOpen(false);
       }
@@ -93,25 +87,17 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 hover:bg-[#E2E8F0] rounded-lg text-[#1E3A5F]"
-              >
-                <Bell size={22} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-5 h-5 px-1 text-xs bg-red-500 text-white rounded-full flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {notificationsOpen && (
-                <div className="absolute right-0 mt-2 z-50">
-                  <NotificationCenter onActionComplete={fetchNotificationsSummary} />
-                </div>
+            <button
+              onClick={() => onNavigate("notifications")}
+              className="relative p-2 hover:bg-[#E2E8F0] rounded-lg text-[#1E3A5F]"
+            >
+              <Bell size={22} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-5 h-5 px-1 text-xs bg-red-500 text-white rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
               )}
-            </div>
+            </button>
 
             <div className="relative" ref={profileMenuRef}>
               <button

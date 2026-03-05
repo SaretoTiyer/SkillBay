@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class UsuarioController extends Controller
 {
@@ -60,8 +61,7 @@ class UsuarioController extends Controller
                 'telefono.unique' => 'Este número de teléfono ya está registrado.',
                 'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones o el símbolo +.',
                 'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
-                'password.regex' => 'La contraseña no puede contener espacios.',
-                'password.regex' => 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial.',
+                'password.regex' => 'La contraseña debe contener al menos una letra mayúscula, una letra minúscula, un número y un carácter especial, y no puede contener espacios.',
             ]);
 
             if ($validator->fails()) {
@@ -280,6 +280,60 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar perfil',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir imagen de perfil
+     */
+    public function uploadProfileImage(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->bloqueado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta esta bloqueada.',
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'imagen_perfil' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            // Eliminar imagen anterior si existe
+            if ($user->imagen_perfil) {
+                Storage::disk('public')->delete($user->imagen_perfil);
+            }
+
+            // Guardar nueva imagen
+            $path = $request->file('imagen_perfil')->store('perfiles', 'public');
+            $user->imagen_perfil = $path;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Imagen de perfil actualizada',
+                'imagen_perfil' => asset('storage/' . $path),
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir la imagen',
                 'error' => $e->getMessage(),
             ], 500);
         }

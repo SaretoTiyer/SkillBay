@@ -31,6 +31,7 @@ class Usuario extends Authenticatable
         'rol',
         'bloqueado',
         'fechaRegistro',
+        'imagen_perfil',
     ];
 
     protected $hidden = [

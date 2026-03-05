@@ -88,7 +88,7 @@ class PagoController extends Controller
         $estado = $validated['modalidadPago'] === 'virtual' ? 'Completado' : 'Pendiente';
 
         // Verificar que existe una postulación completada para este servicio
-        $postulacionCompletada = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+        $postulacionCompletada = Postulacion::with('servicio')->where('id_Servicio', $servicio->id_Servicio)
             ->where('estado', 'completada')
             ->first();
 
@@ -99,7 +99,7 @@ class PagoController extends Controller
         }
 
         if (!empty($validated['id_Postulacion'])) {
-            $postulacion = Postulacion::where('id', $validated['id_Postulacion'])
+            $postulacion = Postulacion::with('servicio')->where('id', $validated['id_Postulacion'])
                 ->where('id_Servicio', $servicio->id_Servicio)
                 ->where('estado', 'completada')
                 ->first();
@@ -107,7 +107,15 @@ class PagoController extends Controller
             if (!$postulacion) {
                 return response()->json(['message' => 'La postulacion no corresponde al servicio o no esta completada.'], 422);
             }
+        } else {
+            // Usar la postulación completada encontrada
+            $postulacion = $postulacionCompletada;
         }
+
+        // Determinar quién paga y quién recibe usando la lógica del modelo Postulacion
+        // Esto considera el tipo_postulacion: 'postulante' o 'solicitante'
+        $idClientePaga = $postulacion->getUsuarioQuePaga();
+        $idPrestadorRecibe = $postulacion->getUsuarioQueRecibe();
 
         $pago = PagoServicio::create([
             'monto' => $monto,
@@ -119,23 +127,29 @@ class PagoController extends Controller
             'identificacionCliente' => $validated['identificacionCliente'],
             'origenSolicitud' => $validated['origenSolicitud'],
             'id_Postulacion' => $validated['id_Postulacion'] ?? null,
-            'id_CorreoUsuario' => $user->id_CorreoUsuario,
             'referenciaPago' => $this->generarReferencia('srv'),
             'id_Servicio' => $servicio->id_Servicio,
+            // Flujo de dinero basado en tipo_postulacion:
+            // - 'postulante': el dueño de la oportunidad (id_Cliente) paga al postulante (id_Usuario)
+            // - 'solicitante': el solicitante (id_Usuario) paga al proveedor del servicio (id_Cliente)
+            'id_Pagador'  => $idClientePaga,       // El que PAGA
+            'id_Receptor' => $idPrestadorRecibe,   // El que RECIBE
         ]);
 
+        // Notificación al RECEPTOR (quien recibe el pago)
         Notificacion::create([
-            'mensaje' => 'Se registro un pago para tu servicio "' . $servicio->titulo . '" (' . $estado . ').',
+            'mensaje' => 'Has recibido un pago por el servicio "' . $servicio->titulo . '". El cliente completó el pago.',
             'estado' => 'No leido',
-            'tipo' => 'servicio',
-            'id_CorreoUsuario' => $servicio->id_Cliente,
+            'tipo' => 'pago',
+            'id_CorreoUsuario' => $idPrestadorRecibe,
         ]);
 
+        // Notificación al PAGADOR (quien realizó el pago)
         Notificacion::create([
             'mensaje' => 'Tu pago del servicio "' . $servicio->titulo . '" fue registrado con referencia ' . $pago->referenciaPago . '.',
             'estado' => 'No leido',
             'tipo' => 'sistema',
-            'id_CorreoUsuario' => $user->id_CorreoUsuario,
+            'id_CorreoUsuario' => $idClientePaga,
         ]);
 
         return response()->json([
@@ -157,10 +171,23 @@ class PagoController extends Controller
             ->latest('fechaPago')
             ->get();
 
-        $servicios = PagoServicio::where('id_CorreoUsuario', $user->id_CorreoUsuario)
+        // Obtener pagos de servicios donde el usuario es:
+        // - El pagador (id_Pagador): quien transfirió el dinero
+        // - El receptor (id_Receptor): quien recibió el dinero
+        $servicios = PagoServicio::where('id_Pagador', $user->id_CorreoUsuario)
+            ->orWhere('id_Receptor', $user->id_CorreoUsuario)
             ->with('servicio:id_Servicio,titulo')
+            ->with('pagador:id_CorreoUsuario,nombre,apellido')
+            ->with('receptor:id_CorreoUsuario,nombre,apellido')
             ->latest('fechaPago')
             ->get();
+
+        // Agregar información sobre el rol del usuario en cada pago
+        $servicios->transform(function ($pago) use ($user) {
+            $pago->es_pagador  = $pago->id_Pagador  === $user->id_CorreoUsuario;
+            $pago->es_receptor = $pago->id_Receptor === $user->id_CorreoUsuario;
+            return $pago;
+        });
 
         return response()->json([
             'success' => true,

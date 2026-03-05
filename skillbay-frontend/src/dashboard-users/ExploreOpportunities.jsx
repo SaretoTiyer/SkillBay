@@ -190,7 +190,13 @@ export default function ExploreOpportunities() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ id_Servicio: service.id_Servicio, mensaje }),
+        // Tipo 'postulante': el usuario aplica a una oportunidad publicada por un cliente
+        // El cliente majdele postulación paga al postulante (ofertante seleccionado)
+        body: JSON.stringify({ 
+          id_Servicio: service.id_Servicio, 
+          mensaje,
+          tipo_postulacion: 'postulante' 
+        }),
       });
 
       const data = await response.json();
