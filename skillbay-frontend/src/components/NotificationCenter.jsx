@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { API_URL } from "../config/api";
+import { useNotifications } from '../hooks/useNotifications';
 
 const sections = [
   { key: "sistema", label: "Sistema" },
@@ -11,112 +12,28 @@ const sections = [
 
 export default function NotificationCenter({ isAdmin = false, onActionComplete }) {
   const [currentSection, setCurrentSection] = useState("sistema");
-  const [notifications, setNotifications] = useState([]);
-  const [sectionCounts, setSectionCounts] = useState({});
-  const [loading, setLoading] = useState(true);
+  const { notifications, sectionCounts, loading, unreadCount,
+          markRead, markAllRead, removeOne, clearAll, refetch } =
+      useNotifications({ isAdmin, section: currentSection });
 
-  useEffect(() => {
-    fetchSummary();
-    fetchNotifications(currentSection);
-  }, [currentSection]);
-
-  const fetchNotifications = async (section) => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("access_token");
-      const params = new URLSearchParams();
-      params.set("seccion", section);
-      if (isAdmin) params.set("scope", "all");
-
-      const response = await fetch(`${API_URL}/notificaciones?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      setNotifications(Array.isArray(data?.notificaciones) ? data.notificaciones : []);
-    } catch (error) {
-      console.error("Error notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => n.estado !== "Leido").length,
-    [notifications]
-  );
-
-  const requestHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  });
-
-  const fetchSummary = async () => {
-    try {
-      const token = localStorage.getItem("access_token");
-      const params = new URLSearchParams();
-      if (isAdmin) params.set("scope", "all");
-      const response = await fetch(`${API_URL}/notificaciones/resumen?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      setSectionCounts(data?.sections || {});
-    } catch (error) {
-      console.error("Error notification summary:", error);
-    }
-  };
-
-  const markAllRead = async () => {
-    const params = new URLSearchParams();
-    params.set("seccion", currentSection);
-    if (isAdmin) params.set("scope", "all");
-    await fetch(`${API_URL}/notificaciones/marcar-todas-leidas?${params.toString()}`, {
-      method: "PATCH",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications(currentSection);
+  // Wrap functions to include onActionComplete
+  const wrappedMarkAllRead = async () => {
+    await markAllRead();
     onActionComplete && onActionComplete();
   };
 
-  const clearAll = async () => {
-    const params = new URLSearchParams();
-    params.set("seccion", currentSection);
-    if (isAdmin) params.set("scope", "all");
-    await fetch(`${API_URL}/notificaciones?${params.toString()}`, {
-      method: "DELETE",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications(currentSection);
+  const wrappedClearAll = async () => {
+    await clearAll();
     onActionComplete && onActionComplete();
   };
 
-  const markRead = async (id) => {
-    await fetch(`${API_URL}/notificaciones/${id}/leer`, {
-      method: "PATCH",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications(currentSection);
+  const wrappedMarkRead = async (id) => {
+    await markRead(id);
     onActionComplete && onActionComplete();
   };
 
-  const removeOne = async (id) => {
-    await fetch(`${API_URL}/notificaciones/${id}`, {
-      method: "DELETE",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications(currentSection);
+  const wrappedRemoveOne = async (id) => {
+    await removeOne(id);
     onActionComplete && onActionComplete();
   };
 
@@ -147,11 +64,11 @@ export default function NotificationCenter({ isAdmin = false, onActionComplete }
       </div>
 
       <div className="p-3 border-b border-slate-200 flex gap-2">
-        <button onClick={markAllRead} className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 flex items-center gap-1">
+        <button onClick={wrappedMarkAllRead} className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 flex items-center gap-1">
           <CheckCheck size={14} />
           Marcar leido
         </button>
-        <button onClick={clearAll} className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 flex items-center gap-1">
+        <button onClick={wrappedClearAll} className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 flex items-center gap-1">
           <Trash2 size={14} />
           Borrar todos
         </button>
@@ -167,11 +84,11 @@ export default function NotificationCenter({ isAdmin = false, onActionComplete }
               <span className="text-xs text-slate-400">{item.estado}</span>
               <div className="flex gap-1">
                 {item.estado !== "Leido" && (
-                  <button onClick={() => markRead(item.id_Notificacion)} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                  <button onClick={() => wrappedMarkRead(item.id_Notificacion)} className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
                     Leido
                   </button>
                 )}
-                <button onClick={() => removeOne(item.id_Notificacion)} className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
+                <button onClick={() => wrappedRemoveOne(item.id_Notificacion)} className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
                   Eliminar
                 </button>
               </div>

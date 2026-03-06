@@ -18,13 +18,6 @@ class AdminController extends Controller
 {
     public function resumen(Request $request)
     {
-        $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado',
-            ], 403);
-        }
 
         $data = [
             'usuarios' => Usuario::count(),
@@ -47,13 +40,6 @@ class AdminController extends Controller
 
     public function metricas(Request $request)
     {
-        $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado',
-            ], 403);
-        }
 
         $usuariosPorMes = Usuario::selectRaw("DATE_FORMAT(fechaRegistro, '%Y-%m') as mes, COUNT(*) as total")
             ->groupBy('mes')

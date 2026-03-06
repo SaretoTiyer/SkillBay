@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->boolean('bloqueado')->default(false)->after('rol');
-        });
+        if (!Schema::hasColumn('usuarios', 'bloqueado')) {
+            Schema::table('usuarios', function (Blueprint $table) {
+                $table->boolean('bloqueado')->default(false)->after('rol');
+            });
+        }
     }
 
     public function down(): void

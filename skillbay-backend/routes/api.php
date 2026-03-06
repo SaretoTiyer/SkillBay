@@ -53,8 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Solicitudes enviadas
     Route::apiResource('servicios', ServicioController::class);
     Route::apiResource('postulaciones', PostulacionController::class)->only(['index', 'store', 'update', 'destroy']);
-    Route::get('/servicios/solicitudes', [PostulacionController::class, 'solicitudesRecibidas']);
-    Route::patch('/servicios/solicitudes/{id}/estado', [PostulacionController::class, 'actualizarEstadoSolicitud']);
     Route::patch('/postulaciones/{id}/completar', [PostulacionController::class, 'marcarCompletado']);
     Route::post('/postulaciones/{id}/cobrar', [PostulacionController::class, 'cobrar']);
     Route::get('/postulaciones/{id}/listo-pago', [PostulacionController::class, 'verificarListoParaPago']);
@@ -88,7 +86,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/postulaciones/{idPostulacion}/mensajes', [MensajeController::class, 'index']);
     Route::post('/postulaciones/{idPostulacion}/mensajes', [MensajeController::class, 'store']);
     Route::delete('/mensajes/{idMensaje}', [MensajeController::class, 'destroy']);
+});
 
+Route::middleware(['auth:sanctum', 'es.admin'])->group(function () {
     // Admin
     Route::get('/admin/resumen', [AdminController::class, 'resumen']);
     Route::get('/admin/metricas', [AdminController::class, 'metricas']);

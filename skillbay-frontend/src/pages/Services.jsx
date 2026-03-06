@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Loader2, Search, Star, MapPin, User, Briefcase, CheckCircle } from "lucide-react";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -26,23 +26,30 @@ export default function Services({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(9);
+  const resultsRef = useRef(null);
 
   // Efecto para cargar datos al inicio
   useEffect(() => {
     loadPublicData();
   }, []);
 
-  // Efecto para scroll automático cuando cambia el grupo seleccionado
+  // Efecto para resetear visibleCount al cambiar filtros
   useEffect(() => {
-    if (selectedGroup) {
-      const serviciosSection = document.getElementById('servicios-section');
-      if (serviciosSection) {
-        setTimeout(() => {
-          serviciosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
+    if (selectedCategory || selectedGroup || searchTerm) {
+      setVisibleCount(9);
     }
-  }, [selectedGroup]);
+  }, [selectedCategory, selectedGroup, searchTerm]);
+
+  // Efecto para scroll automático cuando cambian filtros
+  useEffect(() => {
+    if (selectedCategory || selectedGroup) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [selectedCategory, selectedGroup]);
 
   const loadPublicData = async () => {
     try {
@@ -77,20 +84,37 @@ export default function Services({ onNavigate }) {
 
   // Filtrar servicios
   const filteredServices = useMemo(() => {
-    let filtered = services;
+    let result = services;
 
-    if (searchTerm) {
+    // Filtro por texto
+    if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.titulo?.toLowerCase().includes(term) ||
-          s.descripcion?.toLowerCase().includes(term) ||
-          s.categoria?.nombre?.toLowerCase().includes(term)
+      result = result.filter(s =>
+        s.titulo?.toLowerCase().includes(term) ||
+        s.descripcion?.toLowerCase().includes(term) ||
+        s.categoria?.nombre?.toLowerCase().includes(term)
       );
     }
 
-    return filtered.slice(0, 12);
-  }, [services, searchTerm]);
+    // Filtro por subcategoría clickeada
+    if (selectedCategory) {
+      result = result.filter(s =>
+        s.id_Categoria === selectedCategory.id ||
+        s.categoria?.id_Categoria === selectedCategory.id ||
+        s.categoria?.nombre?.toLowerCase() === selectedCategory.nombre.toLowerCase()
+      );
+    }
+
+    // Filtro por grupo (selectedGroup ya existente)
+    if (selectedGroup) {
+      const catIds = (groupedCategories[selectedGroup] || []).map(c => c.id_Categoria);
+      result = result.filter(s =>
+        catIds.includes(s.id_Categoria) || catIds.includes(s.categoria?.id_Categoria)
+      );
+    }
+
+    return result;
+  }, [services, searchTerm, selectedCategory, selectedGroup, groupedCategories]);
 
   const handleRegisterClick = () => {
     if (onNavigate) {
@@ -206,7 +230,16 @@ export default function Services({ onNavigate }) {
                   {items.map((subcategory) => (
                     <span
                       key={subcategory.id_Categoria}
-                      className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedCategory({ id: subcategory.id_Categoria, nombre: subcategory.nombre });
+                        setVisibleCount(9);
+                        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+                      }}
+                      className={`px-3 py-1.5 text-sm rounded-full transition-colors cursor-pointer ${
+                        selectedCategory?.id === subcategory.id_Categoria
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                      }`}
                     >
                       {subcategory.nombre}
                     </span>
@@ -218,7 +251,7 @@ export default function Services({ onNavigate }) {
       </section>
 
       {/* Servicios */}
-      <section id="servicios-section" className="bg-slate-50 border-t border-slate-200">
+      <section id="servicios-section" ref={resultsRef} className="bg-slate-50 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="flex items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-bold text-slate-800">
@@ -227,21 +260,71 @@ export default function Services({ onNavigate }) {
             </h2>
           </div>
 
+          {/* Filtros activos y controles */}
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            {/* Tags de filtros activos */}
+            {selectedCategory && (
+              <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200
+                               px-3 py-1.5 rounded-full text-sm font-medium">
+                📂 {selectedCategory.nombre}
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="ml-1 hover:text-blue-900 font-bold leading-none"
+                  aria-label="Quitar filtro"
+                >×</button>
+              </span>
+            )}
+
+            {selectedGroup && (
+              <span className="flex items-center gap-1.5 bg-slate-100 text-slate-700 border border-slate-200
+                               px-3 py-1.5 rounded-full text-sm font-medium">
+                🗂 {selectedGroup}
+                <button
+                  onClick={() => setSelectedGroup('')}
+                  className="ml-1 hover:text-slate-900 font-bold leading-none"
+                  aria-label="Quitar filtro"
+                >×</button>
+              </span>
+            )}
+
+            {/* Contador de resultados */}
+            <span className="ml-auto text-sm text-slate-500">
+              {filteredServices.length} {filteredServices.length === 1 ? 'resultado' : 'resultados'}
+            </span>
+          </div>
+
           {filteredServices.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search size={28} className="text-slate-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">No se encontraron servicios</h3>
-              <p className="text-slate-500">
-                {searchTerm
-                  ? "Intenta con otros términos de búsqueda"
-                  : "Aún no hay servicios publicados en la plataforma"}
-              </p>
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search size={28} className="text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                    Sin resultados para este filtro
+                </h3>
+                <p className="text-slate-500 mb-5">
+                    {selectedCategory
+                        ? `No hay servicios en la categoría "${selectedCategory.nombre}"`
+                        : searchTerm
+                        ? `No hay resultados para "${searchTerm}"`
+                        : 'Aún no hay servicios publicados en la plataforma'}
+                </p>
+                {(selectedCategory || selectedGroup || searchTerm) && (
+                    <button
+                        onClick={() => {
+                            setSelectedCategory(null);
+                            setSelectedGroup('');
+                            setSearchTerm('');
+                        }}
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium
+                                   hover:bg-blue-700 transition-colors"
+                    >
+                        Limpiar todos los filtros
+                    </button>
+                )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredServices.map((service) => {
+              {filteredServices.slice(0, visibleCount).map((service) => {
                 const categoryName = service?.categoria?.nombre || "General";
                 const categoryImage = service?.categoria?.imagen;
                 const imageSrc = service.imagen
@@ -319,6 +402,23 @@ export default function Services({ onNavigate }) {
                   </article>
                 );
               })}
+            </div>
+          )}
+
+          {/* Botón Ver más */}
+          {filteredServices.length > visibleCount && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setVisibleCount(prev => prev + 9)}
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200
+                           text-slate-700 rounded-xl font-medium hover:bg-slate-50
+                           hover:border-blue-300 transition-all shadow-sm"
+              >
+                Ver más servicios
+                <span className="text-slate-400 text-sm">
+                  ({filteredServices.length - visibleCount} restantes)
+                </span>
+              </button>
             </div>
           )}
 

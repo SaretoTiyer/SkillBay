@@ -12,9 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->string('imagen_perfil', 500)->nullable()->after('departamento');
-        });
+        if (!Schema::hasColumn('usuarios', 'imagen_perfil')) {
+            Schema::table('usuarios', function (Blueprint $table) {
+                $table->string('imagen_perfil', 500)->nullable()->after('departamento');
+            });
+        }
     }
 
     /**

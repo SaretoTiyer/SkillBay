@@ -29,7 +29,7 @@ export default function UserProfile() {
     const [loading, setLoading] = useState(true);
     const [servicesOffered, setServicesOffered] = useState([]);
     const [servicesHired, setServicesHired] = useState([]);
-    const [reviews, setReviews] = useState([]);
+    const [reviews, setReviews] = useState({ ofertante: [], cliente: [] });
     const [activeTab, setActiveTab] = useState("info");
     const [profileImage, setProfileImage] = useState(null);
 
@@ -44,6 +44,13 @@ export default function UserProfile() {
         rating: 0,
         memberSince: "",
     });
+
+    const getImageUrl = (path) => {
+        if (!path) return null;
+        if (path.startsWith('http')) return path;
+        const base = API_URL.replace('/api', '');
+        return `${base}/storage/${path}`;
+    };
 
     const authHeaders = () => ({
         Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -68,13 +75,20 @@ export default function UserProfile() {
             const servicesData = await servicesRes.json();
 
             // Fetch reviews after getting user data
-            let reviewsData = { resenas: [] };
+            let reviewsData = { resenas_como_ofertante: [], resenas_como_cliente: [] };
+            let promedioData = { promedio: { general: 0 } };
+
             if (userData.usuario) {
                 try {
-                    const reviewsRes = await fetch(`${API_URL}/resenas/usuario/${userData.usuario.id_CorreoUsuario}`, { headers: authHeaders() });
-                    reviewsData = await reviewsRes.json();
+                    const uid = userData.usuario.id_CorreoUsuario;
+                    const [rRes, pRes] = await Promise.all([
+                        fetch(`${API_URL}/resenas/usuario/${uid}`, { headers: authHeaders() }),
+                        fetch(`${API_URL}/resenas/usuario/${uid}/promedio`, { headers: authHeaders() }),
+                    ]);
+                    reviewsData  = await rRes.json();
+                    promedioData = await pRes.json();
                 } catch (e) {
-                    console.error("Error fetching reviews:", e);
+                    console.error('Error fetching reviews:', e);
                 }
             }
 
@@ -87,7 +101,7 @@ export default function UserProfile() {
                     phone: user.telefono || "",
                     location: `${user.ciudad || ""} ${user.departamento || ""}`.trim(),
                     title: user.rol || "Usuario",
-                    memberSince: user.created_at ? new Date(user.created_at).toLocaleDateString("es-CO", { year: "numeric", month: "long" }) : "",
+                    memberSince: user.fechaRegistro ? new Date(user.fechaRegistro).toLocaleDateString("es-CO", { year: "numeric", month: "long" }) : "",
                 }));
                 // Cargar imagen de perfil existente
                 if (user.imagen_perfil) {
@@ -99,14 +113,17 @@ export default function UserProfile() {
             setServicesOffered(services);
             setServicesHired([]); // Could fetch from postulaciones
 
-            const resenas = Array.isArray(reviewsData?.resenas) ? reviewsData.resenas : [];
-            setReviews(resenas);
+            setReviews({
+                ofertante: reviewsData?.resenas_como_ofertante || [],
+                cliente:   reviewsData?.resenas_como_cliente   || [],
+            });
 
-            // Calculate rating
-            if (resenas.length > 0) {
-                const avgRating = resenas.reduce((acc, r) => acc + (r.calificacion || 0), 0) / resenas.length;
-                setProfileData(prev => ({ ...prev, rating: avgRating.toFixed(1), projectsCompleted: services.length }));
-            }
+            const promedio = promedioData?.promedio?.general || 0;
+            setProfileData(prev => ({
+                ...prev,
+                rating: Number(promedio).toFixed(1),
+                projectsCompleted: services.length,
+            }));
         } catch (error) {
             console.error("Error fetching profile:", error);
         } finally {
@@ -174,6 +191,29 @@ export default function UserProfile() {
         setIsEditing(false);
         fetchProfile();
     };
+
+    const ReviewCard = ({ review }) => (
+        <div className="p-4 bg-slate-50 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${review.calificacion} de 5 estrellas`}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                            key={star}
+                            size={14}
+                            className={star <= review.calificacion ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
+                            aria-hidden="true"
+                        />
+                    ))}
+                </div>
+                <span className="text-xs text-slate-400">
+                    {review.fechaReseña ? new Date(review.fechaReseña).toLocaleDateString("es-CO") : ""}
+                </span>
+            </div>
+            {review.comentario && (
+                <p className="text-slate-600 text-sm">{review.comentario}</p>
+            )}
+        </div>
+    );
 
     const handleProfileImageClick = async () => {
         const input = document.createElement('input');
@@ -260,18 +300,33 @@ export default function UserProfile() {
                         {/* Avatar */}
                         <div className="px-6 pb-6">
                             <div className="relative -mt-12 mb-4">
-                                <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-md">
+                                {profileImage ? (
+                                    <img
+                                        src={getImageUrl(profileImage)}
+                                        alt={profileData.name}
+                                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : null}
+                                <div
+                                    className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-blue-700
+                                               flex items-center justify-center text-white text-3xl font-bold
+                                               border-4 border-white shadow-md"
+                                    style={{ display: profileImage ? 'none' : 'flex' }}
+                                >
                                     {profileData.name.charAt(0).toUpperCase()}
                                 </div>
-                                {isEditing && (
-                                    <button 
-                                        className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-slate-200"
-                                        onClick={handleProfileImageClick}
-                                        aria-label="Cambiar foto de perfil"
-                                    >
-                                        <Camera size={14} className="text-blue-600" />
-                                    </button>
-                                )}
+                                <button 
+                                    className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-slate-200 opacity-60 hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
+                                    onClick={handleProfileImageClick}
+                                    aria-label="Cambiar foto de perfil"
+                                    title="Cambiar foto de perfil"
+                                >
+                                    <Camera size={14} className="text-blue-600" />
+                                </button>
                             </div>
 
                             {/* Info básica */}
@@ -291,7 +346,7 @@ export default function UserProfile() {
                                     ))}
                                 </div>
                                 <span className="text-slate-600 font-medium">{profileData.rating || "0.0"}</span>
-                                <span className="text-slate-400 text-sm">({reviews.length} reseñas)</span>
+                                <span className="text-slate-400 text-sm">({(reviews.ofertante?.length || 0) + (reviews.cliente?.length || 0)} reseñas)</span>
                             </div>
 
                             {/* Stats */}
@@ -301,7 +356,7 @@ export default function UserProfile() {
                                     <p className="text-xs text-slate-500">Servicios</p>
                                 </div>
                                 <div className="bg-slate-50 rounded-lg p-3 text-center">
-                                    <p className="text-xl font-bold text-slate-800">{profileData.memberSince ? new Date(profileData.memberSince).getFullYear() : "-"}</p>
+                                    <p className="text-xl font-bold text-slate-800">{profileData.memberSince ? new Date(profileData.memberSince).getFullYear() || profileData.memberSince : "-"}</p>
                                     <p className="text-xs text-slate-500">Miembro desde</p>
                                 </div>
                             </div>
@@ -492,7 +547,7 @@ export default function UserProfile() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-8 text-slate-500">
-                                        <Service size={40} className="mx-auto mb-2 text-slate-300" />
+                                        <Package size={40} className="mx-auto mb-2 text-slate-300" />
                                         <p>No has creado servicios todavía</p>
                                     </div>
                                 )}
@@ -500,39 +555,35 @@ export default function UserProfile() {
                         )}
 
                         {activeTab === "reviews" && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-slate-800">Reseñas Recibidas</h3>
-                                {reviews.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {reviews.map((review, idx) => (
-                                            <div key={idx} className="p-4 bg-slate-50 rounded-xl">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${review.calificacion} de 5 estrellas`}>
-                                                        {[1, 2, 3, 4, 5].map((star) => (
-                                                            <Star
-                                                                key={star}
-                                                                size={14}
-                                                                className={star <= review.calificacion ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
-                                                                aria-hidden="true"
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <span className="text-xs text-slate-400">
-                                                        {review.fechaReseña ? new Date(review.fechaReseña).toLocaleDateString("es-CO") : ""}
-                                                    </span>
-                                                </div>
-                                                {review.comentario && (
-                                                    <p className="text-slate-600 text-sm">{review.comentario}</p>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <Star size={40} className="mx-auto mb-2 text-slate-300" />
-                                        <p>No tienes reseñas todavía</p>
-                                    </div>
-                                )}
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                                        Como Ofertante ({reviews.ofertante?.length || 0})
+                                    </h4>
+                                    {reviews.ofertante?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {reviews.ofertante.map((review, idx) => (
+                                                <ReviewCard key={idx} review={review} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 text-sm">Sin reseñas como ofertante.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                                        Como Cliente ({reviews.cliente?.length || 0})
+                                    </h4>
+                                    {reviews.cliente?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {reviews.cliente.map((review, idx) => (
+                                                <ReviewCard key={idx} review={review} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 text-sm">Sin reseñas como cliente.</p>
+                                    )}
+                                </div>
                             </div>
                         )}
 

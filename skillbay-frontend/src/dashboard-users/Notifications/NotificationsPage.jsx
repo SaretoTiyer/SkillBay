@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, Trash2, Check, X, ExternalLink, AlertCircle, MessageSquare, FileText, Settings } from "lucide-react";
 import { API_URL } from "../../config/api";
+import Swal from 'sweetalert2';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const sections = [
   { key: "all", label: "Todas" },
@@ -54,125 +56,19 @@ const groupByDate = (notifications) => {
   return groups;
 };
 
-export default function NotificationsPage() {
-  const [currentSection, setCurrentSection] = useState("all");
-  const [notifications, setNotifications] = useState([]);
-  const [sectionCounts, setSectionCounts] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState("all");
+export default function NotificationsPage({ onNavigate }) {
+  const [activeSection, setActiveSection] = useState("all");
+  const { notifications, sectionCounts, loading, unreadCount,
+          markRead, markAllRead, removeOne, clearAll } =
+      useNotifications({ section: activeSection });
 
-  useEffect(() => {
-    fetchSummary();
-    fetchNotifications();
-  }, [currentSection]);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("access_token");
-      const params = new URLSearchParams();
-      if (currentSection !== "all") {
-        params.set("seccion", currentSection);
-      }
-
-      const response = await fetch(`${API_URL}/notificaciones?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      setNotifications(Array.isArray(data?.notificaciones) ? data.notificaciones : []);
-    } catch (error) {
-      console.error("Error notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const requestHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  });
-
-  const fetchSummary = async () => {
-    try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(`${API_URL}/notificaciones/resumen`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      setSectionCounts(data?.sections || {});
-    } catch (error) {
-      console.error("Error notification summary:", error);
-    }
-  };
-
-  const markAllRead = async () => {
-    const params = new URLSearchParams();
-    if (currentSection !== "all") {
-      params.set("seccion", currentSection);
-    }
-    await fetch(`${API_URL}/notificaciones/marcar-todas-leidas?${params.toString()}`, {
-      method: "PATCH",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications();
-  };
-
-  const clearAll = async () => {
-    const params = new URLSearchParams();
-    if (currentSection !== "all") {
-      params.set("seccion", currentSection);
-    }
-    await fetch(`${API_URL}/notificaciones?${params.toString()}`, {
-      method: "DELETE",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications();
-  };
-
-  const markRead = async (id) => {
-    await fetch(`${API_URL}/notificaciones/${id}/leer`, {
-      method: "PATCH",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications();
-  };
-
-  const removeOne = async (id) => {
-    await fetch(`${API_URL}/notificaciones/${id}`, {
-      method: "DELETE",
-      headers: requestHeaders(),
-    });
-    fetchSummary();
-    fetchNotifications();
-  };
-
-  // Filtrar notificaciones por tipo
-  const filteredNotifications = useMemo(() => {
-    if (filterType === "all") return notifications;
-    return notifications.filter((n) => getNotificationType(n) === filterType);
-  }, [notifications, filterType]);
+  // Las notificaciones ya vienen filtradas del backend por sección
+  const filteredNotifications = notifications;
 
   // Agrupar notificaciones por fecha
   const groupedNotifications = useMemo(() => {
     return groupByDate(filteredNotifications);
   }, [filteredNotifications]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => n.estado !== "Leido").length,
-    [notifications]
-  );
 
   // Obtener icono según tipo de notificación
   const getNotificationIcon = (tipo) => {
@@ -244,9 +140,9 @@ export default function NotificationsPage() {
             return (
               <button
                 key={section.key}
-                onClick={() => setFilterType(section.key)}
+                onClick={() => setActiveSection(section.key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  filterType === section.key
+                  activeSection === section.key
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
@@ -255,7 +151,7 @@ export default function NotificationsPage() {
                 {section.label}
                 {count > 0 && (
                   <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${
-                    filterType === section.key ? "bg-white/20" : "bg-amber-100 text-amber-700"
+                    activeSection === section.key ? "bg-white/20" : "bg-amber-100 text-amber-700"
                   }`}>
                     {count}
                   </span>
@@ -369,17 +265,9 @@ export default function NotificationsPage() {
                               Marcar leída
                             </button>
                           )}
-                          {isRead && (
+                          {link && onNavigate && (
                             <button
-                              onClick={() => markRead(item.id_Notificacion)}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors text-xs font-medium"
-                            >
-                              <Check size={14} />
-                              Marcar como no leída
-                            </button>
-                          )}
-                          {link && (
-                            <button
+                              onClick={() => onNavigate(link.view)}
                               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors text-xs font-medium"
                             >
                               <ExternalLink size={14} />

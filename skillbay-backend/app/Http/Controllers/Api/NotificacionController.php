@@ -12,10 +12,13 @@ class NotificacionController extends Controller
     private function mapearSeccion(string $tipo): string
     {
         return match ($tipo) {
-            'postulacion' => 'postulacion',
-            'reporte' => 'reporte',
-            'servicio' => 'servicio',
-            default => 'sistema',
+            'postulacion'          => 'postulacion',
+            'reporte'              => 'reporte',
+            'servicio'             => 'servicio',
+            'pago'                 => 'sistema',
+            'cuenta', 'plan',
+            'admin', 'general'     => 'sistema',
+            default                => 'sistema',
         };
     }
 
@@ -208,13 +211,19 @@ class NotificacionController extends Controller
         ]);
 
         $usuarios = Usuario::select('id_CorreoUsuario')->get();
-        foreach ($usuarios as $usuario) {
-            Notificacion::create([
-                'mensaje' => $validated['mensaje'],
-                'estado' => 'No leido',
-                'tipo' => $validated['tipo'] ?? 'admin',
-                'id_CorreoUsuario' => $usuario->id_CorreoUsuario,
-            ]);
+
+        $ahora    = now();
+        $registros = $usuarios->map(fn($u) => [
+            'mensaje'          => $validated['mensaje'],
+            'estado'           => 'No leido',
+            'tipo'             => $validated['tipo'] ?? 'admin',
+            'id_CorreoUsuario' => $u->id_CorreoUsuario,
+            'created_at'       => $ahora,
+            'updated_at'       => $ahora,
+        ])->toArray();
+
+        foreach (array_chunk($registros, 500) as $chunk) {
+            Notificacion::insert($chunk);
         }
 
         return response()->json([

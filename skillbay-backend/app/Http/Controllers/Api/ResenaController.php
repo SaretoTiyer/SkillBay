@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Reseña;
+use App\Models\Resena;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -26,7 +26,7 @@ class ResenaController extends Controller
                 'comentario' => 'nullable|string|max:1000',
                 'metodoPago' => 'nullable|string|max:50',
                 'direccion' => 'nullable|in:cliente_a_ofertante,ofertante_a_cliente',
-                'id_Postulacion' => 'nullable|exists:postulacion,id',
+                'id_Postulacion' => 'nullable|exists:postulaciones,id',
             ]);
 
             if ($validator->fails()) {
@@ -38,7 +38,23 @@ class ResenaController extends Controller
             // Obtener el usuario actual
             $user = $request->user();
             $servicio = \App\Models\Servicio::find($data['id_Servicio']);
-            
+
+            // Verificar que el usuario tiene una postulación pagada para este servicio
+            $tienePago = \App\Models\PagoServicio::where('id_Servicio', $data['id_Servicio'])
+                ->where(function ($q) use ($user) {
+                    $q->where('id_Pagador', $user->id_CorreoUsuario)
+                      ->orWhere('id_Receptor', $user->id_CorreoUsuario);
+                })
+                ->where('estado', 'Completado')
+                ->exists();
+
+            if (!$tienePago) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo puedes reseñar servicios en los que hayas participado y estén pagados.',
+                ], 403);
+            }
+
             // Determinar la dirección de la reseña si no se proporciona
             // Si el usuario es el cliente del servicio → está reseñando al ofertante
             // Si el usuario es quien hizo la postulación → está reseñando al cliente
@@ -54,7 +70,7 @@ class ResenaController extends Controller
                 }
             }
 
-            $resena = Reseña::create([
+            $resena = Resena::create([
                 'id_Servicio' => $data['id_Servicio'],
                 'calificacion' => $data['calificacion'],
                 'comentario' => $data['comentario'] ?? null,
@@ -91,7 +107,7 @@ class ResenaController extends Controller
     public function porServicio($id_Servicio)
     {
         try {
-            $resenas = Reseña::where('id_Servicio', $id_Servicio)
+            $resenas = Resena::where('id_Servicio', $id_Servicio)
                 ->orderBy('fechaReseña', 'desc')
                 ->get();
 
@@ -114,44 +130,33 @@ class ResenaController extends Controller
     public function porUsuario($id_CorreoUsuario)
     {
         try {
-            // Obtener reseñas que el usuario ha RECIBIDO
-            // Esto incluye:
-            // 1. Reseñas de clientes hacia este usuario (como ofertante)
-            // 2. Reseñas de ofertantes hacia este usuario (como cliente)
-            $resenasRecibidas = Reseña::whereHas('servicio', function ($query) use ($id_CorreoUsuario) {
-                    $query->where('id_Cliente', $id_CorreoUsuario);
+            // Reseñas recibidas COMO OFERTANTE:
+            // El usuario es id_Usuario de la postulación y la dirección es cliente_a_ofertante
+            $resenasComoOfertante = Resena::where('direccion', 'cliente_a_ofertante')
+                ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
+                    $q->where('id_Usuario', $id_CorreoUsuario);
                 })
-                ->where('direccion', 'ofertante_a_cliente')
                 ->with(['servicio:id_Servicio,titulo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('fechaReseña', 'desc')
+                ->orderBy('fechaResena', 'desc')
                 ->get();
 
-            // Reseñas que otros han hecho sobre servicios donde este usuario es el ofertante
-            $resenasComoOfertante = Reseña::whereHas('servicio', function ($query) use ($id_CorreoUsuario) {
-                    // Este usuario es el que ofrece el servicio
-                })
-                ->where('id_CorreoUsuario', '!=', $id_CorreoUsuario)
-                ->where('direccion', 'cliente_a_ofertante')
-                ->whereHas('servicio', function ($query) use ($id_CorreoUsuario) {
-                    // Pero aquí el cliente es otro, no este usuario
+            // Reseñas recibidas COMO CLIENTE:
+            // El usuario es id_Cliente del servicio y dirección es ofertante_a_cliente
+            $resenasComoCliente = Resena::where('direccion', 'ofertante_a_cliente')
+                ->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
+                    $q->where('id_Cliente', $id_CorreoUsuario);
                 })
                 ->with(['servicio:id_Servicio,titulo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('fechaReseña', 'desc')
-                ->get();
-
-            // Simplificado: Obtener reseñas donde el usuario fue reseñado
-            // Busca reseñas dirigidas a este usuario (como cliente del servicio)
-            $resenasRecibidas = Reseña::where('direccion', 'ofertante_a_cliente')
-                ->whereHas('postulacion', function ($query) use ($id_CorreoUsuario) {
-                    $query->where('id_Usuario', $id_CorreoUsuario);
-                })
-                ->with(['servicio:id_Servicio,titulo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('fechaReseña', 'desc')
+                ->orderBy('fechaResena', 'desc')
                 ->get();
 
             return response()->json([
                 'success' => true,
-                'resenas' => $resenasRecibidas,
+                'resenas' => $resenasComoOfertante,        // Para compatibilidad con UserProfile.jsx
+                'resenas_como_ofertante' => $resenasComoOfertante,
+                'resenas_como_cliente'   => $resenasComoCliente,
+                'total_ofertante' => $resenasComoOfertante->count(),
+                'total_cliente'   => $resenasComoCliente->count(),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -168,7 +173,7 @@ class ResenaController extends Controller
     public function porUsuarioHechas($id_CorreoUsuario)
     {
         try {
-            $resenasHechas = Reseña::where('id_CorreoUsuario', $id_CorreoUsuario)
+            $resenasHechas = Resena::where('id_CorreoUsuario', $id_CorreoUsuario)
                 ->with(['servicio:id_Servicio,titulo'])
                 ->orderBy('fechaReseña', 'desc')
                 ->get();
@@ -193,16 +198,16 @@ class ResenaController extends Controller
     {
         try {
             // Calificaciones recibidas como ofertante
-            $promedioOfertante = Reseña::where('direccion', 'cliente_a_ofertante')
-                ->whereHas('servicio', function ($query) use ($id_CorreoUsuario) {
-                    $query->where('id_Cliente', '!=', $id_CorreoUsuario);
+            $promedioOfertante = Resena::where('direccion', 'cliente_a_ofertante')
+                ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
+                    $q->where('id_Usuario', $id_CorreoUsuario);
                 })
                 ->avg('calificacion');
 
             // Calificaciones recibidas como cliente
-            $promedioCliente = Reseña::where('direccion', 'ofertante_a_cliente')
-                ->whereHas('postulacion', function ($query) use ($id_CorreoUsuario) {
-                    $query->where('id_Usuario', $id_CorreoUsuario);
+            $promedioCliente = Resena::where('direccion', 'ofertante_a_cliente')
+                ->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
+                    $q->where('id_Cliente', $id_CorreoUsuario);
                 })
                 ->avg('calificacion');
 

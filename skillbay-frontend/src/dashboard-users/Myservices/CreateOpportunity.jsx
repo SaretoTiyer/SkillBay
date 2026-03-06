@@ -201,7 +201,7 @@ export default function CreateOpportunity() {
                 : `${API_URL}/servicios`;
             
             const response = await fetch(url, {
-                method: "POST",
+                method: editingOpportunity ? "PUT" : "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Accept': 'application/json'

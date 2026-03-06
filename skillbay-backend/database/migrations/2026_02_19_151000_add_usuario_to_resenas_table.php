@@ -8,14 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('reseñas', function (Blueprint $table) {
-            $table->string('id_CorreoUsuario', 191)->nullable()->after('id_Servicio');
-        });
+        // Consolidado en 2026_03_05_000006_add_fields_to_resenas_table.php
     }
 
     public function down(): void
     {
-        Schema::table('reseñas', function (Blueprint $table) {
+        Schema::table('resenas', function (Blueprint $table) {
             $table->dropColumn('id_CorreoUsuario');
         });
     }

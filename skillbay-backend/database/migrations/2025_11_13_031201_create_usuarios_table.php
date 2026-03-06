@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('telefono', 20)->unique();
             $table->string('ciudad', 100)->nullable();
             $table->string('departamento', 100)->nullable();
+            $table->date('fechaNacimiento')->nullable();
+            $table->boolean('bloqueado')->default(false);
+            $table->string('imagen_perfil', 500)->nullable();
             $table->string('password');
             $table->string('rol', 50)->default('usuario');
             $table->date('fechaRegistro')->useCurrent();

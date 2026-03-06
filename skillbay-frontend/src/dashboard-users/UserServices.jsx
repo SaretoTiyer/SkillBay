@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import CreateOpportunity from "./Myservices/CreateOpportunity";
 import CreateService from "./Myservices/CreateService";
 import MyServices from "./Myservices/MyServices";
-import ReceivedRequests from "./Myservices/ReceivedRequests";
 
 
 export default function UserServices() {

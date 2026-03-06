@@ -8,17 +8,17 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * Añade cascade delete a la foreign key de reseñas hacia servicios
+     * Añade cascade delete a la foreign key de resenas hacia servicios
      */
     public function up(): void
     {
         // Primero, eliminamos la foreign key existente
-        Schema::table('reseñas', function (Blueprint $table) {
+        Schema::table('resenas', function (Blueprint $table) {
             $table->dropForeign(['id_Servicio']);
         });
 
         // Luego, recreamos la foreign key con cascade delete
-        Schema::table('reseñas', function (Blueprint $table) {
+        Schema::table('resenas', function (Blueprint $table) {
             $table->foreign('id_Servicio')
                 ->references('id_Servicio')
                 ->on('servicios')
@@ -31,11 +31,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('reseñas', function (Blueprint $table) {
+        Schema::table('resenas', function (Blueprint $table) {
             $table->dropForeign(['id_Servicio']);
         });
 
-        Schema::table('reseñas', function (Blueprint $table) {
+        Schema::table('resenas', function (Blueprint $table) {
             $table->foreign('id_Servicio')
                 ->references('id_Servicio')
                 ->on('servicios');

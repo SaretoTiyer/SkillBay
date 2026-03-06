@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use App\Mail\BienvenidaMail;
+use Illuminate\Support\Facades\Mail;
 
 class UsuarioController extends Controller
 {
@@ -97,6 +99,9 @@ class UsuarioController extends Controller
                 'tipo' => 'sistema',
                 'id_CorreoUsuario' => $user->id_CorreoUsuario,
             ]);
+
+            // Enviar email de bienvenida de forma asíncrona
+            Mail::to($user->id_CorreoUsuario)->queue(new BienvenidaMail($user));
 
             return response()->json([
                 'success' => true,
@@ -301,7 +306,17 @@ class UsuarioController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'imagen_perfil' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                'imagen_perfil' => [
+                    'required',
+                    'image',
+                    'mimes:jpeg,png,jpg,webp',
+                    'max:2048',
+                    'dimensions:min_width=50,min_height=50,max_width=2000,max_height=2000',
+                ],
+            ], [
+                'imagen_perfil.mimes'      => 'Solo se permiten imágenes JPEG, PNG o WebP.',
+                'imagen_perfil.max'        => 'La imagen no puede superar 2MB.',
+                'imagen_perfil.dimensions' => 'La imagen debe tener entre 50×50 y 2000×2000 píxeles.',
             ]);
 
             if ($validator->fails()) {
@@ -319,8 +334,9 @@ class UsuarioController extends Controller
             $user->save();
 
             return response()->json([
-                'success' => true,
-                'message' => 'Imagen de perfil actualizada',
+                'success'       => true,
+                'message'       => 'Imagen de perfil actualizada',
+                'path'          => $path,
                 'imagen_perfil' => asset('storage/' . $path),
             ]);
 
@@ -345,13 +361,6 @@ class UsuarioController extends Controller
     public function listarAdmin(Request $request)
     {
         try {
-            $admin = $request->user();
-            if (!$admin || $admin->rol !== 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No autorizado',
-                ], 403);
-            }
 
             $usuarios = Usuario::orderBy('created_at', 'desc')->get();
 
@@ -375,13 +384,6 @@ class UsuarioController extends Controller
     public function cambiarBloqueo(Request $request, $id)
     {
         try {
-            $admin = $request->user();
-            if (!$admin || $admin->rol !== 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No autorizado',
-                ], 403);
-            }
 
             $validator = Validator::make($request->all(), [
                 'bloqueado' => 'required|boolean',
@@ -474,10 +476,29 @@ class UsuarioController extends Controller
     /**
      * Listar todos los usuarios
      */
-    public function listar()
+    public function listar(Request $request)
     {
         try {
-            $usuarios = Usuario::all();
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 401);
+            }
+
+            if ($user->rol !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $usuarios = Usuario::select([
+                'id_CorreoUsuario', 'nombre', 'apellido', 'rol',
+                'ciudad', 'departamento', 'id_Plan', 'bloqueado', 'fechaRegistro'
+            ])->get();
+
             return response()->json([
                 'success' => true,
                 'total' => $usuarios->count(),

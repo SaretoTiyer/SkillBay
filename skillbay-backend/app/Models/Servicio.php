@@ -20,9 +20,10 @@ class Servicio extends Model
         'precio',
         'imagen',
         'tiempo_entrega',
-        'id_Contratista', // Ofertante seleccionado
         'id_Categoria',
         'tipo', // 'servicio' o 'oportunidad'
+        'urgencia',
+        'ubicacion',
     ];
 
     public function cliente()
