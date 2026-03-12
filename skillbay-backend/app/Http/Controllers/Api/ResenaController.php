@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notificacion;
+use App\Models\Postulacion;
 use App\Models\Resena;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -12,7 +14,7 @@ class ResenaController extends Controller
 {
     /**
      * Crear una reseña para un servicio
-     * 
+     *
      * Sistema de reseñas bidireccionales:
      * - Cliente reseña al ofertante (cliente_a_ofertante)
      * - Ofertante reseña al cliente (ofertante_a_cliente)
@@ -43,12 +45,12 @@ class ResenaController extends Controller
             $tienePago = \App\Models\PagoServicio::where('id_Servicio', $data['id_Servicio'])
                 ->where(function ($q) use ($user) {
                     $q->where('id_Pagador', $user->id_CorreoUsuario)
-                      ->orWhere('id_Receptor', $user->id_CorreoUsuario);
+                        ->orWhere('id_Receptor', $user->id_CorreoUsuario);
                 })
                 ->where('estado', 'Completado')
                 ->exists();
 
-            if (!$tienePago) {
+            if (! $tienePago) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Solo puedes reseñar servicios en los que hayas participado y estén pagados.',
@@ -59,8 +61,8 @@ class ResenaController extends Controller
             // Si el usuario es el cliente del servicio → está reseñando al ofertante
             // Si el usuario es quien hizo la postulación → está reseñando al cliente
             $direccion = $data['direccion'] ?? null;
-            
-            if (!$direccion) {
+
+            if (! $direccion) {
                 if ($servicio->id_Cliente === $user->id_CorreoUsuario) {
                     // El cliente del servicio reseña al ofertante
                     $direccion = 'cliente_a_ofertante';
@@ -80,6 +82,36 @@ class ResenaController extends Controller
                 'direccion' => $direccion,
                 'id_Postulacion' => $data['id_Postulacion'] ?? null,
             ]);
+
+            // Create notification for the review
+            $nombreCalificador = $user->nombre ?? 'Usuario';
+            $servicioTitulo = $servicio->titulo ?? 'Servicio';
+            $mensajeNotificacion = "{$nombreCalificador} te ha dejado una calificación de {$data['calificacion']}/5 estrellas en '{$servicioTitulo}'";
+
+            // Determine who to notify based on direction
+            $idUsuarioNotificar = null;
+            if ($direccion === 'cliente_a_ofertante') {
+                // Client is rating the offeror - notify the offeror (user who made the application)
+                $postulacion = Postulacion::where('id_Postulacion', $data['id_Postulacion'])
+                    ->where('id_Servicio', $data['id_Servicio'])
+                    ->first();
+                if ($postulacion) {
+                    $idUsuarioNotificar = $postulacion->id_Usuario;
+                }
+            } elseif ($direccion === 'ofertante_a_cliente') {
+                // Offeror is rating the client - notify the client (service owner)
+                $idUsuarioNotificar = $servicio->id_Cliente;
+            }
+
+            // Create notification if we have a valid recipient and it's not the same person
+            if ($idUsuarioNotificar && $idUsuarioNotificar !== $user->id_CorreoUsuario) {
+                Notificacion::create([
+                    'mensaje' => $mensajeNotificacion,
+                    'estado' => 'No leido',
+                    'tipo' => 'resena',
+                    'id_CorreoUsuario' => $idUsuarioNotificar,
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -154,9 +186,9 @@ class ResenaController extends Controller
                 'success' => true,
                 'resenas' => $resenasComoOfertante,        // Para compatibilidad con UserProfile.jsx
                 'resenas_como_ofertante' => $resenasComoOfertante,
-                'resenas_como_cliente'   => $resenasComoCliente,
+                'resenas_como_cliente' => $resenasComoCliente,
                 'total_ofertante' => $resenasComoOfertante->count(),
-                'total_cliente'   => $resenasComoCliente->count(),
+                'total_cliente' => $resenasComoCliente->count(),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-        public function up(): void
+    public function up(): void
     {
         Schema::create('planes', function (Blueprint $table) {
             $table->string('id_Plan', 191)->primary();
@@ -17,7 +17,6 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-
 
     public function down(): void
     {

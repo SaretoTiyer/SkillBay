@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, DollarSign, MapPin, Search, Star, Filter, X, User, Flag, Send } from "lucide-react";
+import { Briefcase, DollarSign, MapPin, Search, Star, Filter, X, User, Flag, Send, Eye } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -43,6 +43,7 @@ export default function ExploreOpportunities() {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("recientes");
+  const [selectedItem, setSelectedItem] = useState(null);
 
   // Obtener categorías que tienen servicios
   const categoriasConServicios = useMemo(() => {
@@ -376,136 +377,91 @@ export default function ExploreOpportunities() {
                   <X size={16} />
                   Limpiar filtros
                 </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Información de resultados */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-slate-600">
-          <span className="font-semibold text-slate-800">{filteredServices.length}</span> oportunidad
-          {filteredServices.length !== 1 ? "es" : ""} encontrada
-          {filteredServices.length !== 1 ? "s" : ""}
-        </p>
-      </div>
-
-      {/* Grid de oportunidades */}
-      {filteredServices.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredServices.map((service) => {
-            const categoryName = service?.categoria?.nombre || "General";
-            const categoryImage = service?.categoria?.imagen;
-            const imageSrc = service.imagen
-              ? resolveImageUrl(service.imagen)
-              : categoryImage
-              ? resolveImageUrl(categoryImage)
-              : getOpportunityFallbackImage(categoryName);
-
-            return (
-              <article
-                key={service.id_Servicio}
-                className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-slate-300 transition-all duration-300 group"
-              >
-                {/* Imagen de la oportunidad */}
-                <div className="h-48 bg-slate-100 relative overflow-hidden">
-                  <img
-                    src={imageSrc}
-                    alt={service.titulo}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.src = getOpportunityFallbackImage(categoryName);
-                    }}
-                  />
-                  {/* Badge de categoría */}
-                  <div className="absolute top-3 left-3 flex gap-1">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
-                      service.tipo === 'oportunidad' 
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                        : 'bg-blue-100 text-blue-700 border border-blue-200'
-                    }`}>
-                      {service.tipo === 'oportunidad' ? '💼 Oportunidad' : '🛠️ Servicio'}
-                    </span>
-                    <span className="bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
-                      {categoryName}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Contenido */}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
-                    {service.titulo}
-                  </h3>
-                  <p className="text-sm text-slate-600 mt-1.5 line-clamp-2">
-                    {service.descripcion || "Sin descripción."}
-                  </p>
-
-                  {/* Presupuesto */}
-                  <div className="mt-3">
-                    <span className="text-xl font-bold text-emerald-600">
-                      {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")}` : "A convenir"}
-                    </span>
-                    {service.precio && <span className="text-sm text-slate-500 ml-1">COP</span>}
-                  </div>
-
-                  {/* Información adicional */}
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-1 text-slate-500">
-                      <MapPin size={14} />
-                      <span>{service?.cliente_usuario?.ciudad || "Remoto"}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-slate-500">
-                      <User size={14} />
-                      <button
-                        onClick={() => openPublicProfile(service?.cliente_usuario?.id_CorreoUsuario)}
-                        className="text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        {service?.cliente_usuario?.nombre || "Usuario"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Botones de acción */}
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      onClick={() => postular(service)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Send size={16} />
-                      Postular
-                    </button>
-                    <button
-                      onClick={() => reportService(service)}
-                      className="px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                      title="Reportar"
-                    >
-                      <Flag size={16} />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search size={28} className="text-slate-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">No se encontraron oportunidades</h3>
-          <p className="text-slate-500 mb-4">
-            {query || selectedCategoria ? "Intenta ajustar los filtros de búsqueda" : "No hay oportunidades disponibles en este momento"}
-          </p>
-          {(query || selectedCategoria) && (
-            <button onClick={clearFilters} className="text-blue-600 hover:text-blue-700 font-medium">
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+         </div>
+       )}
+     
+     {/* Modal Detalles */}
+     {selectedItem && (
+       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+         <div className="relative w-full max-w-md p-4">
+           <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
+             {/* Botón cerrar */}
+             <button
+               onClick={() => setSelectedItem(null)}
+               className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full"
+             >
+               <X size={20} />
+             </button>
+             
+             {/* Imagen */}
+             <div className="h-48 w-full overflow-hidden">
+               <img
+                 src={selectedItem.imagen 
+                   ? resolveImageUrl(selectedItem.imagen) 
+                   : selectedItem.categoria?.imagen 
+                     ? resolveImageUrl(selectedItem.categoria.imagen) 
+                     : getOpportunityFallbackImage(selectedItem.categoria?.nombre)}
+                 alt={selectedItem.titulo}
+                 className="w-full h-full object-cover"
+               />
+             </div>
+             
+             {/* Contenido */}
+             <div className="p-6 space-y-4">
+               <h2 className="text-xl font-bold text-slate-800">{selectedItem.titulo}</h2>
+               <p className="text-slate-600 line-clamp-4">{selectedItem.descripcion}</p>
+               
+               <div className="grid grid-cols-2 gap-4 text-sm text-slate-500">
+                 <div>
+                   <span className="font-medium">Presupuesto:</span>
+                   <span className="ml-2">{selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Entrega:</span>
+                   <span className="ml-2">{selectedItem.tiempo_entrega || "No especificado"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Categoría:</span>
+                   <span className="ml-2">{selectedItem.categoria?.nombre || "General"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Usuario:</span>
+                   <span className="ml-2">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Ciudad:</span>
+                   <span className="ml-2">{selectedItem.cliente_usuario?.ciudad || "Remoto"}</span>
+                 </div>
+               </div>
+               
+               <div className="mt-6 flex flex-col gap-3">
+                 <button
+                   onClick={() => {
+                     openPublicProfile(selectedItem?.cliente_usuario?.id_CorreoUsuario);
+                     setSelectedItem(null);
+                   }}
+                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
+                 >
+                   <User size={16} />
+                   Ver perfil
+                 </button>
+                 <button
+                   onClick={() => {
+                     postular(selectedItem);
+                     setSelectedItem(null);
+                   }}
+                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                 >
+                   <Send size={16} />
+                   Postularme
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
+     )}
+     </div>
+   );
+ }
 

@@ -22,7 +22,6 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 export default function SentApplications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const [filter, setFilter] = useState("all");
 
@@ -364,60 +363,70 @@ export default function SentApplications() {
                 </Badge>
               </div>
             )}
-            {application.estado === "pagada" && (
-              <div className="flex gap-2 flex-wrap items-center">
-                <Badge className="bg-green-500 text-white border-0">
-                  <DollarSign size={12} className="mr-1" /> Pagada
-                </Badge>
-                {application.tipo_postulacion === 'solicitante' && (
-                  <Button
-                    size="sm"
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                    onClick={async () => {
-                      const { value: rating } = await Swal.fire({
-                        title: 'Califica el servicio',
-                        input: 'range',
-                        inputLabel: 'Calificación (1-5 estrellas)',
-                        inputAttributes: { min: 1, max: 5, step: 1 },
-                        inputValue: 5,
-                        showCancelButton: true,
-                        confirmButtonText: 'Calificar',
-                        cancelButtonText: 'Cancelar',
-                      });
-                      if (!rating) return;
-                      const { value: comment } = await Swal.fire({
-                        title: 'Deja un comentario (opcional)',
-                        input: 'textarea',
-                        inputPlaceholder: 'Escribe tu experiencia con el servicio...',
-                        showCancelButton: true,
-                        confirmButtonText: 'Enviar',
-                        cancelButtonText: 'Cancelar',
-                      });
-                      try {
-                        const response = await fetch(`${API_URL}/resenas`, {
-                          method: "POST",
-                          headers: authHeaders(true),
-                          body: JSON.stringify({
-                            id_Servicio: application.servicio.id_Servicio,
-                            calificacion: parseInt(rating),
-                            comentario: comment || '',
-                            id_Postulacion: application.id,
-                          }),
-                        });
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-                        fetchApplications();
-                        Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-                      } catch (error) {
-                        Swal.fire('Error', error.message, 'error');
-                      }
-                    }}
-                  >
-                    <Star size={14} className="mr-1" /> Calificar
-                  </Button>
-                )}
-              </div>
-            )}
+             {application.estado === "pagada" && (
+               <div className="flex gap-2 flex-wrap items-center">
+                 <Badge className="bg-green-500 text-white border-0">
+                   <DollarSign size={12} className="mr-1" /> Pagada
+                 </Badge>
+                 {application.tipo_postulacion === 'solicitante' && (
+                   <>
+                     {application.ya_califico ? (
+                       <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
+                         ⭐ Calificado
+                       </Badge>
+                     ) : (
+                       <Button
+                         size="sm"
+                         className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                         onClick={async () => {
+                           const { value: rating } = await Swal.fire({
+                             title: 'Califica el servicio',
+                             input: 'range',
+                             inputLabel: 'Calificación (1-5 estrellas)',
+                             inputAttributes: { min: 1, max: 5, step: 1 },
+                             inputValue: 5,
+                             showCancelButton: true,
+                             confirmButtonText: 'Calificar',
+                             cancelButtonText: 'Cancelar',
+                           });
+                           if (!rating) return;
+                           const { value: comment } = await Swal.fire({
+                             title: 'Deja un comentario (opcional)',
+                             input: 'textarea',
+                             inputPlaceholder: 'Escribe tu experiencia con el servicio...',
+                             showCancelButton: true,
+                             confirmButtonText: 'Enviar',
+                             cancelButtonText: 'Cancelar',
+                           });
+                           try {
+                             const response = await fetch(`${API_URL}/resenas`, {
+                               method: "POST",
+                               headers: authHeaders(true),
+                               body: JSON.stringify({
+                                 direccion: 'cliente_a_ofertante',
+                                 id_Postulacion: application.id,
+                                 id_Servicio: application.servicio.id_Servicio,
+                                 calificacion: parseInt(rating),
+                                 comentario: comment || ''
+                               }),
+                             });
+                             const data = await response.json();
+                             if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+                             // Update local state instead of refetching
+                             setApplications(prev => prev.map(a => a.id === application.id ? {...a, ya_califico: true} : a));
+                             Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+                           } catch (error) {
+                             Swal.fire('Error', error.message, 'error');
+                           }
+                         }}
+                       >
+                         <Star size={14} className="mr-1" /> Calificar
+                       </Button>
+                     )}
+                   </>
+                 )}
+               </div>
+             )}
           </div>
         </div>
       </div>

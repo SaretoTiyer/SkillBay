@@ -8,7 +8,6 @@ use App\Models\PagoPlan;
 use App\Models\Plan;
 use App\Models\Usuario;
 use App\Services\MercadoPagoInterface;
-use App\Services\MercadoPagoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -36,7 +35,7 @@ class MercadoPagoController extends Controller
     public function crearPreferencia(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -44,7 +43,7 @@ class MercadoPagoController extends Controller
             'id_Plan' => 'required|string|exists:planes,id_Plan',
         ]);
 
-        $plan   = Plan::findOrFail($validated['id_Plan']);
+        $plan = Plan::findOrFail($validated['id_Plan']);
         $precio = (float) ($plan->precioMensual ?? 0);
 
         // Plan gratuito: no requiere pasarela de pago
@@ -52,89 +51,89 @@ class MercadoPagoController extends Controller
             return $this->procesarPlanGratuito($user, $plan);
         }
 
-        $referencia  = $this->generarReferencia('MP-PLAN');
+        $referencia = $this->generarReferencia('MP-PLAN');
         $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
-        
+
         // Usar NGROK_URL si está configurada, si no usar APP_URL
-        //$backendUrl = env('NGROK_URL', config('app.url', 'http://127.0.0.1:8000'));
+        // $backendUrl = env('NGROK_URL', config('app.url', 'http://127.0.0.1:8000'));
 
         try {
-            $preferenceData = array(
-                'items' => array(
-                    array(
-                        'id'          => $plan->id_Plan,
-                        'title'       => 'SkillBay - Plan ' . $plan->nombre,
-                        'description' => $plan->beneficios ?? 'Suscripcion mensual al plan ' . $plan->nombre,
-                        'quantity'    => 1,
-                        'unit_price'  => $precio,
+            $preferenceData = [
+                'items' => [
+                    [
+                        'id' => $plan->id_Plan,
+                        'title' => 'SkillBay - Plan '.$plan->nombre,
+                        'description' => $plan->beneficios ?? 'Suscripcion mensual al plan '.$plan->nombre,
+                        'quantity' => 1,
+                        'unit_price' => $precio,
                         'currency_id' => 'COP',
-                    ),
-                ),
-                'payer' => array(
+                    ],
+                ],
+                'payer' => [
                     'email' => $user->id_CorreoUsuario, // Asumimos que es email válidados
-                    'name'  => $user->nombre ?? '',
-                ),
-                'back_urls' => array(
-                    'success' => $frontendUrl . '/payment/success?ref=' . $referencia,
-                    'failure' => $frontendUrl . '/payment/failure?ref=' . $referencia,
-                    'pending' => $frontendUrl . '/payment/pending?ref=' . $referencia,
-                ),
-                'auto_return'        => 'approved',
+                    'name' => $user->nombre ?? '',
+                ],
+                'back_urls' => [
+                    'success' => $frontendUrl.'/payment/success?ref='.$referencia,
+                    'failure' => $frontendUrl.'/payment/failure?ref='.$referencia,
+                    'pending' => $frontendUrl.'/payment/pending?ref='.$referencia,
+                ],
+                'auto_return' => 'approved',
                 'external_reference' => $referencia,
                 // NOTA: La notification_url puede causar errores si MercadoPago no puede acceder a ella
                 // En desarrollo, puedes comentarla o usar una URL válida
-                //'notification_url'   => $backendUrl . '/api/mp/webhook',
-                'statement_descriptor' => 'SkillBay Plan ' . $plan->nombre,
-                'expires'            => false,
-                'metadata'           => array(
-                    'id_Plan'          => $plan->id_Plan,
+                // 'notification_url'   => $backendUrl . '/api/mp/webhook',
+                'statement_descriptor' => 'SkillBay Plan '.$plan->nombre,
+                'expires' => false,
+                'metadata' => [
+                    'id_Plan' => $plan->id_Plan,
                     'id_CorreoUsuario' => $user->id_CorreoUsuario,
-                    'referencia'       => $referencia,
-                ),
-            );
+                    'referencia' => $referencia,
+                ],
+            ];
 
             $preference = $this->mpService->crearPreferencia($preferenceData);
 
             // Crear registro de pago en estado Pendiente
-            $pago = PagoPlan::create(array(
-                'monto'               => $precio,
-                'fechaPago'           => now(),
-                'estado'              => 'Pendiente',
-                'metodoPago'          => 'MercadoPago',
-                'modalidadPago'       => 'virtual',
-                'referenciaPago'      => $referencia,
-                'fechaInicioPlan'     => now()->toDateString(),
-                'fechaFinPlan'        => now()->addMonth()->toDateString(),
-                'id_CorreoUsuario'    => $user->id_CorreoUsuario,
-                'id_Plan'             => $plan->id_Plan,
-                'mp_preference_id'    => $preference['id'],
-                'mp_init_point'       => $preference['init_point'],
+            $pago = PagoPlan::create([
+                'monto' => $precio,
+                'fechaPago' => now(),
+                'estado' => 'Pendiente',
+                'metodoPago' => 'MercadoPago',
+                'modalidadPago' => 'virtual',
+                'referenciaPago' => $referencia,
+                'fechaInicioPlan' => now()->toDateString(),
+                'fechaFinPlan' => now()->addMonth()->toDateString(),
+                'id_CorreoUsuario' => $user->id_CorreoUsuario,
+                'id_Plan' => $plan->id_Plan,
+                'mp_preference_id' => $preference['id'],
+                'mp_init_point' => $preference['init_point'],
                 'mp_sandbox_init_point' => $preference['sandbox_init_point'],
-                'mp_status'           => 'pending',
-            ));
+                'mp_status' => 'pending',
+            ]);
 
-            return response()->json(array(
-                'success'            => true,
-                'preference_id'      => $preference['id'],
-                'init_point'         => $preference['init_point'],
+            return response()->json([
+                'success' => true,
+                'preference_id' => $preference['id'],
+                'init_point' => $preference['init_point'],
                 'sandbox_init_point' => $preference['sandbox_init_point'],
-                'referencia'         => $referencia,
-                'pago_id'            => $pago->id_PagoPlan,
-                'public_key'         => config('services.mercadopago.public_key'),
-            ), 201);
+                'referencia' => $referencia,
+                'pago_id' => $pago->id_PagoPlan,
+                'public_key' => config('services.mercadopago.public_key'),
+            ], 201);
 
         } catch (\Exception $e) {
-            Log::error('Error al crear preferencia MP', array(
+            Log::error('Error al crear preferencia MP', [
                 'message' => $e->getMessage(),
-                'user'    => $user->id_CorreoUsuario,
-                'plan'    => $plan->id_Plan,
-            ));
+                'user' => $user->id_CorreoUsuario,
+                'plan' => $plan->id_Plan,
+            ]);
 
-            return response()->json(array(
+            return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la preferencia de pago.',
-                'error'   => $e->getMessage(),
-            ), 500);
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -149,7 +148,7 @@ class MercadoPagoController extends Controller
             'url' => $request->fullUrl(),
             'method' => $request->method(),
         ]);
-        
+
         return response()->json([
             'status' => 'ok',
             'message' => 'Webhook endpoint configured correctly',
@@ -164,58 +163,60 @@ class MercadoPagoController extends Controller
     public function webhook(Request $request)
     {
         $topic = $request->query('topic') ?? $request->input('type');
-        $id    = $request->query('id') ?? $request->input('data.id');
+        $id = $request->query('id') ?? $request->input('data.id');
 
-        Log::info('MercadoPago Webhook recibido', array(
-            'topic'   => $topic,
-            'id'      => $id,
+        Log::info('MercadoPago Webhook recibido', [
+            'topic' => $topic,
+            'id' => $id,
             'payload' => $request->all(),
-        ));
+        ]);
 
         // Verificar firma del webhook (seguridad)
-        if (!$this->verificarFirmaWebhook($request)) {
-            Log::warning('MercadoPago Webhook: firma invalida', array('ip' => $request->ip()));
-            return response()->json(array('status' => 'signature_invalid'), 200);
+        if (! $this->verificarFirmaWebhook($request)) {
+            Log::warning('MercadoPago Webhook: firma invalida', ['ip' => $request->ip()]);
+
+            return response()->json(['status' => 'signature_invalid'], 200);
         }
 
         // Solo procesamos notificaciones de tipo "payment"
-        if (!in_array($topic, array('payment', 'merchant_order'))) {
-            return response()->json(array('status' => 'ignored', 'topic' => $topic), 200);
+        if (! in_array($topic, ['payment', 'merchant_order'])) {
+            return response()->json(['status' => 'ignored', 'topic' => $topic], 200);
         }
 
-        if (!$id) {
-            return response()->json(array('status' => 'no_id'), 200);
+        if (! $id) {
+            return response()->json(['status' => 'no_id'], 200);
         }
 
         try {
             $payment = $this->mpService->obtenerPago((int) $id);
 
             $externalRef = $payment['external_reference'] ?? null;
-            $mpStatus    = $payment['status'] ?? null;
+            $mpStatus = $payment['status'] ?? null;
             $mpPaymentId = (string) ($payment['id'] ?? $id);
 
-            Log::info('MercadoPago Webhook - Pago obtenido', array(
-                'payment_id'   => $mpPaymentId,
-                'status'       => $mpStatus,
+            Log::info('MercadoPago Webhook - Pago obtenido', [
+                'payment_id' => $mpPaymentId,
+                'status' => $mpStatus,
                 'external_ref' => $externalRef,
-            ));
+            ]);
 
-            if (!$externalRef) {
-                return response()->json(array('status' => 'no_external_ref'), 200);
+            if (! $externalRef) {
+                return response()->json(['status' => 'no_external_ref'], 200);
             }
 
             $pago = PagoPlan::where('referenciaPago', $externalRef)->first();
 
-            if (!$pago) {
-                Log::warning('MercadoPago Webhook: PagoPlan no encontrado', array(
+            if (! $pago) {
+                Log::warning('MercadoPago Webhook: PagoPlan no encontrado', [
                     'external_ref' => $externalRef,
-                ));
-                return response()->json(array('status' => 'pago_not_found'), 200);
+                ]);
+
+                return response()->json(['status' => 'pago_not_found'], 200);
             }
 
             // Actualizar campos MP en el registro de pago
             $pago->mp_payment_id = $mpPaymentId;
-            $pago->mp_status     = $mpStatus;
+            $pago->mp_status = $mpStatus;
 
             switch ($mpStatus) {
                 case 'approved':
@@ -244,14 +245,15 @@ class MercadoPagoController extends Controller
                     break;
             }
 
-            return response()->json(array('status' => 'processed', 'mp_status' => $mpStatus), 200);
+            return response()->json(['status' => 'processed', 'mp_status' => $mpStatus], 200);
 
         } catch (\Exception $e) {
-            Log::error('MercadoPago Webhook - Error', array(
+            Log::error('MercadoPago Webhook - Error', [
                 'message' => $e->getMessage(),
-                'id'      => $id,
-            ));
-            return response()->json(array('status' => 'error'), 200);
+                'id' => $id,
+            ]);
+
+            return response()->json(['status' => 'error'], 200);
         }
     }
 
@@ -264,16 +266,16 @@ class MercadoPagoController extends Controller
      */
     public function success(Request $request)
     {
-        $referencia  = $request->query('ref') ?? $request->query('external_reference');
-        $paymentId   = $request->query('payment_id');
-        $status      = $request->query('status');
+        $referencia = $request->query('ref') ?? $request->query('external_reference');
+        $paymentId = $request->query('payment_id');
+        $status = $request->query('status');
         $collectionId = $request->query('collection_id');
 
-        Log::info('MercadoPago Success Return', array(
-            'ref'        => $referencia,
+        Log::info('MercadoPago Success Return', [
+            'ref' => $referencia,
             'payment_id' => $paymentId ?? $collectionId,
-            'status'     => $status,
-        ));
+            'status' => $status,
+        ]);
 
         $pago = null;
         if ($referencia) {
@@ -288,49 +290,50 @@ class MercadoPagoController extends Controller
                 $payment = $this->mpService->obtenerPago((int) $mpPaymentId);
                 $mpStatus = $payment['status'] ?? null;
 
-                Log::info('MercadoPago Success - Verificación con API', array(
+                Log::info('MercadoPago Success - Verificación con API', [
                     'payment_id' => $mpPaymentId,
-                    'mp_status'  => $mpStatus,
+                    'mp_status' => $mpStatus,
                     'external_ref' => $payment['external_reference'] ?? null,
-                ));
+                ]);
 
                 // Solo aprobar si el status de MP es 'approved'
                 if ($mpStatus === 'approved' && $pago->estado !== 'Completado') {
                     $pago->mp_payment_id = (string) $mpPaymentId;
-                    $pago->mp_status     = 'approved';
-                    $pago->estado        = 'Completado';
+                    $pago->mp_status = 'approved';
+                    $pago->estado = 'Completado';
                     $pago->save();
                     $this->activarPlanUsuario($pago);
                 } elseif ($mpStatus === 'pending') {
                     $pago->mp_payment_id = (string) $mpPaymentId;
-                    $pago->mp_status     = 'pending';
-                    $pago->estado        = 'Pendiente';
+                    $pago->mp_status = 'pending';
+                    $pago->estado = 'Pendiente';
                     $pago->save();
                 } elseif ($mpStatus === 'rejected' || $mpStatus === 'cancelled') {
                     $pago->mp_payment_id = (string) $mpPaymentId;
-                    $pago->mp_status     = $mpStatus;
-                    $pago->estado        = 'Rechazado';
+                    $pago->mp_status = $mpStatus;
+                    $pago->estado = 'Rechazado';
                     $pago->save();
                 }
             } catch (\Exception $e) {
-                Log::error('MercadoPago Success - Error al verificar con API', array(
-                    'message'   => $e->getMessage(),
+                Log::error('MercadoPago Success - Error al verificar con API', [
+                    'message' => $e->getMessage(),
                     'payment_id' => $mpPaymentId,
-                ));
+                ]);
+
                 // Si falla la verificación, no aprobar el pago
-                return response()->json(array(
-                    'success'    => false,
-                    'status'     => 'verification_failed',
-                    'message'    => 'No se pudo verificar el pago con MercadoPago.',
+                return response()->json([
+                    'success' => false,
+                    'status' => 'verification_failed',
+                    'message' => 'No se pudo verificar el pago con MercadoPago.',
                     'referencia' => $referencia,
-                ), 500);
+                ], 500);
             }
         } elseif ($pago && $status === 'approved') {
             // Fallback: si no hay payment_id pero el parámetro dice approved
             // Solo aprobar si el pago ya estaba en estado Pendiente en nuestra DB
             if ($pago->estado === 'Pendiente') {
                 Log::warning('MercadoPago Success - Aprobando sin verificación de API (fallback)', [
-                    'referencia' => $referencia
+                    'referencia' => $referencia,
                 ]);
                 $pago->estado = 'Completado';
                 $pago->mp_status = 'approved';
@@ -339,16 +342,16 @@ class MercadoPagoController extends Controller
             }
         }
 
-        return response()->json(array(
-            'success'    => true,
-            'status'     => $pago?->estado ?? 'unknown',
-            'message'    => $pago?->estado === 'Completado' 
-                ? '¡Pago aprobado! Tu plan ha sido activado.' 
-                : 'Estado del pago: ' . ($pago?->estado ?? 'No encontrado'),
+        return response()->json([
+            'success' => true,
+            'status' => $pago?->estado ?? 'unknown',
+            'message' => $pago?->estado === 'Completado'
+                ? '¡Pago aprobado! Tu plan ha sido activado.'
+                : 'Estado del pago: '.($pago?->estado ?? 'No encontrado'),
             'referencia' => $referencia,
-            'plan'       => $pago?->plan?->nombre ?? null,
-            'pago_id'    => $pago?->id_PagoPlan ?? null,
-        ));
+            'plan' => $pago?->plan?->nombre ?? null,
+            'pago_id' => $pago?->id_PagoPlan ?? null,
+        ]);
     }
 
     /**
@@ -358,25 +361,25 @@ class MercadoPagoController extends Controller
     public function failure(Request $request)
     {
         $referencia = $request->query('ref') ?? $request->query('external_reference');
-        $status     = $request->query('status');
+        $status = $request->query('status');
 
-        Log::info('MercadoPago Failure Return', array('ref' => $referencia, 'status' => $status));
+        Log::info('MercadoPago Failure Return', ['ref' => $referencia, 'status' => $status]);
 
         if ($referencia) {
             $pago = PagoPlan::where('referenciaPago', $referencia)->first();
             if ($pago && $pago->estado === 'Pendiente') {
-                $pago->estado    = 'Rechazado';
+                $pago->estado = 'Rechazado';
                 $pago->mp_status = 'rejected';
                 $pago->save();
             }
         }
 
-        return response()->json(array(
-            'success'    => false,
-            'status'     => 'rejected',
-            'message'    => 'El pago fue rechazado. Por favor intenta con otro metodo de pago.',
+        return response()->json([
+            'success' => false,
+            'status' => 'rejected',
+            'message' => 'El pago fue rechazado. Por favor intenta con otro metodo de pago.',
             'referencia' => $referencia,
-        ));
+        ]);
     }
 
     /**
@@ -387,14 +390,14 @@ class MercadoPagoController extends Controller
     {
         $referencia = $request->query('ref') ?? $request->query('external_reference');
 
-        Log::info('MercadoPago Pending Return', array('ref' => $referencia));
+        Log::info('MercadoPago Pending Return', ['ref' => $referencia]);
 
-        return response()->json(array(
-            'success'    => true,
-            'status'     => 'pending',
-            'message'    => 'Tu pago esta siendo procesado. Te notificaremos cuando sea confirmado.',
+        return response()->json([
+            'success' => true,
+            'status' => 'pending',
+            'message' => 'Tu pago esta siendo procesado. Te notificaremos cuando sea confirmado.',
             'referencia' => $referencia,
-        ));
+        ]);
     }
 
     /**
@@ -405,8 +408,8 @@ class MercadoPagoController extends Controller
     public function estadoPago(Request $request, string $referencia)
     {
         $user = $request->user();
-        if (!$user) {
-            return response()->json(array('message' => 'Unauthenticated.'), 401);
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $pago = PagoPlan::with('plan')
@@ -414,19 +417,19 @@ class MercadoPagoController extends Controller
             ->where('id_CorreoUsuario', $user->id_CorreoUsuario)
             ->first();
 
-        if (!$pago) {
-            return response()->json(array('success' => false, 'message' => 'Pago no encontrado.'), 404);
+        if (! $pago) {
+            return response()->json(['success' => false, 'message' => 'Pago no encontrado.'], 404);
         }
 
-        return response()->json(array(
-            'success'    => true,
-            'estado'     => $pago->estado,
-            'mp_status'  => $pago->mp_status,
-            'plan'       => $pago->plan?->nombre,
+        return response()->json([
+            'success' => true,
+            'estado' => $pago->estado,
+            'mp_status' => $pago->mp_status,
+            'plan' => $pago->plan?->nombre,
             'referencia' => $pago->referenciaPago,
-            'vigente'    => $pago->estaVigente(),
-            'aprobado'   => $pago->estaAprobado(),
-        ));
+            'vigente' => $pago->estaVigente(),
+            'aprobado' => $pago->estaAprobado(),
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -440,38 +443,38 @@ class MercadoPagoController extends Controller
     {
         $referencia = $this->generarReferencia('FREE-PLAN');
 
-        $pago = PagoPlan::create(array(
-            'monto'            => 0,
-            'fechaPago'        => now(),
-            'estado'           => 'Completado',
-            'metodoPago'       => 'Gratuito',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => $referencia,
-            'fechaInicioPlan'  => now()->toDateString(),
-            'fechaFinPlan'     => now()->addYear()->toDateString(),
+        $pago = PagoPlan::create([
+            'monto' => 0,
+            'fechaPago' => now(),
+            'estado' => 'Completado',
+            'metodoPago' => 'Gratuito',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => $referencia,
+            'fechaInicioPlan' => now()->toDateString(),
+            'fechaFinPlan' => now()->addYear()->toDateString(),
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
-            'id_Plan'          => $plan->id_Plan,
-            'mp_status'        => 'approved',
-        ));
+            'id_Plan' => $plan->id_Plan,
+            'mp_status' => 'approved',
+        ]);
 
         $user->id_Plan = $plan->id_Plan;
         $user->save();
 
-        Notificacion::create(array(
-            'mensaje'          => 'Plan "' . $plan->nombre . '" activado correctamente.',
-            'estado'           => 'No leido',
-            'tipo'             => 'sistema',
+        Notificacion::create([
+            'mensaje' => 'Plan "'.$plan->nombre.'" activado correctamente.',
+            'estado' => 'No leido',
+            'tipo' => 'sistema',
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
-        ));
+        ]);
 
-        return response()->json(array(
-            'success'    => true,
-            'gratuito'   => true,
-            'message'    => 'Plan gratuito activado exitosamente.',
+        return response()->json([
+            'success' => true,
+            'gratuito' => true,
+            'message' => 'Plan gratuito activado exitosamente.',
             'referencia' => $referencia,
-            'pago'       => $pago,
-            'plan'       => $plan,
-        ), 201);
+            'pago' => $pago,
+            'plan' => $plan,
+        ], 201);
     }
 
     /**
@@ -480,31 +483,32 @@ class MercadoPagoController extends Controller
     private function activarPlanUsuario(PagoPlan $pago): void
     {
         $usuario = Usuario::find($pago->id_CorreoUsuario);
-        if (!$usuario) {
-            Log::warning('activarPlanUsuario: usuario no encontrado', array(
+        if (! $usuario) {
+            Log::warning('activarPlanUsuario: usuario no encontrado', [
                 'id_CorreoUsuario' => $pago->id_CorreoUsuario,
-            ));
+            ]);
+
             return;
         }
 
         $usuario->id_Plan = $pago->id_Plan;
         $usuario->save();
 
-        $plan       = Plan::find($pago->id_Plan);
+        $plan = Plan::find($pago->id_Plan);
         $nombrePlan = $plan?->nombre ?? $pago->id_Plan;
 
-        Notificacion::create(array(
-            'mensaje'          => '¡Pago aprobado! Tu plan "' . $nombrePlan . '" esta activo. Referencia: ' . $pago->referenciaPago,
-            'estado'           => 'No leido',
-            'tipo'             => 'sistema',
+        Notificacion::create([
+            'mensaje' => '¡Pago aprobado! Tu plan "'.$nombrePlan.'" esta activo. Referencia: '.$pago->referenciaPago,
+            'estado' => 'No leido',
+            'tipo' => 'sistema',
             'id_CorreoUsuario' => $pago->id_CorreoUsuario,
-        ));
+        ]);
 
-        Log::info('Plan activado para usuario', array(
+        Log::info('Plan activado para usuario', [
             'usuario' => $pago->id_CorreoUsuario,
-            'plan'    => $pago->id_Plan,
-            'ref'     => $pago->referenciaPago,
-        ));
+            'plan' => $pago->id_Plan,
+            'ref' => $pago->referenciaPago,
+        ]);
     }
 
     /**
@@ -512,12 +516,12 @@ class MercadoPagoController extends Controller
      */
     private function notificarRechazo(PagoPlan $pago): void
     {
-        Notificacion::create(array(
-            'mensaje'          => 'Tu pago (ref: ' . $pago->referenciaPago . ') fue rechazado. Por favor intenta nuevamente.',
-            'estado'           => 'No leido',
-            'tipo'             => 'sistema',
+        Notificacion::create([
+            'mensaje' => 'Tu pago (ref: '.$pago->referenciaPago.') fue rechazado. Por favor intenta nuevamente.',
+            'estado' => 'No leido',
+            'tipo' => 'sistema',
             'id_CorreoUsuario' => $pago->id_CorreoUsuario,
-        ));
+        ]);
     }
 
     /**
@@ -532,14 +536,16 @@ class MercadoPagoController extends Controller
         $isLocal = app()->isLocal() || env('APP_ENV') === 'testing';
 
         // En producción: siempre requerir secret configurado
-        if (!$isLocal && empty($secret)) {
+        if (! $isLocal && empty($secret)) {
             Log::error('MercadoPago Webhook: webhook_secret no configurado en producción');
+
             return false;
         }
 
         // En desarrollo local sin secret: registrar advertencia pero permitir
         if ($isLocal && empty($secret)) {
             Log::warning('MercadoPago Webhook: verificación de firma omitida en entorno local');
+
             return true;
         }
 
@@ -547,8 +553,9 @@ class MercadoPagoController extends Controller
         $xSignature = $request->header('x-signature');
         if (empty($xSignature)) {
             Log::warning('MercadoPago Webhook: sin firma en header', [
-                'ip' => $request->ip()
+                'ip' => $request->ip(),
             ]);
+
             // En producción rechazar, en local permitir
             return $isLocal;
         }
@@ -563,10 +570,11 @@ class MercadoPagoController extends Controller
         $ts = $parts['ts'] ?? null;
         $v1 = $parts['v1'] ?? null;
 
-        if (!$ts || !$v1) {
+        if (! $ts || ! $v1) {
             Log::warning('MercadoPago Webhook: formato de firma incompleto', [
-                'parts' => $parts
+                'parts' => $parts,
             ]);
+
             return $isLocal;
         }
 
@@ -579,11 +587,11 @@ class MercadoPagoController extends Controller
 
         $isValid = hash_equals($hmac, $v1);
 
-        if (!$isValid) {
+        if (! $isValid) {
             Log::warning('MercadoPago Webhook: firma inválida', [
-                'expected' => substr($hmac, 0, 8) . '...',
-                'received' => substr($v1, 0, 8) . '...',
-                'ip' => $request->ip()
+                'expected' => substr($hmac, 0, 8).'...',
+                'received' => substr($v1, 0, 8).'...',
+                'ip' => $request->ip(),
             ]);
         }
 
@@ -595,6 +603,6 @@ class MercadoPagoController extends Controller
      */
     private function generarReferencia(string $prefix): string
     {
-        return strtoupper($prefix) . '-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
+        return strtoupper($prefix).'-'.now()->format('YmdHis').'-'.strtoupper(Str::random(6));
     }
 }

@@ -7,7 +7,6 @@ use App\Models\PagoPlan;
 use App\Models\Plan;
 use App\Models\Usuario;
 use App\Services\MercadoPagoInterface;
-use App\Services\MercadoPagoService;
 use App\Services\MercadoPagoSimuladorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -32,8 +31,11 @@ class MercadoPagoFlowTest extends TestCase
     use RefreshDatabase;
 
     private Usuario $usuario;
+
     private Plan $planFree;
+
     private Plan $planPlus;
+
     private Plan $planUltra;
 
     protected function setUp(): void
@@ -53,71 +55,72 @@ class MercadoPagoFlowTest extends TestCase
 
     private function seedPlanes(): void
     {
-        $this->planFree = Plan::create(array(
-            'id_Plan'            => 'Free',
-            'nombre'             => 'Free',
-            'beneficios'         => 'Hasta 3 servicios. Limite mensual: 3.',
-            'precioMensual'      => 0,
+        $this->planFree = Plan::create([
+            'id_Plan' => 'Free',
+            'nombre' => 'Free',
+            'beneficios' => 'Hasta 3 servicios. Limite mensual: 3.',
+            'precioMensual' => 0,
             'limiteServiciosMes' => 3,
-        ));
+        ]);
 
-        $this->planPlus = Plan::create(array(
-            'id_Plan'            => 'Plus',
-            'nombre'             => 'Plus',
-            'beneficios'         => 'Hasta 5 servicios. Limite mensual: 5.',
-            'precioMensual'      => 15000,
+        $this->planPlus = Plan::create([
+            'id_Plan' => 'Plus',
+            'nombre' => 'Plus',
+            'beneficios' => 'Hasta 5 servicios. Limite mensual: 5.',
+            'precioMensual' => 15000,
             'limiteServiciosMes' => 5,
-        ));
+        ]);
 
-        $this->planUltra = Plan::create(array(
-            'id_Plan'            => 'Ultra',
-            'nombre'             => 'Ultra',
-            'beneficios'         => 'Hasta 10 servicios. Limite mensual: 10.',
-            'precioMensual'      => 30000,
+        $this->planUltra = Plan::create([
+            'id_Plan' => 'Ultra',
+            'nombre' => 'Ultra',
+            'beneficios' => 'Hasta 10 servicios. Limite mensual: 10.',
+            'precioMensual' => 30000,
             'limiteServiciosMes' => 10,
-        ));
+        ]);
     }
 
-    private function crearUsuario(array $overrides = array()): Usuario
+    private function crearUsuario(array $overrides = []): Usuario
     {
-        return Usuario::create(array_merge(array(
-            'id_CorreoUsuario' => 'test_mp_' . uniqid() . '@skillbay.test',
-            'nombre'           => 'Test',
-            'apellido'        => 'MP',
-            'telefono'        => '300' . rand(1000000, 9999999),
-            'password'        => Hash::make('password123'),
-            'rol'             => 'usuario',
-            'id_Plan'         => 'Free',
-            'fechaRegistro'   => now(),
-        ), $overrides));
+        return Usuario::create(array_merge([
+            'id_CorreoUsuario' => 'test_mp_'.uniqid().'@skillbay.test',
+            'nombre' => 'Test',
+            'apellido' => 'MP',
+            'telefono' => '300'.rand(1000000, 9999999),
+            'password' => Hash::make('password123'),
+            'rol' => 'usuario',
+            'id_Plan' => 'Free',
+            'fechaRegistro' => now(),
+        ], $overrides));
     }
 
     private function authHeaders(Usuario $usuario): array
     {
         $token = $usuario->createToken('test-token')->plainTextToken;
-        return array(
-            'Authorization' => 'Bearer ' . $token,
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
-        );
+
+        return [
+            'Authorization' => 'Bearer '.$token,
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ];
     }
 
     private function crearPagoPendiente(Usuario $usuario, Plan $plan, string $referencia): PagoPlan
     {
-        return PagoPlan::create(array(
-            'monto'            => $plan->precioMensual,
-            'fechaPago'        => now(),
-            'estado'           => 'Pendiente',
-            'metodoPago'       => 'MercadoPago',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => $referencia,
-            'fechaInicioPlan'  => now()->toDateString(),
-            'fechaFinPlan'     => now()->addMonth()->toDateString(),
+        return PagoPlan::create([
+            'monto' => $plan->precioMensual,
+            'fechaPago' => now(),
+            'estado' => 'Pendiente',
+            'metodoPago' => 'MercadoPago',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => $referencia,
+            'fechaInicioPlan' => now()->toDateString(),
+            'fechaFinPlan' => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $usuario->id_CorreoUsuario,
-            'id_Plan'          => $plan->id_Plan,
-            'mp_preference_id' => 'SIM-PREF-' . uniqid(),
-            'mp_status'        => 'pending',
-        ));
+            'id_Plan' => $plan->id_Plan,
+            'mp_preference_id' => 'SIM-PREF-'.uniqid(),
+            'mp_status' => 'pending',
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -129,40 +132,40 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Free'),
+            ['id_Plan' => 'Free'],
             $this->authHeaders($this->usuario)
         );
 
         $response->assertStatus(201)
-            ->assertJson(array(
-                'success'  => true,
+            ->assertJson([
+                'success' => true,
                 'gratuito' => true,
-            ));
+            ]);
 
         // Verificar que el usuario tiene el plan Free
         $this->usuario->refresh();
         $this->assertEquals('Free', $this->usuario->id_Plan);
 
         // Verificar que se creó el registro de pago
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Free',
-            'estado'           => 'Completado',
-            'metodoPago'       => 'Gratuito',
-            'mp_status'        => 'approved',
-        ));
+            'id_Plan' => 'Free',
+            'estado' => 'Completado',
+            'metodoPago' => 'Gratuito',
+            'mp_status' => 'approved',
+        ]);
 
         // Verificar que se creó la notificación
-        $this->assertDatabaseHas('notificacions', array(
+        $this->assertDatabaseHas('notificacions', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'tipo'             => 'sistema',
-        ));
+            'tipo' => 'sistema',
+        ]);
     }
 
     /** @test */
     public function test_crear_preferencia_requiere_autenticacion(): void
     {
-        $response = $this->postJson('/api/mp/crear-preferencia', array('id_Plan' => 'Plus'));
+        $response = $this->postJson('/api/mp/crear-preferencia', ['id_Plan' => 'Plus']);
         $response->assertStatus(401);
     }
 
@@ -171,7 +174,7 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'PlanInexistente'),
+            ['id_Plan' => 'PlanInexistente'],
             $this->authHeaders($this->usuario)
         );
 
@@ -184,20 +187,20 @@ class MercadoPagoFlowTest extends TestCase
         // Con el simulador, siempre retorna 201 con datos ficticios
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Plus'),
+            ['id_Plan' => 'Plus'],
             $this->authHeaders($this->usuario)
         );
 
         $response->assertStatus(201)
-            ->assertJson(array('success' => true))
-            ->assertJsonStructure(array(
+            ->assertJson(['success' => true])
+            ->assertJsonStructure([
                 'success',
                 'preference_id',
                 'init_point',
                 'sandbox_init_point',
                 'referencia',
                 'pago_id',
-            ));
+            ]);
 
         // Verificar que el preference_id contiene el prefijo del simulador
         $data = $response->json();
@@ -209,20 +212,20 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Plus'),
+            ['id_Plan' => 'Plus'],
             $this->authHeaders($this->usuario)
         );
 
         $response->assertStatus(201);
 
         // Verificar que se creó el registro de pago en estado Pendiente
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Plus',
-            'estado'           => 'Pendiente',
-            'metodoPago'       => 'MercadoPago',
-            'mp_status'        => 'pending',
-        ));
+            'id_Plan' => 'Plus',
+            'estado' => 'Pendiente',
+            'metodoPago' => 'MercadoPago',
+            'mp_status' => 'pending',
+        ]);
 
         // El usuario NO debe tener el plan Plus aún (pendiente de pago)
         $this->usuario->refresh();
@@ -236,24 +239,24 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_webhook_ignora_topics_no_payment(): void
     {
-        $response = $this->postJson('/api/mp/webhook', array(
+        $response = $this->postJson('/api/mp/webhook', [
             'type' => 'subscription',
-            'data' => array('id' => '12345'),
-        ));
+            'data' => ['id' => '12345'],
+        ]);
 
         $response->assertStatus(200)
-            ->assertJson(array('status' => 'ignored'));
+            ->assertJson(['status' => 'ignored']);
     }
 
     /** @test */
     public function test_webhook_retorna_200_sin_id(): void
     {
-        $response = $this->postJson('/api/mp/webhook', array(
+        $response = $this->postJson('/api/mp/webhook', [
             'type' => 'payment',
-        ));
+        ]);
 
         $response->assertStatus(200)
-            ->assertJson(array('status' => 'no_id'));
+            ->assertJson(['status' => 'no_id']);
     }
 
     /** @test */
@@ -262,7 +265,7 @@ class MercadoPagoFlowTest extends TestCase
         // Configurar simulador para retornar estado 'approved'
         MercadoPagoSimuladorService::simularEstado('approved');
 
-        $referencia = 'MP-PLAN-WH-' . uniqid();
+        $referencia = 'MP-PLAN-WH-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         // Simular webhook de MercadoPago con payment_id ficticio
@@ -275,20 +278,20 @@ class MercadoPagoFlowTest extends TestCase
 
         // Simular el procesamiento del webhook manualmente
         $pago->mp_payment_id = (string) $paymentId;
-        $pago->mp_status     = 'approved';
-        $pago->estado        = 'Completado';
+        $pago->mp_status = 'approved';
+        $pago->estado = 'Completado';
         $pago->save();
 
         // Activar plan del usuario (como lo hace activarPlanUsuario)
         $this->usuario->id_Plan = $pago->id_Plan;
         $this->usuario->save();
 
-        Notificacion::create(array(
-            'mensaje'          => 'Pago aprobado. Plan Plus activo.',
-            'estado'           => 'No leido',
-            'tipo'             => 'sistema',
+        Notificacion::create([
+            'mensaje' => 'Pago aprobado. Plan Plus activo.',
+            'estado' => 'No leido',
+            'tipo' => 'sistema',
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-        ));
+        ]);
 
         // Verificar resultados
         $this->usuario->refresh();
@@ -298,21 +301,21 @@ class MercadoPagoFlowTest extends TestCase
         $this->assertEquals('Completado', $pago->estado);
         $this->assertEquals('approved', $pago->mp_status);
 
-        $this->assertDatabaseHas('notificacions', array(
+        $this->assertDatabaseHas('notificacions', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'tipo'             => 'sistema',
-        ));
+            'tipo' => 'sistema',
+        ]);
     }
 
     /** @test */
     public function test_webhook_rejected_marca_pago_rechazado(): void
     {
-        $referencia = 'MP-PLAN-REJ-' . uniqid();
+        $referencia = 'MP-PLAN-REJ-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         // Simular rechazo
         $pago->mp_status = 'rejected';
-        $pago->estado    = 'Rechazado';
+        $pago->estado = 'Rechazado';
         $pago->save();
 
         // El usuario NO debe tener el plan Plus
@@ -327,7 +330,7 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_webhook_pending_mantiene_estado_pendiente(): void
     {
-        $referencia = 'MP-PLAN-PEND-WH-' . uniqid();
+        $referencia = 'MP-PLAN-PEND-WH-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         // El estado debe seguir siendo Pendiente
@@ -347,24 +350,24 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_endpoint_success_retorna_estructura_correcta(): void
     {
-        $referencia = 'MP-PLAN-SUCCESS-' . uniqid();
+        $referencia = 'MP-PLAN-SUCCESS-'.uniqid();
         $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $response = $this->getJson("/api/mp/success?ref={$referencia}&status=approved");
 
         $response->assertStatus(200)
-            ->assertJsonStructure(array(
+            ->assertJsonStructure([
                 'success',
                 'status',
                 'message',
                 'referencia',
-            ));
+            ]);
     }
 
     /** @test */
     public function test_endpoint_success_aprueba_pago_pendiente(): void
     {
-        $referencia = 'MP-PLAN-SUCCESS2-' . uniqid();
+        $referencia = 'MP-PLAN-SUCCESS2-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $this->assertEquals('Pendiente', $pago->estado);
@@ -374,7 +377,7 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $response->assertStatus(200)
-            ->assertJson(array('success' => true, 'status' => 'approved'));
+            ->assertJson(['success' => true, 'status' => 'approved']);
 
         // Verificar que el pago fue aprobado
         $pago->refresh();
@@ -389,23 +392,23 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_endpoint_failure_retorna_estructura_correcta(): void
     {
-        $referencia = 'MP-PLAN-FAIL-' . uniqid();
+        $referencia = 'MP-PLAN-FAIL-'.uniqid();
         $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $response = $this->getJson("/api/mp/failure?ref={$referencia}&status=rejected");
 
         $response->assertStatus(200)
-            ->assertJson(array(
+            ->assertJson([
                 'success' => false,
-                'status'  => 'rejected',
-            ))
-            ->assertJsonStructure(array('message', 'referencia'));
+                'status' => 'rejected',
+            ])
+            ->assertJsonStructure(['message', 'referencia']);
     }
 
     /** @test */
     public function test_endpoint_failure_marca_pago_como_rechazado(): void
     {
-        $referencia = 'MP-PLAN-FAIL2-' . uniqid();
+        $referencia = 'MP-PLAN-FAIL2-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $this->getJson("/api/mp/failure?ref={$referencia}&status=rejected");
@@ -418,16 +421,16 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_endpoint_pending_retorna_estructura_correcta(): void
     {
-        $referencia = 'MP-PLAN-PEND-' . uniqid();
+        $referencia = 'MP-PLAN-PEND-'.uniqid();
 
         $response = $this->getJson("/api/mp/pending?ref={$referencia}");
 
         $response->assertStatus(200)
-            ->assertJson(array(
+            ->assertJson([
                 'success' => true,
-                'status'  => 'pending',
-            ))
-            ->assertJsonStructure(array('message', 'referencia'));
+                'status' => 'pending',
+            ])
+            ->assertJsonStructure(['message', 'referencia']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -450,13 +453,13 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $response->assertStatus(404)
-            ->assertJson(array('success' => false));
+            ->assertJson(['success' => false]);
     }
 
     /** @test */
     public function test_estado_pago_retorna_datos_correctos(): void
     {
-        $referencia = 'MP-PLAN-ESTADO-' . uniqid();
+        $referencia = 'MP-PLAN-ESTADO-'.uniqid();
         $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $response = $this->getJson(
@@ -465,21 +468,21 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $response->assertStatus(200)
-            ->assertJson(array(
-                'success'    => true,
-                'estado'     => 'Pendiente',
-                'mp_status'  => 'pending',
+            ->assertJson([
+                'success' => true,
+                'estado' => 'Pendiente',
+                'mp_status' => 'pending',
                 'referencia' => $referencia,
-                'aprobado'   => false,
-            ));
+                'aprobado' => false,
+            ]);
     }
 
     /** @test */
     public function test_estado_pago_aprobado_retorna_vigente_true(): void
     {
-        $referencia = 'MP-PLAN-APROBADO-' . uniqid();
+        $referencia = 'MP-PLAN-APROBADO-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
-        $pago->update(array('estado' => 'Completado', 'mp_status' => 'approved'));
+        $pago->update(['estado' => 'Completado', 'mp_status' => 'approved']);
 
         $response = $this->getJson(
             "/api/mp/estado/{$referencia}",
@@ -487,22 +490,22 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $response->assertStatus(200)
-            ->assertJson(array(
-                'success'  => true,
-                'estado'   => 'Completado',
+            ->assertJson([
+                'success' => true,
+                'estado' => 'Completado',
                 'aprobado' => true,
-                'vigente'  => true,
-            ));
+                'vigente' => true,
+            ]);
     }
 
     /** @test */
     public function test_estado_pago_no_accesible_por_otro_usuario(): void
     {
-        $referencia = 'MP-PLAN-OTRO-' . uniqid();
+        $referencia = 'MP-PLAN-OTRO-'.uniqid();
         $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         // Crear otro usuario
-        $otroUsuario = $this->crearUsuario(array('id_CorreoUsuario' => 'otro_' . uniqid() . '@test.com'));
+        $otroUsuario = $this->crearUsuario(['id_CorreoUsuario' => 'otro_'.uniqid().'@test.com']);
 
         $response = $this->getJson(
             "/api/mp/estado/{$referencia}",
@@ -521,27 +524,27 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/pagos/plan',
-            array('id_Plan' => 'Plus', 'modalidadPago' => 'virtual'),
+            ['id_Plan' => 'Plus', 'modalidadPago' => 'virtual'],
             $this->authHeaders($this->usuario)
         );
 
         $response->assertStatus(201)
-            ->assertJson(array(
+            ->assertJson([
                 'success' => true,
                 'message' => 'Pago de plan simulado exitosamente.',
-            ));
+            ]);
 
         // Verificar que el plan fue actualizado
         $this->usuario->refresh();
         $this->assertEquals('Plus', $this->usuario->id_Plan);
 
         // Verificar que el pago fue registrado
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Plus',
-            'estado'           => 'Completado',
-            'mp_status'        => 'approved',
-        ));
+            'id_Plan' => 'Plus',
+            'estado' => 'Completado',
+            'mp_status' => 'approved',
+        ]);
     }
 
     /** @test */
@@ -549,14 +552,14 @@ class MercadoPagoFlowTest extends TestCase
     {
         $this->postJson(
             '/api/pagos/plan',
-            array('id_Plan' => 'Ultra', 'modalidadPago' => 'virtual'),
+            ['id_Plan' => 'Ultra', 'modalidadPago' => 'virtual'],
             $this->authHeaders($this->usuario)
         );
 
-        $this->assertDatabaseHas('notificacions', array(
+        $this->assertDatabaseHas('notificacions', [
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'tipo'             => 'sistema',
-        ));
+            'tipo' => 'sistema',
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -566,19 +569,19 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_pago_plan_esta_aprobado_cuando_estado_completado(): void
     {
-        $pago = PagoPlan::create(array(
-            'monto'            => 15000,
-            'fechaPago'        => now(),
-            'estado'           => 'Completado',
-            'metodoPago'       => 'MercadoPago',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => 'TEST-REF-' . uniqid(),
-            'fechaInicioPlan'  => now()->toDateString(),
-            'fechaFinPlan'     => now()->addMonth()->toDateString(),
+        $pago = PagoPlan::create([
+            'monto' => 15000,
+            'fechaPago' => now(),
+            'estado' => 'Completado',
+            'metodoPago' => 'MercadoPago',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => 'TEST-REF-'.uniqid(),
+            'fechaInicioPlan' => now()->toDateString(),
+            'fechaFinPlan' => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Plus',
-            'mp_status'        => 'approved',
-        ));
+            'id_Plan' => 'Plus',
+            'mp_status' => 'approved',
+        ]);
 
         $this->assertTrue($pago->estaAprobado());
         $this->assertTrue($pago->estaVigente());
@@ -587,19 +590,19 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_pago_plan_no_esta_vigente_cuando_expirado(): void
     {
-        $pago = PagoPlan::create(array(
-            'monto'            => 15000,
-            'fechaPago'        => now()->subMonths(2),
-            'estado'           => 'Completado',
-            'metodoPago'       => 'MercadoPago',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => 'TEST-REF-EXP-' . uniqid(),
-            'fechaInicioPlan'  => now()->subMonths(2)->toDateString(),
-            'fechaFinPlan'     => now()->subMonth()->toDateString(),
+        $pago = PagoPlan::create([
+            'monto' => 15000,
+            'fechaPago' => now()->subMonths(2),
+            'estado' => 'Completado',
+            'metodoPago' => 'MercadoPago',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => 'TEST-REF-EXP-'.uniqid(),
+            'fechaInicioPlan' => now()->subMonths(2)->toDateString(),
+            'fechaFinPlan' => now()->subMonth()->toDateString(),
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Plus',
-            'mp_status'        => 'approved',
-        ));
+            'id_Plan' => 'Plus',
+            'mp_status' => 'approved',
+        ]);
 
         $this->assertTrue($pago->estaAprobado());
         $this->assertFalse($pago->estaVigente());
@@ -608,19 +611,19 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_pago_plan_rechazado_no_esta_aprobado(): void
     {
-        $pago = PagoPlan::create(array(
-            'monto'            => 15000,
-            'fechaPago'        => now(),
-            'estado'           => 'Rechazado',
-            'metodoPago'       => 'MercadoPago',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => 'TEST-REF-REJ-' . uniqid(),
-            'fechaInicioPlan'  => now()->toDateString(),
-            'fechaFinPlan'     => now()->addMonth()->toDateString(),
+        $pago = PagoPlan::create([
+            'monto' => 15000,
+            'fechaPago' => now(),
+            'estado' => 'Rechazado',
+            'metodoPago' => 'MercadoPago',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => 'TEST-REF-REJ-'.uniqid(),
+            'fechaInicioPlan' => now()->toDateString(),
+            'fechaFinPlan' => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $this->usuario->id_CorreoUsuario,
-            'id_Plan'          => 'Plus',
-            'mp_status'        => 'rejected',
-        ));
+            'id_Plan' => 'Plus',
+            'mp_status' => 'rejected',
+        ]);
 
         $this->assertFalse($pago->estaAprobado());
     }
@@ -640,8 +643,8 @@ class MercadoPagoFlowTest extends TestCase
     public function test_historial_pagos_retorna_pagos_del_usuario(): void
     {
         // Crear algunos pagos
-        $this->crearPagoPendiente($this->usuario, $this->planPlus, 'REF-HIST-1-' . uniqid());
-        $this->crearPagoPendiente($this->usuario, $this->planUltra, 'REF-HIST-2-' . uniqid());
+        $this->crearPagoPendiente($this->usuario, $this->planPlus, 'REF-HIST-1-'.uniqid());
+        $this->crearPagoPendiente($this->usuario, $this->planUltra, 'REF-HIST-2-'.uniqid());
 
         $response = $this->getJson(
             '/api/pagos/historial',
@@ -649,12 +652,12 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $response->assertStatus(200)
-            ->assertJson(array('success' => true))
-            ->assertJsonStructure(array(
+            ->assertJson(['success' => true])
+            ->assertJsonStructure([
                 'success',
                 'pagos_plan',
                 'pagos_servicio',
-            ));
+            ]);
 
         $data = $response->json();
         $this->assertCount(2, $data['pagos_plan']);
@@ -663,8 +666,8 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_historial_pagos_no_muestra_pagos_de_otros_usuarios(): void
     {
-        $otroUsuario = $this->crearUsuario(array('id_CorreoUsuario' => 'otro2_' . uniqid() . '@test.com'));
-        $this->crearPagoPendiente($otroUsuario, $this->planPlus, 'REF-OTRO-' . uniqid());
+        $otroUsuario = $this->crearUsuario(['id_CorreoUsuario' => 'otro2_'.uniqid().'@test.com']);
+        $this->crearPagoPendiente($otroUsuario, $this->planPlus, 'REF-OTRO-'.uniqid());
 
         $response = $this->getJson(
             '/api/pagos/historial',
@@ -707,7 +710,7 @@ class MercadoPagoFlowTest extends TestCase
     public function test_usuario_con_plan_plus_tiene_beneficios_correctos(): void
     {
         // Activar plan Plus para el usuario
-        $this->usuario->update(array('id_Plan' => 'Plus'));
+        $this->usuario->update(['id_Plan' => 'Plus']);
         $this->usuario->refresh();
 
         $planActivo = $this->usuario->plan;
@@ -724,7 +727,7 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_usuario_con_plan_ultra_tiene_mas_beneficios_que_plus(): void
     {
-        $planPlus  = Plan::find('Plus');
+        $planPlus = Plan::find('Plus');
         $planUltra = Plan::find('Ultra');
 
         $this->assertGreaterThan(
@@ -744,10 +747,10 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_webhook_acepta_sin_firma_en_desarrollo(): void
     {
-        $response = $this->postJson('/api/mp/webhook', array(
+        $response = $this->postJson('/api/mp/webhook', [
             'type' => 'payment',
-            'data' => array('id' => '12345'),
-        ));
+            'data' => ['id' => '12345'],
+        ]);
 
         // Debe retornar 200 (no 401 ni 403)
         $response->assertStatus(200);
@@ -758,7 +761,7 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/pagos/plan',
-            array('id_Plan' => 'Plus', 'modalidadPago' => 'efectivo'),
+            ['id_Plan' => 'Plus', 'modalidadPago' => 'efectivo'],
             $this->authHeaders($this->usuario)
         );
 
@@ -770,7 +773,7 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/pagos/plan',
-            array('id_Plan' => 'PlanFalso', 'modalidadPago' => 'virtual'),
+            ['id_Plan' => 'PlanFalso', 'modalidadPago' => 'virtual'],
             $this->authHeaders($this->usuario)
         );
 
@@ -782,7 +785,7 @@ class MercadoPagoFlowTest extends TestCase
     {
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array(),
+            [],
             $this->authHeaders($this->usuario)
         );
 
@@ -796,7 +799,7 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_pago_plan_tiene_relacion_con_usuario(): void
     {
-        $referencia = 'REF-REL-' . uniqid();
+        $referencia = 'REF-REL-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $this->assertNotNull($pago->usuario);
@@ -806,7 +809,7 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_pago_plan_tiene_relacion_con_plan(): void
     {
-        $referencia = 'REF-REL2-' . uniqid();
+        $referencia = 'REF-REL2-'.uniqid();
         $pago = $this->crearPagoPendiente($this->usuario, $this->planPlus, $referencia);
 
         $this->assertNotNull($pago->plan);
@@ -816,7 +819,7 @@ class MercadoPagoFlowTest extends TestCase
     /** @test */
     public function test_usuario_tiene_relacion_con_plan(): void
     {
-        $this->usuario->update(array('id_Plan' => 'Plus'));
+        $this->usuario->update(['id_Plan' => 'Plus']);
         $this->usuario->refresh();
 
         $this->assertNotNull($this->usuario->plan);
@@ -833,11 +836,11 @@ class MercadoPagoFlowTest extends TestCase
         // 1. Usuario selecciona plan Free
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Free'),
+            ['id_Plan' => 'Free'],
             $this->authHeaders($this->usuario)
         );
 
-        $response->assertStatus(201)->assertJson(array('success' => true, 'gratuito' => true));
+        $response->assertStatus(201)->assertJson(['success' => true, 'gratuito' => true]);
         $referencia = $response->json('referencia');
 
         // 2. Verificar estado del pago
@@ -847,7 +850,7 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $estadoResponse->assertStatus(200)
-            ->assertJson(array('aprobado' => true, 'estado' => 'Completado'));
+            ->assertJson(['aprobado' => true, 'estado' => 'Completado']);
 
         // 3. Verificar que el usuario tiene el plan Free activo
         $this->usuario->refresh();
@@ -865,11 +868,11 @@ class MercadoPagoFlowTest extends TestCase
         // 1. Usuario paga plan Plus (pasarela simulada)
         $response = $this->postJson(
             '/api/pagos/plan',
-            array('id_Plan' => 'Plus', 'modalidadPago' => 'virtual'),
+            ['id_Plan' => 'Plus', 'modalidadPago' => 'virtual'],
             $this->authHeaders($this->usuario)
         );
 
-        $response->assertStatus(201)->assertJson(array('success' => true));
+        $response->assertStatus(201)->assertJson(['success' => true]);
         $referencia = $response->json('pago.referenciaPago');
 
         // 2. Verificar que el plan fue activado
@@ -899,7 +902,7 @@ class MercadoPagoFlowTest extends TestCase
         // 1. Crear preferencia de pago con simulador
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Plus'),
+            ['id_Plan' => 'Plus'],
             $this->authHeaders($this->usuario)
         );
 
@@ -908,11 +911,11 @@ class MercadoPagoFlowTest extends TestCase
         $referencia = $data['referencia'];
 
         // 2. Verificar que el pago está pendiente
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'referenciaPago' => $referencia,
-            'estado'         => 'Pendiente',
-            'mp_status'      => 'pending',
-        ));
+            'estado' => 'Pendiente',
+            'mp_status' => 'pending',
+        ]);
 
         // 3. Simular retorno exitoso de MercadoPago
         $successResponse = $this->getJson(
@@ -920,14 +923,14 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $successResponse->assertStatus(200)
-            ->assertJson(array('success' => true, 'status' => 'approved'));
+            ->assertJson(['success' => true, 'status' => 'approved']);
 
         // 4. Verificar que el pago fue aprobado
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'referenciaPago' => $referencia,
-            'estado'         => 'Completado',
-            'mp_status'      => 'approved',
-        ));
+            'estado' => 'Completado',
+            'mp_status' => 'approved',
+        ]);
 
         // 5. Verificar que el plan del usuario fue activado
         $this->usuario->refresh();
@@ -940,11 +943,11 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $estadoResponse->assertStatus(200)
-            ->assertJson(array(
+            ->assertJson([
                 'aprobado' => true,
-                'vigente'  => true,
-                'estado'   => 'Completado',
-            ));
+                'vigente' => true,
+                'estado' => 'Completado',
+            ]);
 
         // 7. Verificar beneficios del plan Plus
         $planActivo = Plan::find($this->usuario->id_Plan);
@@ -957,7 +960,7 @@ class MercadoPagoFlowTest extends TestCase
         // 1. Crear preferencia de pago
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Ultra'),
+            ['id_Plan' => 'Ultra'],
             $this->authHeaders($this->usuario)
         );
 
@@ -970,14 +973,14 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $failureResponse->assertStatus(200)
-            ->assertJson(array('success' => false, 'status' => 'rejected'));
+            ->assertJson(['success' => false, 'status' => 'rejected']);
 
         // 3. Verificar que el pago fue rechazado
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'referenciaPago' => $referencia,
-            'estado'         => 'Rechazado',
-            'mp_status'      => 'rejected',
-        ));
+            'estado' => 'Rechazado',
+            'mp_status' => 'rejected',
+        ]);
 
         // 4. Verificar que el usuario NO tiene el plan Ultra
         $this->usuario->refresh();
@@ -990,7 +993,7 @@ class MercadoPagoFlowTest extends TestCase
         // 1. Crear preferencia de pago
         $response = $this->postJson(
             '/api/mp/crear-preferencia',
-            array('id_Plan' => 'Plus'),
+            ['id_Plan' => 'Plus'],
             $this->authHeaders($this->usuario)
         );
 
@@ -1003,13 +1006,13 @@ class MercadoPagoFlowTest extends TestCase
         );
 
         $pendingResponse->assertStatus(200)
-            ->assertJson(array('success' => true, 'status' => 'pending'));
+            ->assertJson(['success' => true, 'status' => 'pending']);
 
         // 3. Verificar que el pago sigue pendiente
-        $this->assertDatabaseHas('pago_planes', array(
+        $this->assertDatabaseHas('pago_planes', [
             'referenciaPago' => $referencia,
-            'estado'         => 'Pendiente',
-        ));
+            'estado' => 'Pendiente',
+        ]);
 
         // 4. Verificar que el usuario NO tiene el plan Plus aún
         $this->usuario->refresh();

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight } from "lucide-react";
+import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -42,6 +42,7 @@ export default function ExploreServices() {
   const [selectedCategoria, setSelectedCategoria] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("recientes");
+  const [selectedItem, setSelectedItem] = useState(null);
 
   // Obtener categorías que tienen servicios asociados
   const categoriasConServicios = useMemo(() => {
@@ -402,22 +403,27 @@ export default function ExploreServices() {
                     </button>
                   </div>
 
-                  {/* Botones de acción */}
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      onClick={() => requestService(service)}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Briefcase size={16} />
-                      Solicitar
-                    </button>
-                  </div>
+                   {/* Botones de acción */}
+                   <div className="mt-4 flex gap-2">
+                     <button
+                       onClick={() => setSelectedItem(service)}
+                       className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                     >
+                       <Eye size={16} />
+                       Ver detalles
+                     </button>
+                     <button
+                       onClick={() => requestService(service)}
+                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                     >
+                       <Briefcase size={16} />
+                       Solicitar
+                     </button>
+                   </div>
                 </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
+               </article>
+             )}
+           ) : (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search size={28} className="text-slate-400" />
@@ -427,17 +433,95 @@ export default function ExploreServices() {
             {searchTerm || selectedCategoria
               ? "Intenta ajustar los filtros de búsqueda"
               : "No hay servicios disponibles en este momento"}
-          </p>
-          {(searchTerm || selectedCategoria) && (
-            <button
-              onClick={clearFilters}
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Limpiar filtros
-            </button>
-          )}
+           </p>
+           {(searchTerm || selectedCategoria) && (
+             <button
+               onClick={clearFilters}
+               className="text-blue-600 hover:text-blue-700 font-medium"
+             >
+               Limpiar filtros
+             </button>
+           )}
+     
+     {/* Modal Detalles */}
+     {selectedItem && (
+       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+         <div className="relative w-full max-w-md p-4">
+           <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
+             {/* Botón cerrar */}
+             <button
+               onClick={() => setSelectedItem(null)}
+               className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full"
+             >
+               <X size={20} />
+             </button>
+             
+             {/* Imagen */}
+             <div className="h-48 w-full overflow-hidden">
+               <img
+                 src={selectedItem.imagen 
+                   ? resolveImageUrl(selectedItem.imagen) 
+                   : selectedItem.categoria?.imagen 
+                     ? resolveImageUrl(selectedItem.categoria.imagen) 
+                     : getCategoryFallbackImage(selectedItem.categoria?.nombre)}
+                 alt={selectedItem.titulo}
+                 className="w-full h-full object-cover"
+               />
+             </div>
+             
+             {/* Contenido */}
+             <div className="p-6 space-y-4">
+               <h2 className="text-xl font-bold text-slate-800">{selectedItem.titulo}</h2>
+               <p className="text-slate-600 line-clamp-4">{selectedItem.descripcion}</p>
+               
+               <div className="grid grid-cols-2 gap-4 text-sm text-slate-500">
+                 <div>
+                   <span className="font-medium">Precio:</span>
+                   <span className="ml-2">{selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Entrega:</span>
+                   <span className="ml-2">{selectedItem.tiempo_entrega || "No especificado"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Categoría:</span>
+                   <span className="ml-2">{selectedItem.categoria?.nombre || "General"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Usuario:</span>
+                   <span className="ml-2">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</span>
+                 </div>
+                 <div>
+                   <span className="font-medium">Ciudad:</span>
+                   <span className="ml-2">{selectedItem.cliente_usuario?.ciudad || "Remoto"}</span>
+                 </div>
+               </div>
+               
+               <div className="mt-6 flex flex-col gap-3">
+                 <button
+                   onClick={() => {
+                     openPublicProfile(selectedItem?.cliente_usuario?.id_CorreoUsuario);
+                     setSelectedItem(null);
+                   }}
+                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
+                 >
+                   <User size={16} />
+                   Ver perfil
+                 </button>
+                 <button
+                   onClick={() => {
+                     requestService(selectedItem);
+                     setSelectedItem(null);
+                   }}
+                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                 >
+                   <Briefcase size={16} />
+                   Solicitar
+                 </button>
+               </div>
+             </div>
+            </div>
+          </div>
         </div>
-      )}
-    </div>
-  );
-}
+       )
+   }

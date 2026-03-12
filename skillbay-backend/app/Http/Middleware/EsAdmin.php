@@ -12,7 +12,7 @@ class EsAdmin
     {
         $user = $request->user();
 
-        if (!$user || $user->rol !== 'admin') {
+        if (! $user || $user->rol !== 'admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Acceso restringido a administradores.',

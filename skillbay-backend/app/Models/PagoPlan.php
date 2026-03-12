@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PagoPlan extends Model
 {
     protected $table = 'pago_planes';
+
     protected $primaryKey = 'id_PagoPlan';
 
     protected $fillable = [
@@ -29,10 +30,10 @@ class PagoPlan extends Model
     ];
 
     protected $casts = [
-        'fechaPago'       => 'datetime',
+        'fechaPago' => 'datetime',
         'fechaInicioPlan' => 'date',
-        'fechaFinPlan'    => 'date',
-        'monto'           => 'decimal:2',
+        'fechaFinPlan' => 'date',
+        'monto' => 'decimal:2',
     ];
 
     public function usuario()
@@ -58,9 +59,10 @@ class PagoPlan extends Model
      */
     public function estaVigente(): bool
     {
-        if (!$this->fechaFinPlan) {
+        if (! $this->fechaFinPlan) {
             return false;
         }
+
         return now()->lte($this->fechaFinPlan);
     }
 }

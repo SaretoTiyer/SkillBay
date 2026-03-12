@@ -10,13 +10,25 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const [unreadCount, setUnreadCount] = useState(0);
   const profileMenuRef = useRef(null);
 
-  const currentUser = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("usuario") || "{}");
-    } catch {
-      return {};
-    }
-  }, []);
+   const [currentUser, setCurrentUser] = useState(() => {
+     try {
+       return JSON.parse(localStorage.getItem("usuario") || "{}");
+     } catch {
+       return {};
+     }
+   });
+
+   useEffect(() => {
+     const handleStorageChange = () => {
+       try {
+         setCurrentUser(JSON.parse(localStorage.getItem("usuario") || "{}"));
+       } catch {
+         setCurrentUser({});
+       }
+     };
+     window.addEventListener("storage", handleStorageChange);
+     return () => window.removeEventListener("storage", handleStorageChange);
+   }, []);
 
   const navItems = [
     { name: "Explorar Oportunidades", view: "explore", icon: Home },
@@ -98,19 +110,34 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
               )}
             </button>
 
-            <div className="relative" ref={profileMenuRef}>
-              <button
-                onClick={() => setProfileMenuOpen((prev) => !prev)}
-                className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg"
-              >
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#2B6CB0] to-[#1E3A5F] flex items-center justify-center text-white text-sm">
-                  {initials}
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm text-[#1E3A5F]">{fullName}</p>
-                </div>
-                <ChevronDown size={16} className="text-[#A0AEC0]" />
-              </button>
+             <div className="relative" ref={profileMenuRef}>
+               <button
+                 onClick={() => setProfileMenuOpen((prev) => !prev)}
+                 className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg"
+               >
+                 {currentUser.imagen_perfil ? (
+                   <img
+                     src={
+                       (() => {
+                         if (!currentUser.imagen_perfil) return null;
+                         if (currentUser.imagen_perfil.startsWith('http')) return currentUser.imagen_perfil;
+                         const base = API_URL.replace('/api', '');
+                         return `${base}/storage/${currentUser.imagen_perfil}`;
+                       })()
+                     }
+                     alt={fullName}
+                     className="w-8 h-8 rounded-full object-cover"
+                   />
+                 ) : (
+                   <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#2B6CB0] to-[#1E3A5F] flex items-center justify-center text-white text-sm">
+                     {initials}
+                   </div>
+                 )}
+                 <div className="hidden sm:block">
+                   <p className="text-sm text-[#1E3A5F]">{fullName}</p>
+                 </div>
+                 <ChevronDown size={16} className="text-[#A0AEC0]" />
+               </button>
 
               {profileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">

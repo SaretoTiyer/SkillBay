@@ -21,15 +21,15 @@ class AuthRecoveryController extends Controller
 
         $email = strtolower(trim($validated['email']));
         $usuario = Usuario::find($email);
-        if (!$usuario) {
+        if (! $usuario) {
             return response()->json([
                 'success' => false,
                 'message' => 'No existe una cuenta asociada a ese correo.',
             ], 404);
         }
 
-        $domain = substr(strrchr($email, "@"), 1);
-        if (!$domain || !checkdnsrr($domain, 'MX')) {
+        $domain = substr(strrchr($email, '@'), 1);
+        if (! $domain || ! checkdnsrr($domain, 'MX')) {
             return response()->json([
                 'success' => false,
                 'message' => 'El dominio del correo no parece activo.',
@@ -86,16 +86,17 @@ class AuthRecoveryController extends Controller
         $email = strtolower(trim($validated['email']));
         $row = DB::table('password_reset_tokens')->where('email', $email)->first();
 
-        if (!$row) {
+        if (! $row) {
             return response()->json(['success' => false, 'message' => 'Codigo no valido.'], 422);
         }
 
         if (Carbon::parse($row->expires_at)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $email)->delete();
+
             return response()->json(['success' => false, 'message' => 'El codigo ha expirado.'], 422);
         }
 
-        if (!Hash::check($validated['codigo'], $row->token)) {
+        if (! Hash::check($validated['codigo'], $row->token)) {
             return response()->json(['success' => false, 'message' => 'Codigo incorrecto.'], 422);
         }
 

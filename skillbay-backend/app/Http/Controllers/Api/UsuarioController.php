@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Mail\BienvenidaMail;
 use App\Models\Notificacion;
 use App\Models\Plan;
 use App\Models\Servicio;
 use App\Models\Usuario;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use App\Mail\BienvenidaMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class UsuarioController extends Controller
 {
@@ -39,14 +39,14 @@ class UsuarioController extends Controller
                 'telefono' => 'required|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono',
                 'ciudad' => 'nullable|string|max:100',
                 'departamento' => 'nullable|string|max:100',
-                'fechaNacimiento' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+                'fechaNacimiento' => 'required|date|before_or_equal:'.now()->subYears(18)->format('Y-m-d'),
                 'password' => [
                     'required',
                     'string',
                     'min:6',
                     'max:100',
                     'regex:/^\S+$/', // sin espacios
-                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,15}$/' // Mínimo 8, máximo 15, 1 mayúscula, 1 minúscula, 1 número, 1 carácter especial
+                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,15}$/', // Mínimo 8, máximo 15, 1 mayúscula, 1 minúscula, 1 número, 1 carácter especial
                 ],
                 'rol' => 'nullable|string|in:cliente,ofertante,admin',
                 'id_Plan' => 'nullable|string|exists:planes,id_Plan',
@@ -73,7 +73,7 @@ class UsuarioController extends Controller
             $data = $validator->validated();
 
             $planDefault = 'Free';
-            if (!Plan::where('id_Plan', $planDefault)->exists()) {
+            if (! Plan::where('id_Plan', $planDefault)->exists()) {
                 $planDefault = null;
             }
 
@@ -106,7 +106,7 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario registrado exitosamente',
-                'usuario' => $user
+                'usuario' => $user,
             ], 201);
 
         } catch (ValidationException $e) {
@@ -132,8 +132,8 @@ class UsuarioController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'id_CorreoUsuario' => ['required','email','regex:/^\S+$/'],
-                'password' => ['required','string','min:6','regex:/^\S+$/'],
+                'id_CorreoUsuario' => ['required', 'email', 'regex:/^\S+$/'],
+                'password' => ['required', 'string', 'min:6', 'regex:/^\S+$/'],
             ], [
                 'id_CorreoUsuario.required' => 'El correo es obligatorio.',
                 'id_CorreoUsuario.email' => 'Debe ser un correo válido.',
@@ -150,7 +150,7 @@ class UsuarioController extends Controller
             $data = $validator->validated();
             $usuario = Usuario::where('id_CorreoUsuario', $data['id_CorreoUsuario'])->first();
 
-            if (!$usuario || !Hash::check($data['password'], $usuario->password)) {
+            if (! $usuario || ! Hash::check($data['password'], $usuario->password)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Credenciales incorrectas.',
@@ -168,7 +168,7 @@ class UsuarioController extends Controller
                 ->where('tipo', 'sistema')
                 ->where('mensaje', 'like', 'Bienvenido a SkillBay%')
                 ->exists();
-            if (!$hasWelcome) {
+            if (! $hasWelcome) {
                 Notificacion::create([
                     'mensaje' => 'Bienvenido a SkillBay. Tu cuenta esta lista para comenzar.',
                     'estado' => 'No leido',
@@ -185,7 +185,7 @@ class UsuarioController extends Controller
                 'message' => 'Inicio de sesión exitoso.',
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'usuario' => $usuario
+                'usuario' => $usuario,
             ]);
 
         } catch (ValidationException $e) {
@@ -210,7 +210,7 @@ class UsuarioController extends Controller
     {
         return response()->json([
             'success' => true,
-            'usuario' => $request->user()
+            'usuario' => $request->user(),
         ]);
     }
 
@@ -233,11 +233,12 @@ class UsuarioController extends Controller
                 'nombre' => 'nullable|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
                 'apellido' => 'nullable|string|min:2|max:100|regex:/^[A-Za-záéíóúÁÉÍÓÚñÑ ]+$/',
                 'genero' => 'nullable|string|in:Masculino,Femenino,Otro',
-                'telefono' => 'nullable|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono,' . $user->id_CorreoUsuario . ',id_CorreoUsuario',
+                'telefono' => 'nullable|string|min:7|max:20|regex:/^[0-9+\-\s]+$/|unique:usuarios,telefono,'.$user->id_CorreoUsuario.',id_CorreoUsuario',
                 'ciudad' => 'nullable|string|max:100',
                 'departamento' => 'nullable|string|max:100',
-                'fechaNacimiento' => 'nullable|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+                'fechaNacimiento' => 'nullable|date|before_or_equal:'.now()->subYears(18)->format('Y-m-d'),
                 'id_Plan' => 'nullable|string|exists:planes,id_Plan',
+                'password' => 'nullable|string|min:8|regex:/^\S+$/', // sin espacios
             ]);
 
             if ($validator->fails()) {
@@ -245,16 +246,35 @@ class UsuarioController extends Controller
             }
 
             $data = $validator->validated();
-            
+
             // Actualizar campos si vienen en la petición
-            if(isset($data['nombre'])) $user->nombre = strip_tags(trim($data['nombre']));
-            if(isset($data['apellido'])) $user->apellido = strip_tags(trim($data['apellido']));
-            if(isset($data['genero'])) $user->genero = $data['genero'];
-            if(isset($data['telefono'])) $user->telefono = strip_tags(trim($data['telefono']));
-            if(isset($data['ciudad'])) $user->ciudad = strip_tags(trim($data['ciudad']));
-            if(isset($data['departamento'])) $user->departamento = strip_tags(trim($data['departamento']));
-            if(isset($data['fechaNacimiento'])) $user->fechaNacimiento = Carbon::parse($data['fechaNacimiento'])->format('Y-m-d');
-            if(isset($data['id_Plan'])) $user->id_Plan = $data['id_Plan'];
+            if (isset($data['nombre'])) {
+                $user->nombre = strip_tags(trim($data['nombre']));
+            }
+            if (isset($data['apellido'])) {
+                $user->apellido = strip_tags(trim($data['apellido']));
+            }
+            if (isset($data['genero'])) {
+                $user->genero = $data['genero'];
+            }
+            if (isset($data['telefono'])) {
+                $user->telefono = strip_tags(trim($data['telefono']));
+            }
+            if (isset($data['ciudad'])) {
+                $user->ciudad = strip_tags(trim($data['ciudad']));
+            }
+            if (isset($data['departamento'])) {
+                $user->departamento = strip_tags(trim($data['departamento']));
+            }
+            if (isset($data['fechaNacimiento'])) {
+                $user->fechaNacimiento = Carbon::parse($data['fechaNacimiento'])->format('Y-m-d');
+            }
+            if (isset($data['id_Plan'])) {
+                $user->id_Plan = $data['id_Plan'];
+            }
+            if (isset($data['password'])) {
+                $user->password = Hash::make($data['password']);
+            }
 
             // Guardar cambios - Importante: usar save() en el modelo Usuario
             // Asegúrate de que el modelo Usuario tenga definida la primaryKey correctamente si no es 'id'
@@ -262,7 +282,7 @@ class UsuarioController extends Controller
 
             if (isset($data['id_Plan'])) {
                 Notificacion::create([
-                    'mensaje' => 'Tu plan ahora es ' . $data['id_Plan'] . '.',
+                    'mensaje' => 'Tu plan ahora es '.$data['id_Plan'].'.',
                     'estado' => 'No leido',
                     'tipo' => 'plan',
                     'id_CorreoUsuario' => $user->id_CorreoUsuario,
@@ -272,7 +292,7 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Perfil actualizado correctamente',
-                'usuario' => $user
+                'usuario' => $user,
             ]);
 
         } catch (ValidationException $e) {
@@ -314,8 +334,8 @@ class UsuarioController extends Controller
                     'dimensions:min_width=50,min_height=50,max_width=2000,max_height=2000',
                 ],
             ], [
-                'imagen_perfil.mimes'      => 'Solo se permiten imágenes JPEG, PNG o WebP.',
-                'imagen_perfil.max'        => 'La imagen no puede superar 2MB.',
+                'imagen_perfil.mimes' => 'Solo se permiten imágenes JPEG, PNG o WebP.',
+                'imagen_perfil.max' => 'La imagen no puede superar 2MB.',
                 'imagen_perfil.dimensions' => 'La imagen debe tener entre 50×50 y 2000×2000 píxeles.',
             ]);
 
@@ -334,10 +354,10 @@ class UsuarioController extends Controller
             $user->save();
 
             return response()->json([
-                'success'       => true,
-                'message'       => 'Imagen de perfil actualizada',
-                'path'          => $path,
-                'imagen_perfil' => asset('storage/' . $path),
+                'success' => true,
+                'message' => 'Imagen de perfil actualizada',
+                'path' => $path,
+                'imagen_perfil' => asset('storage/'.$path),
             ]);
 
         } catch (ValidationException $e) {
@@ -426,13 +446,13 @@ class UsuarioController extends Controller
     }
 
     /**
-     * Listar todos los usuarios
+     * Obtener perfil público de usuario
      */
     public function perfilPublico(Request $request, $id)
     {
         try {
             $viewer = $request->user();
-            if (!$viewer) {
+            if (! $viewer) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado',
@@ -450,19 +470,74 @@ class UsuarioController extends Controller
                 'fechaRegistro',
             ])->findOrFail($id);
 
+            // Obtener servicios (tipo=servicio) del usuario
             $servicios = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
+                ->where('tipo', 'servicio')
                 ->with('categoria:id_Categoria,nombre,grupo')
                 ->orderBy('created_at', 'desc')
-                ->get(['id_Servicio', 'titulo', 'descripcion', 'precio', 'estado', 'imagen', 'id_Categoria', 'created_at']);
+                ->get([
+                    'id_Servicio',
+                    'titulo',
+                    'descripcion',
+                    'precio',
+                    'estado',
+                    'imagen',
+                    'id_Categoria',
+                    'created_at',
+                    'tipo',
+                ])
+                ->map(function ($s) {
+                    $s->imagen = $s->imagen ? asset('storage/'.$s->imagen) : null;
+
+                    return $s;
+                });
+
+            // Obtener oportunidades (tipo=oportunidad) del usuario
+            $oportunidades = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
+                ->where('tipo', 'oportunidad')
+                ->with('categoria:id_Categoria,nombre,grupo')
+                ->orderBy('created_at', 'desc')
+                ->get([
+                    'id_Servicio',
+                    'titulo',
+                    'descripcion',
+                    'precio',
+                    'estado',
+                    'imagen',
+                    'id_Categoria',
+                    'created_at',
+                    'tipo',
+                ])
+                ->map(function ($s) {
+                    $s->imagen = $s->imagen ? asset('storage/'.$s->imagen) : null;
+
+                    return $s;
+                });
+
+            // Obtener reseñas recibidas como ofertante (cliente_a_ofertante)
+            // Asumiendo que hay una tabla de reseñas con campos: id, id_Usuario (receptor), id_Usuario_Emisor, estrellas, comentario, tipo
+            $resenasComoOfertante = collect(); // Placeholder - implementar según estructura real de BD
+
+            // Obtener reseñas recibidas como cliente (ofertante_a_cliente)
+            $resenasComoCliente = collect(); // Placeholder - implementar según estructura real de BD
+
+            // Calcular promedios (placeholders)
+            $promedioOfertante = 0.0;
+            $promedioCliente = 0.0;
 
             return response()->json([
                 'success' => true,
                 'usuario' => $usuario,
-                'resumen' => [
-                    'totalServicios' => $servicios->count(),
-                    'serviciosActivos' => $servicios->where('estado', 'Activo')->count(),
-                ],
                 'servicios' => $servicios,
+                'oportunidades' => $oportunidades,
+                'resenas_como_ofertante' => $resenasComoOfertante,
+                'resenas_como_cliente' => $resenasComoCliente,
+                'resumen' => [
+                    'totalServicios' => $servicios->count() + $oportunidades->count(),
+                    'serviciosActivos' => $servicios->where('estado', 'Activo')->count() + $oportunidades->where('estado', 'Activo')->count(),
+                    'promedioOfertante' => $promedioOfertante,
+                    'promedioCliente' => $promedioCliente,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -480,7 +555,7 @@ class UsuarioController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado',
@@ -496,13 +571,13 @@ class UsuarioController extends Controller
 
             $usuarios = Usuario::select([
                 'id_CorreoUsuario', 'nombre', 'apellido', 'rol',
-                'ciudad', 'departamento', 'id_Plan', 'bloqueado', 'fechaRegistro'
+                'ciudad', 'departamento', 'id_Plan', 'bloqueado', 'fechaRegistro',
             ])->get();
 
             return response()->json([
                 'success' => true,
                 'total' => $usuarios->count(),
-                'usuarios' => $usuarios
+                'usuarios' => $usuarios,
             ]);
         } catch (\Exception $e) {
             return response()->json([

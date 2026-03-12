@@ -15,10 +15,10 @@ return new class extends Migration
         Schema::table('pago_servicios', function (Blueprint $table) {
             // Cliente: quien paga el servicio
             $table->string('id_Cliente', 255)->nullable()->after('id_CorreoUsuario');
-            
+
             // Prestador: quien recibe el pago por el trabajo realizado
             $table->string('id_Prestador', 255)->nullable()->after('id_Cliente');
-            
+
             // Agregar foreign keys
             $table->foreign('id_Cliente')->references('id_CorreoUsuario')->on('usuarios')->onDelete('set null');
             $table->foreign('id_Prestador')->references('id_CorreoUsuario')->on('usuarios')->onDelete('set null');

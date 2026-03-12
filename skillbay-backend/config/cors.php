@@ -7,7 +7,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => ['*'], // Allow all during dev to fix CORS
-    
+
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],

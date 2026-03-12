@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Postulacion;
-use App\Models\Usuario;
 
 class PagoServicio extends Model
 {
     protected $table = 'pago_servicios';
+
     protected $primaryKey = 'id_PagoServicio';
 
     protected $fillable = [

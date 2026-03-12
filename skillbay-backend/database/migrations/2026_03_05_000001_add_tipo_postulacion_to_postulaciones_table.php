@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Este campo diferencia el tipo de postulación:
      * - 'postulante': El usuario aplica a una oportunidad publicada por un cliente
      *                 → El cliente paga al postulante (flujo normal)

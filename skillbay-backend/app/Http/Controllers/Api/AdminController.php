@@ -12,7 +12,6 @@ use App\Models\Reporte;
 use App\Models\Servicio;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {

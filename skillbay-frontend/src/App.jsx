@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailure from "./pages/PaymentFailure";
 import PaymentPending from "./pages/PaymentPending";
+import TermsAndConditions from "./pages/TermsAndConditions";
 
 import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
 import ExploreServices from "./dashboard-users/ExploreServices";
@@ -55,10 +56,19 @@ function detectPaymentReturnView() {
   return null;
 }
 
+/**
+ * Detecta si la URL actual corresponde a la página de términos y condiciones
+ */
+function detectTermsView() {
+  if (window.location.pathname === '/terminos-y-condiciones') return 'terms';
+  return null;
+}
+
 function App() {
   const paymentReturnView = detectPaymentReturnView();
+  const termsView = detectTermsView();
   const [currentView, setCurrentView] = useState(
-    () => paymentReturnView || localStorage.getItem("currentView") || "home"
+    () => paymentReturnView || termsView || localStorage.getItem("currentView") || "home"
   );
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const token = localStorage.getItem("access_token");
@@ -152,33 +162,35 @@ function App() {
     }
   };
 
-  const renderPublicView = () => {
-    switch (currentView) {
-      case "home":
-        return <Home onNavigate={setCurrentView} />;
-      case "about":
-        return <About />;
-      case "services":
-        return <Services onNavigate={setCurrentView} />;
-      case "contact":
-        return <Contact />;
-      case "login":
-        return <Login onNavigate={setCurrentView} onLogin={handleLogin} />;
-      case "forgot_password":
-        return <ForgotPassword onNavigate={setCurrentView} />;
-      case "register":
-        return <Register onNavigate={setCurrentView} />;
-      // Retornos de MercadoPago (accesibles sin autenticación)
-      case "payment_success":
-        return <PaymentSuccess onNavigate={setCurrentView} />;
-      case "payment_failure":
-        return <PaymentFailure onNavigate={setCurrentView} />;
-      case "payment_pending":
-        return <PaymentPending onNavigate={setCurrentView} />;
-      default:
-        return <Home onNavigate={setCurrentView} />;
-    }
-  };
+   const renderPublicView = () => {
+     switch (currentView) {
+       case "home":
+         return <Home onNavigate={setCurrentView} />;
+       case "about":
+         return <About />;
+       case "services":
+         return <Services onNavigate={setCurrentView} />;
+       case "contact":
+         return <Contact />;
+       case "login":
+         return <Login onNavigate={setCurrentView} onLogin={handleLogin} />;
+       case "forgot_password":
+         return <ForgotPassword onNavigate={setCurrentView} />;
+       case "register":
+         return <Register onNavigate={setCurrentView} />;
+       case "terms":
+         return <TermsAndConditions />;
+       // Retornos de MercadoPago (accesibles sin autenticación)
+       case "payment_success":
+         return <PaymentSuccess onNavigate={setCurrentView} />;
+       case "payment_failure":
+         return <PaymentFailure onNavigate={setCurrentView} />;
+       case "payment_pending":
+         return <PaymentPending onNavigate={setCurrentView} />;
+       default:
+         return <Home onNavigate={setCurrentView} />;
+     }
+   };
 
   if (isAuthenticated && isAdmin) {
     return (
@@ -196,7 +208,7 @@ function App() {
     );
   }
 
-  const showNavAndFooter = currentView !== "login" && currentView !== "register";
+  const showNavAndFooter = currentView !== "login" && currentView !== "register" && currentView !== "terms";
 
   return (
     <div className="min-h-screen flex flex-col">

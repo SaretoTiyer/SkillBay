@@ -1,2 +1,9 @@
 plans/analisis-codigo-skillbay.md
 .kilocodemodes
+# Ignore skills and agents directories/files
+.agents/
+AGENTS.md
+skills/
+skill-lock.json
+skills-lock.json
+agents.md

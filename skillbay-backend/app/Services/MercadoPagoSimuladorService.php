@@ -38,18 +38,18 @@ class MercadoPagoSimuladorService implements MercadoPagoInterface
      */
     public function crearPreferencia(array $datos): array
     {
-        $preferenceId = 'SIM-PREF-' . strtoupper(Str::random(12));
-        $externalRef  = $datos['external_reference'] ?? 'SIM-REF-' . uniqid();
+        $preferenceId = 'SIM-PREF-'.strtoupper(Str::random(12));
+        $externalRef = $datos['external_reference'] ?? 'SIM-REF-'.uniqid();
 
         return [
-            'id'                 => $preferenceId,
-            'init_point'         => 'https://www.mercadopago.com.co/checkout/v1/redirect?pref_id=' . $preferenceId,
-            'sandbox_init_point' => 'https://sandbox.mercadopago.com.co/checkout/v1/redirect?pref_id=' . $preferenceId,
+            'id' => $preferenceId,
+            'init_point' => 'https://www.mercadopago.com.co/checkout/v1/redirect?pref_id='.$preferenceId,
+            'sandbox_init_point' => 'https://sandbox.mercadopago.com.co/checkout/v1/redirect?pref_id='.$preferenceId,
             'external_reference' => $externalRef,
-            'items'              => $datos['items'] ?? [],
-            'payer'              => $datos['payer'] ?? [],
-            'back_urls'          => $datos['back_urls'] ?? [],
-            'simulado'           => true,
+            'items' => $datos['items'] ?? [],
+            'payer' => $datos['payer'] ?? [],
+            'back_urls' => $datos['back_urls'] ?? [],
+            'simulado' => true,
         ];
     }
 
@@ -60,14 +60,14 @@ class MercadoPagoSimuladorService implements MercadoPagoInterface
     public function obtenerPago(int $paymentId): array
     {
         return [
-            'id'                 => $paymentId,
-            'status'             => self::$estadoSimulado,
-            'external_reference' => 'SIM-REF-' . $paymentId,
+            'id' => $paymentId,
+            'status' => self::$estadoSimulado,
+            'external_reference' => 'SIM-REF-'.$paymentId,
             'transaction_amount' => 15000.00,
-            'payer'              => [
+            'payer' => [
                 'email' => 'test@skillbay.test',
             ],
-            'simulado'           => true,
+            'simulado' => true,
         ];
     }
 
@@ -77,11 +77,11 @@ class MercadoPagoSimuladorService implements MercadoPagoInterface
     public function obtenerPagoPorReferencia(string $referencia): array
     {
         return [
-            'id'                 => rand(100000, 999999),
-            'status'             => self::$estadoSimulado,
+            'id' => rand(100000, 999999),
+            'status' => self::$estadoSimulado,
             'external_reference' => $referencia,
             'transaction_amount' => 15000.00,
-            'simulado'           => true,
+            'simulado' => true,
         ];
     }
 }

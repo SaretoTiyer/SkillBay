@@ -10,13 +10,14 @@ class Servicio extends Model
     use HasFactory;
 
     protected $table = 'servicios';
+
     protected $primaryKey = 'id_Servicio';
 
     protected $fillable = [
         'titulo',
         'descripcion',
         'id_Cliente', // Dueño del servicio (ofertante / cliente)
-        'estado', 
+        'estado',
         'precio',
         'imagen',
         'tiempo_entrega',

@@ -20,12 +20,6 @@ import { Button } from "../../components/ui/Button";
 export default function ReceivedApplications() {
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Estado para el chat de postulaciones recibidas
-  const [selectedPostulacion, setSelectedPostulacion] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [newMessage, setNewMessage] = useState("");
 
   const authHeaders = (json = false) => ({
     Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -46,52 +40,16 @@ export default function ReceivedApplications() {
     }
   };
 
-  const fetchSolicitudesRecibidas = async () => {
-    try {
-      const response = await fetch(`${API_URL}/servicios/solicitudes`, { headers: authHeaders() });
-      if (!response.ok) return;
-      const data = await response.json();
-      setSolicitudesRecibidas(Array.isArray(data.solicitudes) ? data.solicitudes : []);
-    } catch (err) {
-      console.error("Error fetching solicitudes:", err);
-    }
-  };
-
-  // Funciones para messaging en postulaciones recibidas
-  const openChat = async (postulacion) => {
-    setSelectedPostulacion(postulacion);
-    setLoadingMessages(true);
-    try {
-      const res = await fetch(`${API_URL}/postulaciones/${postulacion.id}/mensajes`, {
-        headers: authHeaders(),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessages(data.mensajes || []);
-      }
-    } catch (error) {
-      console.error("Error loading messages:", error);
-    } finally {
-      setLoadingMessages(false);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!selectedPostulacion || !newMessage.trim()) return;
-    try {
-      const res = await fetch(`${API_URL}/postulaciones/${selectedPostulacion.id}/mensajes`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({ mensaje: newMessage.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "No se pudo enviar el mensaje.");
-      setNewMessage("");
-      openChat(selectedPostulacion);
-    } catch (error) {
-      Swal.fire("Error", error.message, "error");
-    }
-  };
+   const fetchSolicitudesRecibidas = async () => {
+     try {
+       const response = await fetch(`${API_URL}/servicios/solicitudes`, { headers: authHeaders() });
+       if (!response.ok) return;
+       const data = await response.json();
+       setSolicitudesRecibidas(Array.isArray(data.solicitudes) ? data.solicitudes : []);
+     } catch (err) {
+       console.error("Error fetching solicitudes:", err);
+     }
+   };
 
   const updateStatus = async (postulacionId, newStatus) => {
     const confirmMessages = {
@@ -122,19 +80,24 @@ export default function ReceivedApplications() {
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo actualizar el estado.");
 
-      Swal.fire({
-        icon: "success",
-        title: newStatus === "aceptada" ? "Postulación aceptada" : 
-               newStatus === "rechazada" ? "Postulación rechazada" : "Trabajo iniciado",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+       Swal.fire({
+         icon: "success",
+         title: newStatus === "aceptada" ? "Postulación aceptada" : 
+                newStatus === "rechazada" ? "Postulación rechazada" : "Trabajo iniciado",
+         timer: 1500,
+         showConfirmButton: false,
+       });
 
-      fetchSolicitudesRecibidas();
-    } catch (error) {
-      Swal.fire("Error", error.message, "error");
-    }
-  };
+       if (newStatus === "rechazada") {
+         // Filter out the rejected application locally instead of refetching
+         setSolicitudesRecibidas(prev => prev.filter(s => s.id !== postulacionId));
+       } else {
+         fetchSolicitudesRecibidas();
+       }
+     } catch (error) {
+       Swal.fire("Error", error.message, "error");
+     }
+   };
 
   /**
    * Determina el tipo de solicitud usando el campo `servicio.tipo`.
@@ -341,64 +304,73 @@ export default function ReceivedApplications() {
                   </Badge>
                 )
               )}
-              {request.estado === "pagada" && (
-                <div className="flex gap-2 flex-wrap items-center">
-                  <Badge className="bg-green-500 text-white border-0 px-3 py-1">
-                    ✅ Pagada
-                  </Badge>
-                  <Button
-                    size="sm"
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                    onClick={async () => {
-                      const { value: rating } = await Swal.fire({
-                        title: 'Califica el servicio',
-                        input: 'range',
-                        inputLabel: 'Calificación (1-5 estrellas)',
-                        inputAttributes: {
-                          min: 1,
-                          max: 5,
-                          step: 1
-                        },
-                        inputValue: 5,
-                        showCancelButton: true,
-                        confirmButtonText: 'Calificar',
-                        cancelButtonText: 'Cancelar',
-                      });
-                      
-                      if (!rating) return;
-                      
-                      const { value: comment } = await Swal.fire({
-                        title: 'Deja un comentario (opcional)',
-                        input: 'textarea',
-                        inputPlaceholder: 'Escribe tu experiencia con el servicio...',
-                        showCancelButton: true,
-                        confirmButtonText: 'Enviar',
-                        cancelButtonText: 'Cancelar',
-                      });
-                      
-                      try {
-                        const response = await fetch(`${API_URL}/resenas`, {
-                          method: "POST",
-                          headers: authHeaders(true),
-                          body: JSON.stringify({
-                            id_Servicio: request.servicio.id_Servicio,
-                            calificacion: parseInt(rating),
-                            comentario: comment || ''
-                          }),
-                        });
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-                        fetchSolicitudesRecibidas();
-                        Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-                      } catch (error) {
-                        Swal.fire('Error', error.message, 'error');
-                      }
-                    }}
-                  >
-                    <Star size={14} className="mr-1" /> Calificar
-                  </Button>
-                </div>
-              )}
+               {request.estado === "pagada" && (
+                 <div className="flex gap-2 flex-wrap items-center">
+                   <Badge className="bg-green-500 text-white border-0 px-3 py-1">
+                     ✅ Pagada
+                   </Badge>
+                   {request.ya_califico_receptor ? (
+                     <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
+                       ⭐ Calificado
+                     </Badge>
+                   ) : (
+                     <Button
+                       size="sm"
+                       className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                       onClick={async () => {
+                         const { value: rating } = await Swal.fire({
+                           title: 'Califica el servicio',
+                           input: 'range',
+                           inputLabel: 'Calificación (1-5 estrellas)',
+                           inputAttributes: {
+                             min: 1,
+                             max: 5,
+                             step: 1
+                           },
+                           inputValue: 5,
+                           showCancelButton: true,
+                           confirmButtonText: 'Calificar',
+                           cancelButtonText: 'Cancelar',
+                         });
+                         
+                         if (!rating) return;
+                         
+                         const { value: comment } = await Swal.fire({
+                           title: 'Deja un comentario (opcional)',
+                           input: 'textarea',
+                           inputPlaceholder: 'Escribe tu experiencia con el servicio...',
+                           showCancelButton: true,
+                           confirmButtonText: 'Enviar',
+                           cancelButtonText: 'Cancelar',
+                         });
+                         
+                         try {
+                           const response = await fetch(`${API_URL}/resenas`, {
+                             method: "POST",
+                             headers: authHeaders(true),
+                             body: JSON.stringify({
+                               direccion: 'cliente_a_ofertante',
+                               id_Postulacion: request.id,
+                               id_Servicio: request.servicio.id_Servicio,
+                               calificacion: parseInt(rating),
+                               comentario: comment || ''
+                             }),
+                           });
+                           const data = await response.json();
+                           if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+                           // Update local state instead of refetching
+                           setSolicitudesRecibidas(prev => prev.map(s => s.id === request.id ? {...s, ya_califico_receptor: true} : s));
+                           Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+                         } catch (error) {
+                           Swal.fire('Error', error.message, 'error');
+                         }
+                       }}
+                     >
+                       <Star size={14} className="mr-1" /> Calificar
+                     </Button>
+                   )}
+                 </div>
+               )}
               {(request.estado === "rechazada" || request.estado === "cancelada") && (
                 <Button
                   size="sm"

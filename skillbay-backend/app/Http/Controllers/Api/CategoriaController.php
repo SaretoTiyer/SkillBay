@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CategoriaController extends Controller
@@ -14,6 +14,7 @@ class CategoriaController extends Controller
     private function validarAdmin(Request $request)
     {
         $user = $request->user();
+
         return $user && $user->rol === 'admin';
     }
 
@@ -23,7 +24,7 @@ class CategoriaController extends Controller
     public function crear(Request $request)
     {
         try {
-            if (!$this->validarAdmin($request)) {
+            if (! $this->validarAdmin($request)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado',
@@ -46,7 +47,7 @@ class CategoriaController extends Controller
             $idCategoria = $data['id_Categoria'] ?? Str::slug($data['nombre'], '_');
 
             if (Categoria::where('id_Categoria', $idCategoria)->exists()) {
-                $idCategoria = $idCategoria . '_' . time();
+                $idCategoria = $idCategoria.'_'.time();
             }
 
             $categoria = Categoria::create([
@@ -83,6 +84,7 @@ class CategoriaController extends Controller
     {
         try {
             $categorias = Categoria::orderBy('grupo')->orderBy('nombre')->get();
+
             return response()->json([
                 'success' => true,
                 'total' => $categorias->count(),
@@ -104,6 +106,7 @@ class CategoriaController extends Controller
     {
         try {
             $categoria = Categoria::findOrFail($id);
+
             return response()->json([
                 'success' => true,
                 'categoria' => $categoria,
@@ -123,7 +126,7 @@ class CategoriaController extends Controller
     public function actualizar(Request $request, $id)
     {
         try {
-            if (!$this->validarAdmin($request)) {
+            if (! $this->validarAdmin($request)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado',
@@ -170,7 +173,7 @@ class CategoriaController extends Controller
     public function eliminar(Request $request, $id)
     {
         try {
-            if (!$this->validarAdmin($request)) {
+            if (! $this->validarAdmin($request)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado',

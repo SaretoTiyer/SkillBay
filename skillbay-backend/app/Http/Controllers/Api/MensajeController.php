@@ -27,6 +27,7 @@ class MensajeController extends Controller
     {
         $esPostulante = $postulacion->id_Usuario === $user->id_CorreoUsuario;
         $esDuenoServicio = $postulacion->servicio && $postulacion->servicio->id_Cliente === $user->id_CorreoUsuario;
+
         return $esPostulante || $esDuenoServicio || $user->rol === 'admin';
     }
 
@@ -60,7 +61,7 @@ class MensajeController extends Controller
         $user = $request->user();
         $postulacion = Postulacion::with('servicio')->findOrFail($idPostulacion);
 
-        if (!$this->validarAccesoPostulacion($user, $postulacion)) {
+        if (! $this->validarAccesoPostulacion($user, $postulacion)) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -84,7 +85,7 @@ class MensajeController extends Controller
         $user = $request->user();
         $postulacion = Postulacion::with('servicio')->findOrFail($idPostulacion);
 
-        if (!$this->validarAccesoPostulacion($user, $postulacion)) {
+        if (! $this->validarAccesoPostulacion($user, $postulacion)) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -110,7 +111,7 @@ class MensajeController extends Controller
 
         if ($destinatario) {
             Notificacion::create([
-                'mensaje' => 'Tienes un nuevo mensaje en la postulacion #' . $postulacion->id . '.',
+                'mensaje' => 'Tienes un nuevo mensaje en la postulacion #'.$postulacion->id.'.',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
                 'id_CorreoUsuario' => $destinatario,
@@ -128,11 +129,12 @@ class MensajeController extends Controller
         $user = $request->user();
         $mensaje = Mensaje::with('postulacion.servicio')->findOrFail($idMensaje);
 
-        if (!$this->validarAccesoPostulacion($user, $mensaje->postulacion)) {
+        if (! $this->validarAccesoPostulacion($user, $mensaje->postulacion)) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         $mensaje->delete();
+
         return response()->json(['success' => true, 'message' => 'Mensaje eliminado.']);
     }
 }

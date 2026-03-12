@@ -1,16 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-    Plus,
-    Edit,
-    Trash2,
-    Package,
-    Upload,
-    DollarSign,
-    Clock,
-    Tag,
-    Image as ImageIcon,
-    Loader2
-} from "lucide-react";
+     Plus,
+     Edit,
+     Trash2,
+     Package,
+     Upload,
+     DollarSign,
+     Clock,
+     Tag,
+     Image as ImageIcon,
+     Loader2,
+     CheckCircle,
+     PauseCircle
+ } from "lucide-react";
 
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/badge";
@@ -45,16 +47,18 @@ export default function CreateService() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingService, setEditingService] = useState(null);
 
-    // Form data for service (offered by user)
-    const [formData, setFormData] = useState({
-        titulo: "",
-        descripcion: "",
-        categoria: "",
-        subcategoria: "",
-        precio: "",
-        tiempo_entrega: "",
-        imagen: null,
-    });
+     // Form data for service (offered by user)
+     const [formData, setFormData] = useState({
+         titulo: "",
+         descripcion: "",
+         categoria: "",
+         subcategoria: "",
+         precio: "",
+         tiempo_entrega: "",
+         tiempo_entrega_num: "",
+         tiempo_entrega_unidad: "Días",
+         imagen: null,
+     });
 
     const [previewImage, setPreviewImage] = useState(null);
 
@@ -245,13 +249,48 @@ export default function CreateService() {
             if (!response.ok) throw new Error("Error al eliminar el servicio");
 
             setServices(services.filter(s => s.id_Servicio !== serviceId));
-            Swal.fire('Eliminado', 'El servicio ha sido eliminado.', 'success');
-        } catch (error) {
-            Swal.fire('Error', error.message, 'error');
-        }
-    };
+             Swal.fire('Eliminado', 'El servicio ha sido eliminado.', 'success');
+         } catch (error) {
+             Swal.fire('Error', error.message, 'error');
+         }
+     };
 
-    const resetForm = () => {
+     const handleChangeStatus = async (id, newStatus) => {
+         try {
+             const token = localStorage.getItem("access_token");
+             const response = await fetch(`${API_URL}/servicios/${id}`, {
+                 method: "PUT",
+                 headers: {
+                     Authorization: `Bearer ${token}`,
+                     'Accept': 'application/json',
+                     'Content-Type': 'application/json'
+                 },
+                 body: JSON.stringify({ estado: newStatus })
+             });
+
+             if (!response.ok) throw new Error("Error al cambiar el estado");
+
+             // Update local state
+             setServices(services.map(service =>
+                 service.id_Servicio === id
+                     ? { ...service, estado: newStatus }
+                     : service
+             ));
+
+             // Show success message
+             Swal.fire({
+                 icon: 'success',
+                 title: 'Estado actualizado',
+                 text: `El servicio ha sido marcado como ${newStatus.toLowerCase()}.`,
+                 timer: 1500,
+                 showConfirmButton: false
+             });
+         } catch (error) {
+             Swal.fire('Error', error.message, 'error');
+         }
+     };
+
+     const resetForm = () => {
         setEditingService(null);
         setFormData({
             titulo: "",
@@ -270,25 +309,42 @@ export default function CreateService() {
         setIsDialogOpen(true);
     };
 
-    const handleEditService = (service) => {
-        setEditingService(service);
-        
-        // Find the category in API categories
-        const cat = categories.find(c => c.id_Categoria === service.id_Categoria);
-        
-        setFormData({
-            titulo: service.titulo,
-            descripcion: service.descripcion,
-            categoria: cat ? cat.grupo : "", // Set the group/parent category
-            subcategoria: service.id_Categoria, // Set the actual id_Categoria
-            precio: service.precio,
-            tiempo_entrega: service.tiempo_entrega,
-            imagen: null,
-        });
-        setPreviewImage(service.imagen ? resolveImageUrl(service.imagen) : null);
-        
-        setIsDialogOpen(true);
-    };
+     const handleEditService = (service) => {
+         setEditingService(service);
+         
+         // Find the category in API categories
+         const cat = categories.find(c => c.id_Categoria === service.id_Categoria);
+         
+         // Parse tiempo_entrega to extract number and unit
+         let tiempoNum = "";
+         let tiempoUnidad = "Días";
+         if (service.tiempo_entrega) {
+             const parts = service.tiempo_entrega.split(" ");
+             if (parts.length === 2) {
+                 tiempoNum = parts[0];
+                 tiempoUnidad = parts[1];
+                 // Validate that the unit is one of our options
+                 if (!["Días", "Semanas", "Meses"].includes(tiempoUnidad)) {
+                     tiempoUnidad = "Días";
+                 }
+             }
+         }
+         
+         setFormData({
+             titulo: service.titulo,
+             descripcion: service.descripcion,
+             categoria: cat ? cat.grupo : "", // Set the group/parent category
+             subcategoria: service.id_Categoria, // Set the actual id_Categoria
+             precio: service.precio,
+             tiempo_entrega: service.tiempo_entrega,
+             tiempo_entrega_num: tiempoNum,
+             tiempo_entrega_unidad: tiempoUnidad,
+             imagen: null,
+         });
+         setPreviewImage(service.imagen ? resolveImageUrl(service.imagen) : null);
+         
+         setIsDialogOpen(true);
+     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -451,35 +507,65 @@ export default function CreateService() {
                                         </div>
                                     </div>
 
-                                    {/* Price and Delivery Time - Full Width */}
-                                    <div className="col-span-1 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                                <DollarSign size={16} /> Precio (COP) *
-                                            </label>
-                                            <Input
-                                                name="precio"
-                                                type="number"
-                                                placeholder="Ej: 500000"
-                                                value={formData.precio}
-                                                onChange={handleInputChange}
-                                                className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 font-mono text-base"
-                                            />
-                                        </div>
+                                 {/* Price and Delivery Time - Full Width */}
+                                 <div className="col-span-1 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                         <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                             <DollarSign size={16} /> Precio (COP) *
+                                         </label>
+                                         <Input
+                                             name="precio"
+                                             type="number"
+                                             placeholder="Ej: 500000"
+                                             value={formData.precio}
+                                             onChange={handleInputChange}
+                                             className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 font-mono text-base"
+                                         />
+                                     </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                                <Clock size={16} /> Tiempo de Entrega
-                                            </label>
-                                            <Input
-                                                name="tiempo_entrega"
-                                                placeholder="Ej: 2 semanas"
-                                                value={formData.tiempo_entrega}
-                                                onChange={handleInputChange}
-                                                className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
-                                            />
-                                        </div>
-                                    </div>
+                                     <div className="space-y-2">
+                                         <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                             <Clock size={16} /> Tiempo de Entrega
+                                         </label>
+                                         <div className="grid grid-cols-2 gap-3">
+                                             <input
+                                                 type="number"
+                                                 name="tiempo_entrega_num"
+                                                 min="1"
+                                                 max="365"
+                                                 placeholder="Número"
+                                                 value={formData.tiempo_entrega ? parseInt(formData.tiempo_entrega) : ""}
+                                                 onChange={(e) => {
+                                                     const num = e.target.value;
+                                                     const unidad = formData.tiempo_entrega_unidad || "Días";
+                                                     const value = num ? `${num} ${unidad}` : "";
+                                                     setFormData(prev => ({ ...prev, tiempo_entrega: value }));
+                                                 }}
+                                                 className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 text-center"
+                                             />
+                                             <select
+                                                 name="tiempo_entrega_unidad"
+                                                 value={formData.tiempo_entrega_unidad || "Días"}
+                                                 onChange={(e) => {
+                                                     const unidad = e.target.value;
+                                                     const num = formData.tiempo_entrega_num || "1";
+                                                     const value = num ? `${num} ${unidad}` : "";
+                                                     setFormData(prev => ({ ...prev, tiempo_entrega: value, tiempo_entrega_unidad: unidad }));
+                                                 }}
+                                                 className="h-12 rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                                             >
+                                                 <option value="Días">Días</option>
+                                                 <option value="Semanas">Semanas</option>
+                                                 <option value="Meses">Meses</option>
+                                             </select>
+                                         </div>
+                                         {formData.tiempo_entrega && (
+                                             <p className="text-xs text-slate-500 mt-1">
+                                                 Entrega en: {formData.tiempo_entrega}
+                                             </p>
+                                         )}
+                                     </div>
+                                 </div>
 
                                     {/* Description - Full Width */}
                                     <div className="col-span-1 lg:col-span-2 space-y-2">
@@ -587,17 +673,18 @@ export default function CreateService() {
                             className="group bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-100 hover:-translate-y-1"
                         >
                             <div className="relative h-56 overflow-hidden">
-                                {service.imagen ? (
-                                    <ImageWithFallback
-                                        src={resolveImageUrl(service.imagen)}
-                                        alt={service.titulo}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                                        <Package size={48} className="text-blue-300" />
-                                    </div>
-                                )}
+                                 {service.imagen ? (
+                                     <ImageWithFallback
+                                         src={resolveImageUrl(service.imagen)}
+                                         alt={service.titulo}
+                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                     />
+                                 ) : (
+                                     <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-center p-4">
+                                         <Package size={32} className="text-white mb-2" />
+                                         <p className="text-white text-sm font-medium">{service.categoria?.nombre || 'Servicio'}</p>
+                                     </div>
+                                 )}
                                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
 
                                 <div className="absolute top-4 right-4">
@@ -634,24 +721,44 @@ export default function CreateService() {
                                         </p>
                                     </div>
 
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="icon"
-                                            variant="outline"
-                                            className="rounded-xl hover:bg-blue-50 hover:text-blue-600 border-slate-200"
-                                            onClick={() => handleEditService(service)}
-                                        >
-                                            <Edit size={16} />
-                                        </Button>
-                                        <Button
-                                            size="icon"
-                                            variant="outline"
-                                            className="rounded-xl hover:bg-red-50 hover:text-red-600 border-slate-200"
-                                            onClick={() => handleDeleteService(service.id_Servicio)}
-                                        >
-                                            <Trash2 size={16} />
-                                        </Button>
-                                    </div>
+                                     <div className="flex gap-2">
+                                         <Button
+                                             size="icon"
+                                             variant="outline"
+                                             className="rounded-xl hover:bg-blue-50 hover:text-blue-600 border-slate-200"
+                                             onClick={() => handleEditService(service)}
+                                         >
+                                             <Edit size={16} />
+                                         </Button>
+                                         <Button
+                                             size="icon"
+                                             variant="outline"
+                                             className="rounded-xl hover:bg-red-50 hover:text-red-600 border-slate-200"
+                                             onClick={() => handleDeleteService(service.id_Servicio)}
+                                         >
+                                             <Trash2 size={16} />
+                                         </Button>
+                                         {/* Status Change Button */}
+                                         {service.estado !== 'Activo' ? (
+                                             <Button
+                                                 size="icon"
+                                                 variant="outline"
+                                                 className="rounded-xl hover:bg-emerald-50 hover:text-emerald-600 border-emerald-200"
+                                                 onClick={() => handleChangeStatus(service.id_Servicio, 'Activo')}
+                                             >
+                                                 <CheckCircle size={16} className="text-emerald-600" />
+                                             </Button>
+                                         ) : (
+                                             <Button
+                                                 size="icon"
+                                                 variant="outline"
+                                                 className="rounded-xl hover:bg-amber-50 hover:text-amber-600 border-amber-200"
+                                                 onClick={() => handleChangeStatus(service.id_Servicio, 'Inactivo')}
+                                             >
+                                                 <PauseCircle size={16} className="text-amber-600" />
+                                             </Button>
+                                         )}
+                                     </div>
                                 </div>
                             </div>
                         </div>

@@ -15,7 +15,7 @@ class Postulacion extends Model
         'presupuesto',
         'tiempo_estimado',
         'estado',
-        'tipo_postulacion' // 'postulante' o 'solicitante'
+        'tipo_postulacion', // 'postulante' o 'solicitante'
     ];
 
     /**

@@ -19,10 +19,10 @@ return new class extends Migration
             $table->decimal('presupuesto', 10, 2)->nullable();
             $table->string('tiempo_estimado')->nullable();
             $table->enum('estado', ['pendiente', 'aceptada', 'rechazada'])->default('pendiente');
-            
+
             $table->foreign('id_Servicio')->references('id_Servicio')->on('servicios')->onDelete('cascade');
             $table->foreign('id_Usuario')->references('id_CorreoUsuario')->on('usuarios')->onDelete('cascade');
-            
+
             $table->timestamps();
         });
     }

@@ -143,11 +143,11 @@ return (
         <div className="relative group">
             <div className="absolute -inset-4 bg-linear-to-r from-[#2B6CB0] to-[#1e5a94] rounded-3xl opacity-20 blur-xl group-hover:opacity-30 transition"></div>
             <div className="relative rounded-3xl overflow-hidden shadow-2xl transform group-hover:scale-105 transition duration-500">
-            <img
-                src="https://images.unsplash.com/photo-1607110654203-d5665bd64105?auto=format&fit=crop&w=1080&q=80"
-                alt="Nuestra Historia"
-                className="w-full h-[500px] object-cover"
-            />
+<img
+                 src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1080&q=80"
+                 alt="Equipo SkillBay trabajando"
+                 className="w-full h-[500px] object-cover"
+             />
             </div>
         </div>
         </div>

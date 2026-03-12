@@ -12,20 +12,20 @@ class NotificacionController extends Controller
     private function mapearSeccion(string $tipo): string
     {
         return match ($tipo) {
-            'postulacion'          => 'postulacion',
-            'reporte'              => 'reporte',
-            'servicio'             => 'servicio',
-            'pago'                 => 'sistema',
+            'postulacion' => 'postulacion',
+            'reporte' => 'reporte',
+            'servicio' => 'servicio',
+            'pago' => 'sistema',
             'cuenta', 'plan',
-            'admin', 'general'     => 'sistema',
-            default                => 'sistema',
+            'admin', 'general' => 'sistema',
+            default => 'sistema',
         };
     }
 
     public function index(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 401);
         }
 
@@ -36,7 +36,7 @@ class NotificacionController extends Controller
             // (tipo 'reporte' y 'admin') más sus notificaciones personales
             $query->where(function ($q) use ($user) {
                 $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
-                  ->orWhereIn('tipo', ['reporte', 'admin']);
+                    ->orWhereIn('tipo', ['reporte', 'admin']);
             });
             $query->orderBy('created_at', 'desc');
         } else {
@@ -57,6 +57,7 @@ class NotificacionController extends Controller
 
         $notificaciones = $query->limit(150)->get()->map(function ($item) {
             $item->seccion = $this->mapearSeccion((string) ($item->tipo ?? 'sistema'));
+
             return $item;
         });
 
@@ -70,17 +71,17 @@ class NotificacionController extends Controller
     public function resumen(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 401);
         }
 
         $query = Notificacion::query()->where('estado', '!=', 'Leido');
-        
+
         // CORRECCIÓN: Si es admin con scope=all, filtrar por notificaciones del rol admin
         if ($user->rol === 'admin' && $request->query('scope') === 'all') {
             $query->where(function ($q) use ($user) {
                 $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
-                  ->orWhereIn('tipo', ['reporte', 'admin']);
+                    ->orWhereIn('tipo', ['reporte', 'admin']);
             });
         } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
@@ -96,7 +97,7 @@ class NotificacionController extends Controller
 
         foreach ($raw as $item) {
             $seccion = $this->mapearSeccion((string) ($item->tipo ?? 'sistema'));
-            if (!isset($counts[$seccion])) {
+            if (! isset($counts[$seccion])) {
                 $counts[$seccion] = 0;
             }
             $counts[$seccion]++;
@@ -133,7 +134,7 @@ class NotificacionController extends Controller
         if ($user->rol === 'admin' && $request->query('scope') === 'all') {
             $query->where(function ($q) use ($user) {
                 $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
-                  ->orWhereIn('tipo', ['reporte', 'admin']);
+                    ->orWhereIn('tipo', ['reporte', 'admin']);
             });
         } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
@@ -165,6 +166,7 @@ class NotificacionController extends Controller
         }
 
         $notificacion->delete();
+
         return response()->json(['success' => true, 'message' => 'Notificacion eliminada.']);
     }
 
@@ -177,7 +179,7 @@ class NotificacionController extends Controller
         if ($user->rol === 'admin' && $request->query('scope') === 'all') {
             $query->where(function ($q) use ($user) {
                 $q->where('id_CorreoUsuario', $user->id_CorreoUsuario)
-                  ->orWhereIn('tipo', ['reporte', 'admin']);
+                    ->orWhereIn('tipo', ['reporte', 'admin']);
             });
         } else {
             $query->where('id_CorreoUsuario', $user->id_CorreoUsuario);
@@ -195,13 +197,14 @@ class NotificacionController extends Controller
         }
 
         $query->delete();
+
         return response()->json(['success' => true, 'message' => 'Notificaciones eliminadas.']);
     }
 
     public function notificarATodos(Request $request)
     {
         $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
+        if (! $admin || $admin->rol !== 'admin') {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -212,14 +215,14 @@ class NotificacionController extends Controller
 
         $usuarios = Usuario::select('id_CorreoUsuario')->get();
 
-        $ahora    = now();
-        $registros = $usuarios->map(fn($u) => [
-            'mensaje'          => $validated['mensaje'],
-            'estado'           => 'No leido',
-            'tipo'             => $validated['tipo'] ?? 'admin',
+        $ahora = now();
+        $registros = $usuarios->map(fn ($u) => [
+            'mensaje' => $validated['mensaje'],
+            'estado' => 'No leido',
+            'tipo' => $validated['tipo'] ?? 'admin',
             'id_CorreoUsuario' => $u->id_CorreoUsuario,
-            'created_at'       => $ahora,
-            'updated_at'       => $ahora,
+            'created_at' => $ahora,
+            'updated_at' => $ahora,
         ])->toArray();
 
         foreach (array_chunk($registros, 500) as $chunk) {

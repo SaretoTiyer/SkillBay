@@ -17,7 +17,7 @@ return new class extends Migration
         DB::table('notificaciones')
             ->where('estado', 'No leído')
             ->update(['estado' => 'No_leido']);
-        
+
         DB::table('notificaciones')
             ->where('estado', 'Leído')
             ->update(['estado' => 'Leido']);
@@ -32,7 +32,7 @@ return new class extends Migration
         DB::table('notificaciones')
             ->where('estado', 'No_leido')
             ->update(['estado' => 'No leído']);
-        
+
         DB::table('notificaciones')
             ->where('estado', 'Leido')
             ->update(['estado' => 'Leído']);

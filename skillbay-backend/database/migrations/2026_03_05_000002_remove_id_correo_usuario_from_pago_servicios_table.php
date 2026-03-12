@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      * Elimina el campo redundante id_CorreoUsuario de pago_servicios.
-     * 
+     *
      * El campo id_CorreoUsuario era redundante porque:
      * 1. El usuario que paga ya está representado por id_Cliente
      * 2. El usuario que recibe ya está representado por id_Prestador
@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::table('pago_servicios', function (Blueprint $table) {
             // Primero eliminar la foreign key
             $table->dropForeign(['id_CorreoUsuario']);
-            
+
             // Luego eliminar la columna
             $table->dropColumn('id_CorreoUsuario');
         });

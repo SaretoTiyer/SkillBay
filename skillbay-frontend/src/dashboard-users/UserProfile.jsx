@@ -24,7 +24,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Badge } from "../components/ui/badge";
 
-export default function UserProfile() {
+export default function UserProfile({ onNavigate }) {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [servicesOffered, setServicesOffered] = useState([]);
@@ -109,8 +109,8 @@ export default function UserProfile() {
                 }
             }
 
-            const services = Array.isArray(servicesData) ? servicesData : [];
-            setServicesOffered(services);
+             const servicesArray = Array.isArray(servicesData) ? servicesData : (Array.isArray(servicesData?.servicios) ? servicesData.servicios : []);
+             setServicesOffered(servicesArray);
             setServicesHired([]); // Could fetch from postulaciones
 
             setReviews({
@@ -236,16 +236,22 @@ export default function UserProfile() {
                     body: formData,
                 });
 
-                const data = await response.json();
-                if (response.ok) {
-                    setProfileImage(data.imagen_perfil);
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Foto actualizada',
-                        text: 'Tu foto de perfil ha sido actualizada.',
-                        timer: 1500,
-                        showConfirmButton: false,
-                    });
+                 const data = await response.json();
+                 if (response.ok) {
+                     setProfileImage(data.imagen_perfil);
+                     try {
+                         const stored = JSON.parse(localStorage.getItem('usuario') || '{}');
+                         stored.imagen_perfil = data.imagen_perfil;
+                         localStorage.setItem('usuario', JSON.stringify(stored));
+                         window.dispatchEvent(new Event('storage'));
+                     } catch(e) {}
+                     Swal.fire({
+                         icon: 'success',
+                         title: 'Foto actualizada',
+                         text: 'Tu foto de perfil ha sido actualizada.',
+                         timer: 1500,
+                         showConfirmButton: false,
+                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -592,38 +598,113 @@ export default function UserProfile() {
                                 <h3 className="text-lg font-semibold text-slate-800">Configuración de Cuenta</h3>
                                 
                                 <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <Shield className="text-slate-500" size={20} />
-                                            <div>
-                                                <p className="font-medium text-slate-800">Seguridad</p>
-                                                <p className="text-sm text-slate-500">Gestiona tu contraseña</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm">Cambiar</Button>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <CreditCard className="text-slate-500" size={20} />
-                                            <div>
-                                                <p className="font-medium text-slate-800">Métodos de pago</p>
-                                                <p className="text-sm text-slate-500">Administra tus métodos de pago</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm">Ver</Button>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <Clock className="text-slate-500" size={20} />
-                                            <div>
-                                                <p className="font-medium text-slate-800">Notificaciones</p>
-                                                <p className="text-sm text-slate-500">Configura tus preferencias</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm">Configurar</Button>
-                                    </div>
+                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                         <div className="flex items-center gap-3">
+                                             <Shield className="text-slate-500" size={20} />
+                                             <div>
+                                                 <p className="font-medium text-slate-800">Seguridad</p>
+                                                 <p className="text-sm text-slate-500">Gestiona tu contraseña</p>
+                                             </div>
+                                         </div>
+                                         <Button
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={async () => {
+                                                 const { value: passwordValues } = await Swal.fire({
+                                                   title: 'Cambiar contraseña',
+                                                   html:
+                                                     '<input id="password1" type="password" class="swal2-input" placeholder="Nueva contraseña">' +
+                                                     '<input id="password2" type="password" class="swal2-input" placeholder="Confirmar contraseña">',
+                                                   confirmButtonText: 'Cambiar',
+                                                   showCancelButton: true,
+                                                   preConfirm: () => {
+                                                     const password1 = document.getElementById('password1').value
+                                                     const password2 = document.getElementById('password2').value
+                                                     if (!password1 || !password2) {
+                                                       Swal.showValidationError('Por favor ingrese ambas contraseñas')
+                                                       return false
+                                                     }
+                                                     if (password1 !== password2) {
+                                                       Swal.showValidationError('Las contraseñas no coinciden')
+                                                       return false
+                                                     }
+                                                     if (password1.length < 8) {
+                                                       Swal.showValidationError('La contraseña debe tener al menos 8 caracteres')
+                                                       return false
+                                                     }
+                                                     return [password1, password2]
+                                                   }
+                                                 })
+                                               
+                                                 if (passwordValues) {
+                                                   try {
+                                                     const token = localStorage.getItem("access_token");
+                                                     const response = await fetch(`${API_URL}/user`, {
+                                                       method: "PUT",
+                                                       headers: {
+                                                         Authorization: `Bearer ${token}`,
+                                                         "Content-Type": "application/json",
+                                                       },
+                                                       body: JSON.stringify({ password: passwordValues[0] }),
+                                                     });
+                                                     
+                                                     if (response.ok) {
+                                                       Swal.fire({
+                                                         icon: 'success',
+                                                         title: 'Contraseña cambiada',
+                                                         text: 'Tu contraseña ha sido actualizada correctamente.',
+                                                         timer: 1500,
+                                                         showConfirmButton: false,
+                                                       });
+                                                     } else {
+                                                       const errorData = await response.json();
+                                                       Swal.fire({
+                                                         icon: 'error',
+                                                         title: 'Error',
+                                                         text: errorData.message || 'No se pudo cambiar la contraseña.',
+                                                       });
+                                                     }
+                                                   } catch (error) {
+                                                     Swal.fire('Error', error.message, 'error');
+                                                   }
+                                                 }
+                                             }}
+                                         >Cambiar</Button>
+                                     </div>
+                                     
+                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                         <div className="flex items-center gap-3">
+                                             <CreditCard className="text-slate-500" size={20} />
+                                             <div>
+                                                 <p className="font-medium text-slate-800">Métodos de pago</p>
+                                                 <p className="text-sm text-slate-500">Administra tus métodos de pago</p>
+                                             </div>
+                                         </div>
+                                         <Button
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={() => onNavigate && onNavigate('payments')}
+                                         >
+                                             Ver
+                                         </Button>
+                                     </div>
+                                     
+                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                         <div className="flex items-center gap-3">
+                                             <Clock className="text-slate-500" size={20} />
+                                             <div>
+                                                 <p className="font-medium text-slate-800">Notificaciones</p>
+                                                 <p className="text-sm text-slate-500">Configura tus preferencias</p>
+                                             </div>
+                                         </div>
+                                         <Button
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={() => onNavigate && onNavigate('notifications')}
+                                         >
+                                             Configurar
+                                         </Button>
+                                     </div>
                                 </div>
                             </div>
                         )}

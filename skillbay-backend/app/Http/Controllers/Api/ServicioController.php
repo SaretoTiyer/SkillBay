@@ -22,8 +22,9 @@ class ServicioController extends Controller
 
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/' . $servicio->imagen);
+                $servicio->imagen = asset('storage/'.$servicio->imagen);
             }
+
             return $servicio;
         });
 
@@ -50,14 +51,15 @@ class ServicioController extends Controller
         // Transformar respuesta para incluir URL completa de la imagen
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/' . $servicio->imagen);
+                $servicio->imagen = asset('storage/'.$servicio->imagen);
             }
+
             return $servicio;
         });
 
         return response()->json([
             'servicios' => $servicios,
-            'total' => $servicios->count()
+            'total' => $servicios->count(),
         ]);
     }
 
@@ -87,12 +89,12 @@ class ServicioController extends Controller
             ->where('id_Cliente', '!=', $user->id_CorreoUsuario);
 
         // Excluir servicios donde el usuario ya tiene postulación activa
-        if (!empty($postulacionesActivas)) {
+        if (! empty($postulacionesActivas)) {
             $query->whereNotIn('id_Servicio', $postulacionesActivas);
         }
 
         // Excluir servicios/oportunidades que ya han sido completados o pagados
-        if (!empty($serviciosFinalizados)) {
+        if (! empty($serviciosFinalizados)) {
             $query->whereNotIn('id_Servicio', $serviciosFinalizados);
         }
 
@@ -105,8 +107,9 @@ class ServicioController extends Controller
 
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/' . $servicio->imagen);
+                $servicio->imagen = asset('storage/'.$servicio->imagen);
             }
+
             return $servicio;
         });
 
@@ -154,11 +157,11 @@ class ServicioController extends Controller
         $data = $request->all();
         $data['id_Cliente'] = $user->id_CorreoUsuario;
         $data['estado'] = $data['estado'] ?? 'Activo';
-        
+
         // Determinar el tipo según el rol del usuario:
         // - Clientes crean oportunidades (necesitan servicios)
         // - Ofertantes crean servicios (ofrecen servicios)
-        if (!isset($data['tipo'])) {
+        if (! isset($data['tipo'])) {
             if ($user->rol === 'cliente') {
                 $data['tipo'] = 'oportunidad';
             } else {
@@ -181,7 +184,7 @@ class ServicioController extends Controller
         }
 
         // Fix potential field name mismatch
-        if (isset($data['precion']) && !isset($data['precio'])) {
+        if (isset($data['precion']) && ! isset($data['precio'])) {
             $data['precio'] = $data['precion'];
         }
 
@@ -192,11 +195,11 @@ class ServicioController extends Controller
         // La reversión solo debe ocurrir si el usuario elimina todos sus servicios activos
 
         if ($servicio->imagen) {
-            $servicio->imagen = asset('storage/' . $servicio->imagen);
+            $servicio->imagen = asset('storage/'.$servicio->imagen);
         }
 
         Notificacion::create([
-            'mensaje' => 'Tu servicio "' . $servicio->titulo . '" fue publicado.',
+            'mensaje' => 'Tu servicio "'.$servicio->titulo.'" fue publicado.',
             'estado' => 'No leido',
             'tipo' => 'servicio',
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
@@ -216,7 +219,7 @@ class ServicioController extends Controller
             ->where('id_Cliente', $user->id_CorreoUsuario)
             ->first();
 
-        if (!$servicio) {
+        if (! $servicio) {
             return response()->json(['message' => 'Servicio no encontrado o no autorizado'], 404);
         }
 
@@ -249,7 +252,7 @@ class ServicioController extends Controller
         $servicio->update($data);
 
         if ($servicio->imagen) {
-            $servicio->imagen = asset('storage/' . $servicio->imagen);
+            $servicio->imagen = asset('storage/'.$servicio->imagen);
         }
 
         return response()->json($servicio);
@@ -266,7 +269,7 @@ class ServicioController extends Controller
             ->where('id_Cliente', $user->id_CorreoUsuario)
             ->first();
 
-        if (!$servicio) {
+        if (! $servicio) {
             return response()->json(['message' => 'Servicio no encontrado o no autorizado'], 404);
         }
 

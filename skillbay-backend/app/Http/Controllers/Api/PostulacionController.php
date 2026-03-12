@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Notificacion;
 use App\Models\Postulacion;
+use App\Models\Resena;
 use App\Models\Servicio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,7 @@ class PostulacionController extends Controller
     public function index()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -32,8 +33,14 @@ class PostulacionController extends Controller
             ->get();
 
         // Agregar tipo_postulacion a cada postulación para uso del frontend
-        $postulaciones->transform(function ($postulacion) {
+        $postulaciones->transform(function ($postulacion) use ($user) {
             $postulacion->tipo_postulacion = $postulacion->tipo_postulacion ?? 'postulante';
+            // Verificar si el usuario ya calificó esta postulación
+            $postulacion->ya_califico = Resena::where('id_Servicio', $postulacion->id_Servicio)
+                ->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                ->where('id_Postulacion', $postulacion->id)
+                ->exists();
+
             return $postulacion;
         });
 
@@ -46,7 +53,7 @@ class PostulacionController extends Controller
     public function solicitudesRecibidas(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -63,8 +70,14 @@ class PostulacionController extends Controller
             ->get();
 
         // Agregar tipo_postulacion a cada solicitud para uso del frontend
-        $solicitudes->transform(function ($solicitud) {
+        $solicitudes->transform(function ($solicitud) use ($user) {
             $solicitud->tipo_postulacion = $solicitud->tipo_postulacion ?? 'postulante';
+            // Verificar si el usuario (como receptor) ya calificó esta solicitud
+            $solicitud->ya_califico_receptor = Resena::where('id_Servicio', $solicitud->id_Servicio)
+                ->where('id_CorreoUsuario', $user->id_CorreoUsuario)
+                ->where('id_Postulacion', $solicitud->id)
+                ->exists();
+
             return $solicitud;
         });
 
@@ -77,7 +90,7 @@ class PostulacionController extends Controller
     public function actualizarEstadoSolicitud(Request $request, $id)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -92,7 +105,7 @@ class PostulacionController extends Controller
             })
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
         }
 
@@ -100,7 +113,7 @@ class PostulacionController extends Controller
         $postulacion->save();
 
         Notificacion::create([
-            'mensaje' => 'Tu solicitud para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ahora esta ' . $validated['estado'] . '.',
+            'mensaje' => 'Tu solicitud para "'.($postulacion->servicio->titulo ?? 'servicio').'" ahora esta '.$validated['estado'].'.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
             'id_CorreoUsuario' => $postulacion->id_Usuario,
@@ -124,7 +137,7 @@ class PostulacionController extends Controller
     public function marcarCompletado(Request $request, $id)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -133,7 +146,7 @@ class PostulacionController extends Controller
             ->where('id', $id)
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Solicitud no encontrada.'], 404);
         }
 
@@ -178,7 +191,7 @@ class PostulacionController extends Controller
             : $postulacion->servicio?->id_Cliente;
 
         Notificacion::create([
-            'mensaje' => 'El trabajo para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ha sido marcado como completado. El cliente procederá con el pago.',
+            'mensaje' => 'El trabajo para "'.($postulacion->servicio->titulo ?? 'servicio').'" ha sido marcado como completado. El cliente procederá con el pago.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
             'id_CorreoUsuario' => $emailOfertante,
@@ -198,7 +211,7 @@ class PostulacionController extends Controller
     public function cobrar(Request $request, $id)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -207,7 +220,7 @@ class PostulacionController extends Controller
             ->where('id_Usuario', $user->id_CorreoUsuario)
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Solicitud no encontrada o no autorizada.'], 404);
         }
 
@@ -220,7 +233,7 @@ class PostulacionController extends Controller
             ->where('estado', 'Completado')
             ->first();
 
-        if (!$pago) {
+        if (! $pago) {
             return response()->json([
                 'message' => 'No se puede cobrar. El cliente aún no ha realizado el pago.',
             ], 422);
@@ -231,7 +244,7 @@ class PostulacionController extends Controller
         $postulacion->save();
 
         Notificacion::create([
-            'mensaje' => 'Has cobrado el pago para "' . ($postulacion->servicio->titulo ?? 'servicio') . '". Gracias por tu trabajo.',
+            'mensaje' => 'Has cobrado el pago para "'.($postulacion->servicio->titulo ?? 'servicio').'". Gracias por tu trabajo.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
@@ -239,7 +252,7 @@ class PostulacionController extends Controller
 
         // Notificar al cliente
         Notificacion::create([
-            'mensaje' => 'El proveedor ha cobrado el pago para "' . ($postulacion->servicio->titulo ?? 'servicio') . '". Ya puedes dejar una calificación.',
+            'mensaje' => 'El proveedor ha cobrado el pago para "'.($postulacion->servicio->titulo ?? 'servicio').'". Ya puedes dejar una calificación.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
             'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
@@ -260,7 +273,7 @@ class PostulacionController extends Controller
     public function verificarListoParaPago(Request $request, $id)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -268,7 +281,7 @@ class PostulacionController extends Controller
             ->where('id', $id)
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Postulación no encontrada.'], 404);
         }
 
@@ -308,7 +321,7 @@ class PostulacionController extends Controller
         // Si no se especifica, se determina automáticamente según el tipo de servicio
         $tipoPostulacion = $request->tipo_postulacion;
 
-        if (!$tipoPostulacion) {
+        if (! $tipoPostulacion) {
             $servicio = Servicio::find($request->id_Servicio);
             // Determinar el tipo según el tipo del servicio:
             // - 'oportunidad': el usuario aplica a una necesidad publicada → es 'postulante'
@@ -337,7 +350,7 @@ class PostulacionController extends Controller
             'presupuesto' => $request->presupuesto,
             'tiempo_estimado' => $request->tiempo_estimado,
             'estado' => 'pendiente',
-            'tipo_postulacion' => $tipoPostulacion
+            'tipo_postulacion' => $tipoPostulacion,
         ]);
 
         // Conversión de rol: Cliente → Ofertante al postulan (una vez ofertante, permanece permanentemente)
@@ -349,7 +362,7 @@ class PostulacionController extends Controller
         $servicio = Servicio::find($request->id_Servicio);
         if ($servicio) {
             Notificacion::create([
-                'mensaje' => 'Nueva postulacion para tu servicio "' . $servicio->titulo . '".',
+                'mensaje' => 'Nueva postulacion para tu servicio "'.$servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
                 'id_CorreoUsuario' => $servicio->id_Cliente,
@@ -365,7 +378,7 @@ class PostulacionController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -374,7 +387,7 @@ class PostulacionController extends Controller
             ->with('servicio')
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Postulacion no encontrada.'], 404);
         }
 
@@ -392,7 +405,7 @@ class PostulacionController extends Controller
 
         if ($postulacion->servicio) {
             Notificacion::create([
-                'mensaje' => 'Una postulacion fue actualizada en tu servicio "' . $postulacion->servicio->titulo . '".',
+                'mensaje' => 'Una postulacion fue actualizada en tu servicio "'.$postulacion->servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
                 'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
@@ -411,7 +424,7 @@ class PostulacionController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -420,7 +433,7 @@ class PostulacionController extends Controller
             ->with('servicio')
             ->first();
 
-        if (!$postulacion) {
+        if (! $postulacion) {
             return response()->json(['message' => 'Postulacion no encontrada.'], 404);
         }
 
@@ -433,7 +446,7 @@ class PostulacionController extends Controller
 
         if ($postulacion->servicio) {
             Notificacion::create([
-                'mensaje' => 'Una postulacion fue cancelada en tu servicio "' . $postulacion->servicio->titulo . '".',
+                'mensaje' => 'Una postulacion fue cancelada en tu servicio "'.$postulacion->servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
                 'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
@@ -461,7 +474,7 @@ class PostulacionController extends Controller
     public function adminIndex(Request $request)
     {
         $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
+        if (! $admin || $admin->rol !== 'admin') {
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
@@ -483,7 +496,7 @@ class PostulacionController extends Controller
     public function cambiarEstado(Request $request, $id)
     {
         $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
+        if (! $admin || $admin->rol !== 'admin') {
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
@@ -496,7 +509,7 @@ class PostulacionController extends Controller
         $postulacion->save();
 
         Notificacion::create([
-            'mensaje' => 'Tu postulacion para "' . ($postulacion->servicio->titulo ?? 'servicio') . '" ahora esta ' . $validated['estado'] . '.',
+            'mensaje' => 'Tu postulacion para "'.($postulacion->servicio->titulo ?? 'servicio').'" ahora esta '.$validated['estado'].'.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
             'id_CorreoUsuario' => $postulacion->id_Usuario,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
-import { Loader2, Send, User, FileText, MessageSquare } from "lucide-react";
+import { Loader2, Send, User, FileText, MessageSquare, XCircle } from "lucide-react";
 
 export default function UserMessages() {
   const [conversaciones, setConversaciones] = useState([]);
@@ -10,6 +10,28 @@ export default function UserMessages() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [hiddenChats, setHiddenChats] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("hidden_chats") || "[]"); } catch { return []; }
+  });
+
+  const terminarChat = (postulacion) => {
+    Swal.fire({
+      title: '¿Terminar chat?',
+      text: 'Esta acción ocultará la conversación de tu lista. No se pueden recuperar los mensajes ocultos.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, terminar',
+      cancelButtonText: 'Cancelar',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updated = [...hiddenChats, postulacion.id];
+        setHiddenChats(updated);
+        localStorage.setItem("hidden_chats", JSON.stringify(updated));
+        setSelected(null);
+        setMessages([]);
+      }
+    });
+  };
   
   const currentUser = useMemo(() => {
     try {

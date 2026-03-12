@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Usuario;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UsuarioSeeder extends Seeder
@@ -63,7 +63,7 @@ class UsuarioSeeder extends Seeder
 
         // Generate 20+ random users
         $faker = \Faker\Factory::create('es_CO');
-        
+
         for ($i = 0; $i < 25; $i++) {
             Usuario::create([
                 'id_CorreoUsuario' => $faker->unique()->email,

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Interfaz para servicios de pago de MercadoPago.
@@ -15,8 +14,9 @@ interface MercadoPagoInterface
     /**
      * Crea una preferencia de pago en MercadoPago.
      *
-     * @param array $datos Datos del ítem, pagador y URLs de retorno
+     * @param  array  $datos  Datos del ítem, pagador y URLs de retorno
      * @return array Respuesta con preference_id, init_point, sandbox_init_point
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function crearPreferencia(array $datos): array;
@@ -24,8 +24,9 @@ interface MercadoPagoInterface
     /**
      * Obtiene los datos de un pago por su ID.
      *
-     * @param int $paymentId ID del pago en MercadoPago
+     * @param  int  $paymentId  ID del pago en MercadoPago
      * @return array Datos del pago (status, external_reference, etc.)
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function obtenerPago(int $paymentId): array;
@@ -33,8 +34,9 @@ interface MercadoPagoInterface
     /**
      * Obtiene los datos de un pago por su referencia externa.
      *
-     * @param string $referencia Referencia externa del pago
+     * @param  string  $referencia  Referencia externa del pago
      * @return array Datos del pago (status, external_reference, etc.)
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function obtenerPagoPorReferencia(string $referencia): array;
@@ -54,17 +56,17 @@ class MercadoPagoService implements MercadoPagoInterface
     private function configurarSdk(): void
     {
         $accessToken = config('services.mercadopago.access_token');
-        
+
         // Configurar el token de acceso
         \MercadoPago\MercadoPagoConfig::setAccessToken($accessToken);
-        
+
         // En entorno local (desarrollo), deshabilitar verificación SSL si hay problemas de certificado
         // Esto es solo para desarrollo - en producción debe estar habilitado
         if (app()->environment('local')) {
             // Deshabilitar verificación SSL para llamadas HTTP
             // Esto resuelve el problema "SSL certificate problem: unable to get local issuer certificate"
             putenv('CURL_CA_BUNDLE=');
-            
+
             // También configurar opciones de contexto de stream para llamadas HTTPS
             $options = [
                 'ssl' => [
@@ -74,10 +76,10 @@ class MercadoPagoService implements MercadoPagoInterface
                 ],
             ];
             stream_context_set_default($options);
-            
+
             Log::info('MercadoPago: Verificación SSL deshabilitada para desarrollo');
         }
-        
+
         Log::info('MercadoPago: SDK configurado', [
             'token_prefix' => substr($accessToken, 0, 7),
             'environment' => app()->environment(),
@@ -87,8 +89,9 @@ class MercadoPagoService implements MercadoPagoInterface
     /**
      * Crea una preferencia de pago en MercadoPago.
      *
-     * @param array $datos Datos del ítem, pagador y URLs de retorno
+     * @param  array  $datos  Datos del ítem, pagador y URLs de retorno
      * @return array Respuesta con preference_id, init_point, sandbox_init_point
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function crearPreferencia(array $datos): array
@@ -105,7 +108,7 @@ class MercadoPagoService implements MercadoPagoInterface
                 'notification_url' => $datos['notification_url'] ?? null,
             ]);
 
-            $client = new \MercadoPago\Client\Preference\PreferenceClient();
+            $client = new \MercadoPago\Client\Preference\PreferenceClient;
             $preference = $client->create($datos);
 
             Log::info('MercadoPago: Preferencia creada exitosamente', [
@@ -113,9 +116,9 @@ class MercadoPagoService implements MercadoPagoInterface
             ]);
 
             return [
-                'id'                  => $preference->id,
-                'init_point'          => $preference->init_point,
-                'sandbox_init_point'  => $preference->sandbox_init_point,
+                'id' => $preference->id,
+                'init_point' => $preference->init_point,
+                'sandbox_init_point' => $preference->sandbox_init_point,
             ];
         } catch (\Throwable $e) {
             // Capturar cualquier error y registrar detalles
@@ -125,7 +128,7 @@ class MercadoPagoService implements MercadoPagoInterface
                 'items' => $datos['items'] ?? [],
                 'external_reference' => $datos['external_reference'] ?? null,
             ];
-            
+
             // Si es una exception de API de MP, obtener mas detalles
             // El SDK de MercadoPago puede lanzar excepciones con getApiResponse()
             // Usamos call_user_func para evitar el warning del IDE sobre métodos del SDK
@@ -133,14 +136,14 @@ class MercadoPagoService implements MercadoPagoInterface
             if (method_exists($e, 'getApiResponse')) {
                 $apiResponse = call_user_func([$e, 'getApiResponse']);
             }
-            
+
             if ($apiResponse) {
                 $errorDetails['api_response'] = [
                     'status' => is_object($apiResponse) && method_exists($apiResponse, 'getStatusCode') ? (@$apiResponse->getStatusCode() ?? 'unknown') : 'unknown',
                     'body' => is_object($apiResponse) && method_exists($apiResponse, 'getContent') ? (@$apiResponse->getContent() ?? 'unknown') : 'unknown',
                 ];
             }
-            
+
             // También intentar obtener el response del SDK de otra forma
             if (isset($e->response) && is_object($e->response)) {
                 $errorDetails['sdk_response'] = [
@@ -148,18 +151,19 @@ class MercadoPagoService implements MercadoPagoInterface
                     'content' => is_object($e->response) && method_exists($e->response, 'getContent') ? (json_decode(@$e->response->getContent(), true) ?? 'unknown') : 'unknown',
                 ];
             }
-            
+
             $this->logError('Error al crear preferencia', $errorDetails);
-            
-            throw new \Exception('Api error. Check response for details: ' . $e->getMessage());
+
+            throw new \Exception('Api error. Check response for details: '.$e->getMessage());
         }
     }
 
     /**
      * Obtiene los datos de un pago por su ID.
      *
-     * @param int $paymentId ID del pago en MercadoPago
+     * @param  int  $paymentId  ID del pago en MercadoPago
      * @return array Datos del pago (status, external_reference, etc.)
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function obtenerPago(int $paymentId): array
@@ -169,15 +173,15 @@ class MercadoPagoService implements MercadoPagoInterface
 
             Log::info('MercadoPago: Obteniendo pago', ['payment_id' => $paymentId]);
 
-            $client = new \MercadoPago\Client\Payment\PaymentClient();
+            $client = new \MercadoPago\Client\Payment\PaymentClient;
             $payment = $client->get($paymentId);
 
             return [
-                'id'                 => $payment->id,
-                'status'             => $payment->status,
+                'id' => $payment->id,
+                'status' => $payment->status,
                 'external_reference' => $payment->external_reference,
                 'transaction_amount' => $payment->transaction_amount,
-                'payer'              => $payment->payer ?? null,
+                'payer' => $payment->payer ?? null,
             ];
         } catch (\Throwable $e) {
             $this->logError('Error al obtener pago', [
@@ -185,24 +189,25 @@ class MercadoPagoService implements MercadoPagoInterface
                 'exception_class' => get_class($e),
                 'payment_id' => $paymentId,
             ]);
-            
-            throw new \Exception('Api error. Check response for details: ' . $e->getMessage());
+
+            throw new \Exception('Api error. Check response for details: '.$e->getMessage());
         }
     }
-    
+
     /**
      * Metodo helper para registrar errores de manera consistente
      */
     private function logError(string $message, array $context): void
     {
-        Log::error('MercadoPago: ' . $message, $context);
+        Log::error('MercadoPago: '.$message, $context);
     }
 
     /**
      * Obtiene los datos de un pago por su referencia externa.
      *
-     * @param string $referencia Referencia externa del pago
+     * @param  string  $referencia  Referencia externa del pago
      * @return array Datos del pago (status, external_reference, etc.)
+     *
      * @throws \Exception Si falla la comunicación con MP
      */
     public function obtenerPagoPorReferencia(string $referencia): array
@@ -214,8 +219,8 @@ class MercadoPagoService implements MercadoPagoInterface
 
             // Usar el cliente de preferencias para buscar por external_reference
             /** @var \MercadoPago\Client\Preference\PreferenceClient $client */
-            $client = new \MercadoPago\Client\Preference\PreferenceClient();
-            
+            $client = new \MercadoPago\Client\Preference\PreferenceClient;
+
             // Buscar preferencias por external_reference
             // Usamos call_user_func para evitar el warning del IDE sobre métodos del SDK
             /** @var object|false $preferences */
@@ -227,11 +232,11 @@ class MercadoPagoService implements MercadoPagoInterface
             // Si encontramos preferencias, buscar el pago asociado
             // La respuesta del SDK puede tener diferentes estructuras
             $results = is_object($preferences) ? (@$preferences->results ?? @$preferences->response ?? []) : [];
-            if (!empty($results) && is_array($results) && count($results) > 0) {
-                $preference = is_array($results[0]) ? (object)$results[0] : $results[0];
-                
+            if (! empty($results) && is_array($results) && count($results) > 0) {
+                $preference = is_array($results[0]) ? (object) $results[0] : $results[0];
+
                 // Obtener el primer pago de la preferencia
-                if (!empty($preference->id)) {
+                if (! empty($preference->id)) {
                     return [
                         'preference_id' => $preference->id,
                         'external_reference' => $preference->external_reference ?? $referencia,
@@ -251,8 +256,8 @@ class MercadoPagoService implements MercadoPagoInterface
                 'exception_class' => get_class($e),
                 'external_reference' => $referencia,
             ]);
-            
-            throw new \Exception('Api error. Check response for details: ' . $e->getMessage());
+
+            throw new \Exception('Api error. Check response for details: '.$e->getMessage());
         }
     }
 }

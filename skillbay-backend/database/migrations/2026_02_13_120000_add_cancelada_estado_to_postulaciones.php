@@ -8,7 +8,7 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             // MySQL: modificar la columna para agregar 'cancelada'
             DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada','cancelada') NOT NULL DEFAULT 'pendiente'");
@@ -20,7 +20,7 @@ return new class extends Migration
     public function down(): void
     {
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada') NOT NULL DEFAULT 'pendiente'");
         }

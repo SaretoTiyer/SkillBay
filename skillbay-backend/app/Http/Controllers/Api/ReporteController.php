@@ -22,12 +22,12 @@ class ReporteController extends Controller
         ]);
 
         $idReportado = $validated['id_Reportado'] ?? null;
-        if (!$idReportado && !empty($validated['id_Servicio'])) {
+        if (! $idReportado && ! empty($validated['id_Servicio'])) {
             $servicio = Servicio::find($validated['id_Servicio']);
             $idReportado = $servicio?->id_Cliente;
         }
 
-        if (!$idReportado) {
+        if (! $idReportado) {
             return response()->json([
                 'success' => false,
                 'message' => 'No se pudo identificar al usuario reportado.',
@@ -46,7 +46,7 @@ class ReporteController extends Controller
         $admins = Usuario::where('rol', 'admin')->select('id_CorreoUsuario')->get();
         foreach ($admins as $admin) {
             Notificacion::create([
-                'mensaje' => 'Nuevo reporte recibido contra ' . $idReportado . '.',
+                'mensaje' => 'Nuevo reporte recibido contra '.$idReportado.'.',
                 'estado' => 'No leido',
                 'tipo' => 'reporte',
                 'id_CorreoUsuario' => $admin->id_CorreoUsuario,
@@ -62,7 +62,7 @@ class ReporteController extends Controller
     public function adminIndex(Request $request)
     {
         $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
+        if (! $admin || $admin->rol !== 'admin') {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -87,6 +87,7 @@ class ReporteController extends Controller
         }
 
         $reportes = $query->get();
+
         return response()->json([
             'success' => true,
             'total' => $reportes->count(),
@@ -97,7 +98,7 @@ class ReporteController extends Controller
     public function cambiarEstado(Request $request, $id)
     {
         $admin = $request->user();
-        if (!$admin || $admin->rol !== 'admin') {
+        if (! $admin || $admin->rol !== 'admin') {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -110,7 +111,7 @@ class ReporteController extends Controller
         $reporte->save();
 
         Notificacion::create([
-            'mensaje' => 'Tu reporte fue actualizado a estado: ' . $validated['estado'] . '.',
+            'mensaje' => 'Tu reporte fue actualizado a estado: '.$validated['estado'].'.',
             'estado' => 'No leido',
             'tipo' => 'reporte',
             'id_CorreoUsuario' => $reporte->id_Reportador,

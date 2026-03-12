@@ -8,7 +8,7 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             // MySQL: modificar la columna ENUM para agregar 'en_progreso', 'completada' y 'pagada'
             DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada','cancelada','en_progreso','completada','pagada') NOT NULL DEFAULT 'pendiente'");
@@ -19,7 +19,7 @@ return new class extends Migration
     public function down(): void
     {
         $driver = DB::connection()->getDriverName();
-        
+
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE postulaciones MODIFY estado ENUM('pendiente','aceptada','rechazada','cancelada') NOT NULL DEFAULT 'pendiente'");
         }

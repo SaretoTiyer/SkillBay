@@ -20,7 +20,7 @@ class Resena extends Model
     ];
 
     protected $casts = [
-        'fechaResena'  => 'datetime',
+        'fechaResena' => 'datetime',
         'calificacion' => 'integer',
     ];
 

@@ -19,7 +19,7 @@ class BienvenidaMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '¡Bienvenido a SkillBay, ' . $this->usuario->nombre . '!',
+            subject: '¡Bienvenido a SkillBay, '.$this->usuario->nombre.'!',
         );
     }
 

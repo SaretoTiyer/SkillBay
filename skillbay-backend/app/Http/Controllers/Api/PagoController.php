@@ -16,13 +16,13 @@ class PagoController extends Controller
 {
     private function generarReferencia(string $prefix): string
     {
-        return strtoupper($prefix) . '-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
+        return strtoupper($prefix).'-'.now()->format('YmdHis').'-'.strtoupper(Str::random(6));
     }
 
     public function pagarPlan(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -35,24 +35,24 @@ class PagoController extends Controller
         $precio = (float) ($plan->precioMensual ?? 0);
 
         $pago = PagoPlan::create([
-            'monto'            => $precio,
-            'fechaPago'        => now(),
-            'estado'           => 'Completado',
-            'metodoPago'       => 'Pasarela Simulada',
-            'modalidadPago'    => 'virtual',
-            'referenciaPago'   => $this->generarReferencia('plan'),
-            'fechaInicioPlan'  => now()->toDateString(),
-            'fechaFinPlan'     => now()->addMonth()->toDateString(),
+            'monto' => $precio,
+            'fechaPago' => now(),
+            'estado' => 'Completado',
+            'metodoPago' => 'Pasarela Simulada',
+            'modalidadPago' => 'virtual',
+            'referenciaPago' => $this->generarReferencia('plan'),
+            'fechaInicioPlan' => now()->toDateString(),
+            'fechaFinPlan' => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
-            'id_Plan'          => $plan->id_Plan,
-            'mp_status'        => 'approved', // Simulado como aprobado
+            'id_Plan' => $plan->id_Plan,
+            'mp_status' => 'approved', // Simulado como aprobado
         ]);
 
         $user->id_Plan = $plan->id_Plan;
         $user->save();
 
         Notificacion::create([
-            'mensaje' => 'Pago de plan confirmado. Tu plan actual es "' . $plan->nombre . '".',
+            'mensaje' => 'Pago de plan confirmado. Tu plan actual es "'.$plan->nombre.'".',
             'estado' => 'No leido',
             'tipo' => 'sistema',
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
@@ -69,7 +69,7 @@ class PagoController extends Controller
     public function pagarServicio(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -92,19 +92,19 @@ class PagoController extends Controller
             ->where('estado', 'completada')
             ->first();
 
-        if (!$postulacionCompletada) {
+        if (! $postulacionCompletada) {
             return response()->json([
                 'message' => 'No se puede procesar el pago. El trabajo debe estar marcado como completado por el cliente antes de pagar.',
             ], 422);
         }
 
-        if (!empty($validated['id_Postulacion'])) {
+        if (! empty($validated['id_Postulacion'])) {
             $postulacion = Postulacion::with('servicio')->where('id', $validated['id_Postulacion'])
                 ->where('id_Servicio', $servicio->id_Servicio)
                 ->where('estado', 'completada')
                 ->first();
 
-            if (!$postulacion) {
+            if (! $postulacion) {
                 return response()->json(['message' => 'La postulacion no corresponde al servicio o no esta completada.'], 422);
             }
         } else {
@@ -139,7 +139,7 @@ class PagoController extends Controller
             // Flujo de dinero basado en tipo_postulacion:
             // - 'postulante': el dueño de la oportunidad (id_Cliente) paga al postulante (id_Usuario)
             // - 'solicitante': el solicitante (id_Usuario) paga al proveedor del servicio (id_Cliente)
-            'id_Pagador'  => $idClientePaga,       // El que PAGA
+            'id_Pagador' => $idClientePaga,       // El que PAGA
             'id_Receptor' => $idPrestadorRecibe,   // El que RECIBE
         ]);
 
@@ -151,7 +151,7 @@ class PagoController extends Controller
 
         // Notificación al RECEPTOR (quien recibe el pago)
         Notificacion::create([
-            'mensaje' => 'Has recibido un pago por el servicio "' . $servicio->titulo . '". El cliente completó el pago.',
+            'mensaje' => 'Has recibido un pago por el servicio "'.$servicio->titulo.'". El cliente completó el pago.',
             'estado' => 'No leido',
             'tipo' => 'pago',
             'id_CorreoUsuario' => $idPrestadorRecibe,
@@ -159,7 +159,7 @@ class PagoController extends Controller
 
         // Notificación al PAGADOR (quien realizó el pago)
         Notificacion::create([
-            'mensaje' => 'Tu pago del servicio "' . $servicio->titulo . '" fue registrado con referencia ' . $pago->referenciaPago . '.',
+            'mensaje' => 'Tu pago del servicio "'.$servicio->titulo.'" fue registrado con referencia '.$pago->referenciaPago.'.',
             'estado' => 'No leido',
             'tipo' => 'sistema',
             'id_CorreoUsuario' => $idClientePaga,
@@ -175,7 +175,7 @@ class PagoController extends Controller
     public function historial(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -197,8 +197,9 @@ class PagoController extends Controller
 
         // Agregar información sobre el rol del usuario en cada pago
         $servicios->transform(function ($pago) use ($user) {
-            $pago->es_pagador  = $pago->id_Pagador  === $user->id_CorreoUsuario;
+            $pago->es_pagador = $pago->id_Pagador === $user->id_CorreoUsuario;
             $pago->es_receptor = $pago->id_Receptor === $user->id_CorreoUsuario;
+
             return $pago;
         });
 

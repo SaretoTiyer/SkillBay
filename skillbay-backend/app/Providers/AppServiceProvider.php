@@ -21,27 +21,31 @@ class AppServiceProvider extends ServiceProvider
             // En testing, usar simulador
             if ($app->environment('testing')) {
                 Log::info('MercadoPago: Usando simulador (entorno testing)');
-                return new MercadoPagoSimuladorService();
+
+                return new MercadoPagoSimuladorService;
             }
-            
+
             // Verificar si el token de acceso es valido
             $accessToken = config('services.mercadopago.access_token');
-            
+
             // Si no hay token o contiene placeholders, usar simulador
             if (empty($accessToken) || $this->isTokenInvalido($accessToken)) {
                 Log::warning('MercadoPago: Token de acceso invalido o no configurado. Usando simulador.');
-                return new MercadoPagoSimuladorService();
+
+                return new MercadoPagoSimuladorService;
             }
-            
+
             // En entorno local (desarrollo), usar simulador por defecto para evitar errores de API
             // a menos que se configure explicitamente MP_USE_SIMULATOR=false
             if ($app->environment('local') && env('MP_USE_SIMULATOR', true)) {
                 Log::info('MercadoPago: Usando simulador (entorno local)');
-                return new MercadoPagoSimuladorService();
+
+                return new MercadoPagoSimuladorService;
             }
-            
+
             Log::info('MercadoPago: Usando servicio real');
-            return new MercadoPagoService();
+
+            return new MercadoPagoService;
         });
     }
 
@@ -52,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
     }
-    
+
     /**
      * Verifica si el token de MercadoPago es invalido (placeholder o dummy)
      */
@@ -65,18 +69,18 @@ class AppServiceProvider extends ServiceProvider
             'your_access_token_here',
             'YOUR_ACCESS_TOKEN',
         ];
-        
+
         foreach ($invalidPatterns as $pattern) {
             if (str_contains($token, $pattern)) {
                 return true;
             }
         }
-        
+
         // Token vacio o muy corto
         if (strlen($token) < 20) {
             return true;
         }
-        
+
         return false;
     }
 }

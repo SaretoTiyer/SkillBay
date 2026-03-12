@@ -570,12 +570,12 @@
                     onChange={handleChange}
                     className="rounded text-[#2B6CB0]"
                     />
-                    <span className="text-[#A0AEC0] text-sm">
-                    Acepto los{' '}
-                    <button type="button" className="text-[#2B6CB0] hover:underline">
-                        términos y condiciones
-                    </button>
-                    </span>
+<span className="text-[#A0AEC0] text-sm">
+        Acepto los{' '}
+        <a href="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer" className="text-[#2B6CB0] hover:underline">
+            términos y condiciones
+        </a>
+    </span>
                 </div>
                 {renderError('acceptTerms')}
 

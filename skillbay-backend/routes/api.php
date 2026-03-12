@@ -1,21 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthRecoveryController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\MensajeController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\NotificacionController;
+use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PostulacionController;
-use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\ResenaController;
 use App\Http\Controllers\Api\ServicioController;
 use App\Http\Controllers\Api\UsuarioController;
-
-
+use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [UsuarioController::class, 'register']);
 Route::post('/login', [UsuarioController::class, 'login']);
@@ -32,9 +30,9 @@ Route::get('/categorias/publicas', function () {
 // ── MercadoPago: rutas públicas (webhook y retornos no requieren auth) ──────
 Route::post('/mp/webhook', [MercadoPagoController::class, 'webhook']);
 Route::get('/mp/webhook', [MercadoPagoController::class, 'webhookTest']); // Para prueba de MercadoPago
-Route::get('/mp/success',  [MercadoPagoController::class, 'success']);
-Route::get('/mp/failure',  [MercadoPagoController::class, 'failure']);
-Route::get('/mp/pending',  [MercadoPagoController::class, 'pending']);
+Route::get('/mp/success', [MercadoPagoController::class, 'success']);
+Route::get('/mp/failure', [MercadoPagoController::class, 'failure']);
+Route::get('/mp/pending', [MercadoPagoController::class, 'pending']);
 
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);

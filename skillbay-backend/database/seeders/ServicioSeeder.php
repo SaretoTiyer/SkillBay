@@ -10,7 +10,7 @@ class ServicioSeeder extends Seeder
     public function run(): void
     {
         $faker = \Faker\Factory::create('es_CO');
-        
+
         // Ensure at least one static client exists (created in UsuarioSeeder)
         $clienteId = 'cliente@skillbay.com';
 
@@ -40,10 +40,14 @@ class ServicioSeeder extends Seeder
         // Generate more random services from random clients
         // We need users with rol 'cliente' to own these services
         $clientes = \App\Models\Usuario::where('rol', 'cliente')->get();
-        if ($clientes->isEmpty()) return;
+        if ($clientes->isEmpty()) {
+            return;
+        }
 
         $categorias = \App\Models\Categoria::all();
-        if ($categorias->isEmpty()) return;
+        if ($categorias->isEmpty()) {
+            return;
+        }
 
         for ($i = 0; $i < 10; $i++) {
             Servicio::create([
@@ -52,7 +56,7 @@ class ServicioSeeder extends Seeder
                 'id_Cliente' => $clientes->random()->id_CorreoUsuario,
                 'estado' => 'Activo',
                 'precio' => $faker->numberBetween(100000, 5000000),
-                'tiempo_entrega' => $faker->numberBetween(1, 60) . ' días',
+                'tiempo_entrega' => $faker->numberBetween(1, 60).' días',
                 'id_Categoria' => $categorias->random()->id_Categoria,
                 'fechaPublicacion' => $faker->dateTimeBetween('-2 months', 'now'),
                 'tipo' => 'servicio',
@@ -62,8 +66,8 @@ class ServicioSeeder extends Seeder
         // Generate oportunidades (job opportunities) - type: 'oportunidad'
         for ($i = 0; $i < 10; $i++) {
             Servicio::create([
-                'titulo' => 'Se busca: ' . $faker->jobTitle(),
-                'descripcion' => 'Empresa busca profesional para proyecto importante. ' . $faker->paragraph(2),
+                'titulo' => 'Se busca: '.$faker->jobTitle(),
+                'descripcion' => 'Empresa busca profesional para proyecto importante. '.$faker->paragraph(2),
                 'id_Cliente' => $clientes->random()->id_CorreoUsuario,
                 'estado' => 'Activo',
                 'precio' => $faker->numberBetween(500000, 10000000),
