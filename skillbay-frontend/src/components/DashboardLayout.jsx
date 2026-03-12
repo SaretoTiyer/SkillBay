@@ -21,7 +21,6 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const navItems = [
     { name: "Explorar Oportunidades", view: "explore", icon: Home },
     { name: "Explorar Servicios", view: "explore_services", icon: BriefcaseBusiness },
-    { name: "Mi Perfil", view: "profile", icon: User },
     { name: "Mis Servicios", view: "services", icon: Briefcase },
     { name: "Postulaciones", view: "applications", icon: FileText },
     { name: "Mensajes", view: "messages", icon: MessageSquare },
@@ -67,7 +66,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
   const fullName = `${currentUser?.nombre || "Usuario"} ${currentUser?.apellido || ""}`.trim();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#f7fafc] to-[#E2E8F0]">
+    <div className="min-h-screen bg-linear-to-br from-[#E2E8F0] via-[#f7fafc] to-[#E2E8F0]">
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-lg border-b border-[#E2E8F0]">
         <div className="flex items-center justify-between px-4 lg:px-6 h-16">
           <div className="flex items-center gap-4">
