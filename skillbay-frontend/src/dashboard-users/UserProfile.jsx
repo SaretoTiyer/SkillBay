@@ -14,15 +14,16 @@ import {
     Settings,
     Shield,
     Clock,
-    CheckCircle,
     User,
     Package,
+    Award,
+    TrendingUp,
+    Globe,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Badge } from "../components/ui/badge";
 
 export default function UserProfile({ onNavigate }) {
     const [isEditing, setIsEditing] = useState(false);
@@ -74,7 +75,6 @@ export default function UserProfile({ onNavigate }) {
             const userData = await userRes.json();
             const servicesData = await servicesRes.json();
 
-            // Fetch reviews after getting user data
             let reviewsData = { resenas_como_ofertante: [], resenas_como_cliente: [] };
             let promedioData = { promedio: { general: 0 } };
 
@@ -103,26 +103,25 @@ export default function UserProfile({ onNavigate }) {
                     title: user.rol || "Usuario",
                     memberSince: user.fechaRegistro ? new Date(user.fechaRegistro).toLocaleDateString("es-CO", { year: "numeric", month: "long" }) : "",
                 }));
-                // Cargar imagen de perfil existente
                 if (user.imagen_perfil) {
                     setProfileImage(user.imagen_perfil);
                 }
             }
 
-             const servicesArray = Array.isArray(servicesData) ? servicesData : (Array.isArray(servicesData?.servicios) ? servicesData.servicios : []);
-             setServicesOffered(servicesArray);
-            setServicesHired([]); // Could fetch from postulaciones
+            const servicesArray = Array.isArray(servicesData) ? servicesData : (Array.isArray(servicesData?.servicios) ? servicesData.servicios : []);
+            setServicesOffered(servicesArray);
+            setServicesHired([]);
 
             setReviews({
                 ofertante: reviewsData?.resenas_como_ofertante || [],
-                cliente:   reviewsData?.resenas_como_cliente   || [],
+                cliente: reviewsData?.resenas_como_cliente   || [],
             });
 
             const promedio = promedioData?.promedio?.general || 0;
             setProfileData(prev => ({
                 ...prev,
                 rating: Number(promedio).toFixed(1),
-                projectsCompleted: services.length,
+                projectsCompleted: servicesArray.length,
             }));
         } catch (error) {
             console.error("Error fetching profile:", error);
@@ -193,24 +192,24 @@ export default function UserProfile({ onNavigate }) {
     };
 
     const ReviewCard = ({ review }) => (
-        <div className="p-4 bg-slate-50 rounded-xl">
-            <div className="flex items-center justify-between mb-2">
+        <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+            <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${review.calificacion} de 5 estrellas`}>
                     {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                             key={star}
                             size={14}
-                            className={star <= review.calificacion ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
+                            className={star <= review.calificacion ? "text-amber-400 fill-amber-400" : "text-gray-300"}
                             aria-hidden="true"
                         />
                     ))}
                 </div>
-                <span className="text-xs text-slate-400">
-                    {review.fechaReseña ? new Date(review.fechaReseña).toLocaleDateString("es-CO") : ""}
+                <span className="text-xs text-gray-400 font-medium">
+                    {review.created_at ? new Date(review.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : ""}
                 </span>
             </div>
             {review.comentario && (
-                <p className="text-slate-600 text-sm">{review.comentario}</p>
+                <p className="text-gray-600 text-sm leading-relaxed">{review.comentario}</p>
             )}
         </div>
     );
@@ -236,22 +235,22 @@ export default function UserProfile({ onNavigate }) {
                     body: formData,
                 });
 
-                 const data = await response.json();
-                 if (response.ok) {
-                     setProfileImage(data.imagen_perfil);
-                     try {
-                         const stored = JSON.parse(localStorage.getItem('usuario') || '{}');
-                         stored.imagen_perfil = data.imagen_perfil;
-                         localStorage.setItem('usuario', JSON.stringify(stored));
-                         window.dispatchEvent(new Event('storage'));
-                     } catch(e) {}
-                     Swal.fire({
-                         icon: 'success',
-                         title: 'Foto actualizada',
-                         text: 'Tu foto de perfil ha sido actualizada.',
-                         timer: 1500,
-                         showConfirmButton: false,
-                     });
+                const data = await response.json();
+                if (response.ok) {
+                    setProfileImage(data.imagen_perfil);
+                    try {
+                        const stored = JSON.parse(localStorage.getItem('usuario') || '{}');
+                        stored.imagen_perfil = data.imagen_perfil;
+                        localStorage.setItem('usuario', JSON.stringify(stored));
+                        window.dispatchEvent(new Event('storage'));
+                    } catch(e) {}
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Foto actualizada',
+                        text: 'Tu foto de perfil ha sido actualizada.',
+                        timer: 1500,
+                        showConfirmButton: false,
+                    });
                 } else {
                     Swal.fire({
                         icon: 'error',
@@ -271,33 +270,41 @@ export default function UserProfile({ onNavigate }) {
         input.click();
     };
 
+    const tabs = [
+        { id: "info", label: "Información", icon: User },
+        { id: "services", label: "Servicios", icon: Package },
+        { id: "reviews", label: "Reseñas", icon: Star },
+        { id: "settings", label: "Configuración", icon: Settings },
+    ];
+
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-                    <p className="text-slate-500">Cargando perfil...</p>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <p className="text-gray-500 font-medium">Cargando perfil...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-4 lg:p-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Header */}
-            <div className="mb-6 lg:mb-8">
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-800">Mi Perfil</h1>
-                <p className="text-slate-500 mt-1">Administra tu información personal y profesional</p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Mi Perfil</h1>
+                <p className="text-gray-500 mt-1">Administra tu información personal y profesional</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Perfil lateral */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Perfil lateral - Sidebar */}
+                <div className="lg:col-span-4 xl:col-span-3">
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-8">
                         {/* Cover */}
-                        <div className="h-24 bg-linear-to-r from-blue-600 to-blue-700 relative">
+                        <div className="h-28 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHptMCAzMmMtNy43MzIgMC0xNC02LjI2OC0xNC0xNHM2LjI2OC0xNCAxNC0xNCAxNCA2LjI2OCAxNCAxNC02LjI2OCAxNC0xNCAxNHoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvZz48L3N2Zz4=')] opacity-30"></div>
                             {isEditing && (
-                                <button className="absolute top-3 right-3 p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+                                <button className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all">
                                     <Camera className="text-white" size={16} />
                                 </button>
                             )}
@@ -305,12 +312,12 @@ export default function UserProfile({ onNavigate }) {
 
                         {/* Avatar */}
                         <div className="px-6 pb-6">
-                            <div className="relative -mt-12 mb-4">
+                            <div className="relative -mt-14 mb-5">
                                 {profileImage ? (
                                     <img
                                         src={getImageUrl(profileImage)}
                                         alt={profileData.name}
-                                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                                        className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-lg"
                                         onError={(e) => {
                                             e.currentTarget.style.display = 'none';
                                             e.currentTarget.nextElementSibling.style.display = 'flex';
@@ -318,15 +325,15 @@ export default function UserProfile({ onNavigate }) {
                                     />
                                 ) : null}
                                 <div
-                                    className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-blue-700
-                                               flex items-center justify-center text-white text-3xl font-bold
-                                               border-4 border-white shadow-md"
+                                    className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600
+                                               flex items-center justify-center text-white text-4xl font-bold
+                                               border-4 border-white shadow-lg"
                                     style={{ display: profileImage ? 'none' : 'flex' }}
                                 >
                                     {profileData.name.charAt(0).toUpperCase()}
                                 </div>
                                 <button 
-                                    className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md border border-slate-200 opacity-60 hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
+                                    className="absolute bottom-1 right-1 bg-white p-2.5 rounded-xl shadow-md border border-gray-200 opacity-0 hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 group"
                                     onClick={handleProfileImageClick}
                                     aria-label="Cambiar foto de perfil"
                                     title="Cambiar foto de perfil"
@@ -336,52 +343,64 @@ export default function UserProfile({ onNavigate }) {
                             </div>
 
                             {/* Info básica */}
-                            <h2 className="text-xl font-bold text-slate-800">{profileData.name}</h2>
-                            <p className="text-blue-600 font-medium">{profileData.title}</p>
+                            <h2 className="text-xl font-bold text-gray-900">{profileData.name}</h2>
+                            <p className="text-blue-600 font-medium mt-1">{profileData.title}</p>
 
                             {/* Rating */}
-                            <div className="flex items-center gap-2 mt-3">
-                                <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${profileData.rating || '0'} de 5 estrellas`}>
+                            <div className="flex items-center gap-2 mt-4">
+                                <div className="flex items-center gap-0.5" role="img" aria-label={`Calificación: ${profileData.rating || '0'} de 5 estrellas`}>
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <Star
                                             key={star}
-                                            size={16}
-                                            className={star <= Math.round(profileData.rating) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"}
+                                            size={18}
+                                            className={star <= Math.round(profileData.rating) ? "text-amber-400 fill-amber-400" : "text-gray-300"}
                                             aria-hidden="true"
                                         />
                                     ))}
                                 </div>
-                                <span className="text-slate-600 font-medium">{profileData.rating || "0.0"}</span>
-                                <span className="text-slate-400 text-sm">({(reviews.ofertante?.length || 0) + (reviews.cliente?.length || 0)} reseñas)</span>
+                                <span className="text-gray-700 font-semibold">{profileData.rating || "0.0"}</span>
+                                <span className="text-gray-400 text-sm">({(reviews.ofertante?.length || 0) + (reviews.cliente?.length || 0)})</span>
                             </div>
 
-                            {/* Stats */}
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                                    <p className="text-xl font-bold text-slate-800">{servicesOffered.length}</p>
-                                    <p className="text-xs text-slate-500">Servicios</p>
+                            {/* Stats - Tarjetas de estadísticas */}
+                            <div className="grid grid-cols-2 gap-3 mt-5">
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
+                                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                                        <Briefcase size={16} className="text-blue-600" />
+                                        <p className="text-2xl font-bold text-gray-900">{servicesOffered.length}</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500 font-medium">Servicios</p>
                                 </div>
-                                <div className="bg-slate-50 rounded-lg p-3 text-center">
-                                    <p className="text-xl font-bold text-slate-800">{profileData.memberSince ? new Date(profileData.memberSince).getFullYear() || profileData.memberSince : "-"}</p>
-                                    <p className="text-xs text-slate-500">Miembro desde</p>
+                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
+                                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                                        <Calendar size={16} className="text-amber-600" />
+                                        <p className="text-2xl font-bold text-gray-900">{profileData.memberSince ? new Date(profileData.memberSince).getFullYear() || profileData.memberSince : "-"}</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500 font-medium">Año</p>
                                 </div>
                             </div>
 
                             {/* Contacto rápido */}
-                            <div className="mt-4 space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Mail size={14} className="text-slate-400" />
-                                    <span className="truncate">{profileData.email}</span>
+                            <div className="mt-5 space-y-3 pt-5 border-t border-gray-100">
+                                <div className="flex items-center gap-3 text-sm text-gray-600">
+                                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Mail size={14} className="text-gray-500" />
+                                    </div>
+                                    <span className="truncate font-medium">{profileData.email}</span>
                                 </div>
                                 {profileData.phone && (
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <Phone size={14} className="text-slate-400" />
+                                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <Phone size={14} className="text-gray-500" />
+                                        </div>
                                         <span>{profileData.phone}</span>
                                     </div>
                                 )}
                                 {profileData.location && (
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <MapPin size={14} className="text-slate-400" />
+                                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <MapPin size={14} className="text-gray-500" />
+                                        </div>
                                         <span>{profileData.location}</span>
                                     </div>
                                 )}
@@ -392,19 +411,19 @@ export default function UserProfile({ onNavigate }) {
                                 {!isEditing ? (
                                     <Button
                                         onClick={() => setIsEditing(true)}
-                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 py-3"
                                     >
-                                        <Edit2 size={16} className="mr-2" />
+                                        <Edit2 size={16} />
                                         Editar Perfil
                                     </Button>
                                 ) : (
                                     <div className="flex gap-2">
-                                        <Button variant="outline" onClick={handleCancel} className="flex-1">
-                                            <X size={16} className="mr-1" />
+                                        <Button variant="outline" onClick={handleCancel} className="flex-1 py-3">
+                                            <X size={16} />
                                             Cancelar
                                         </Button>
-                                        <Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700">
-                                            <Save size={16} className="mr-1" />
+                                        <Button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700 py-3">
+                                            <Save size={16} />
                                             Guardar
                                         </Button>
                                     </div>
@@ -415,136 +434,152 @@ export default function UserProfile({ onNavigate }) {
                 </div>
 
                 {/* Contenido principal */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Tabs */}
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                        <button
-                            onClick={() => setActiveTab("info")}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                activeTab === "info"
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                            }`}
-                        >
-                            <User size={18} />
-                            Información
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("services")}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                activeTab === "services"
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                            }`}
-                        >
-                            <Package size={18} />
-                            Mis Servicios
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("reviews")}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                activeTab === "reviews"
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                            }`}
-                        >
-                            <Star size={18} />
-                            Reseñas
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("settings")}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                activeTab === "settings"
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                            }`}
-                        >
-                            <Settings size={18} />
-                            Configuración
-                        </button>
+                <div className="lg:col-span-8 xl:col-span-9 space-y-6">
+                    {/* Tabs - Navegación */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${
+                                    activeTab === tab.id
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                                }`}
+                            >
+                                <tab.icon size={18} />
+                                {tab.label}
+                                {tab.id === 'reviews' && ((reviews.ofertante?.length || 0) + (reviews.cliente?.length || 0)) > 0 && (
+                                    <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+                                        activeTab === tab.id ? 'bg-white/20' : 'bg-gray-100'
+                                    }`}>
+                                        {(reviews.ofertante?.length || 0) + (reviews.cliente?.length || 0)}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Contenido del tab */}
-                    <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 lg:p-8">
                         {activeTab === "info" && (
-                            <div className="space-y-6">
-                                <h3 className="text-lg font-semibold text-slate-800">Información Personal</h3>
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Información Personal</h3>
+                                    <p className="text-sm text-gray-500">Actualiza tu información de perfil</p>
+                                </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Nombre completo</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Nombre completo</label>
                                         {isEditing ? (
                                             <Input
                                                 value={profileData.name}
                                                 onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                                className="py-3"
                                             />
                                         ) : (
-                                            <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.name}</p>
+                                            <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                                                {profileData.name || "No definido"}
+                                            </div>
                                         )}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Correo electrónico</label>
-                                        <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.email}</p>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Correo electrónico</label>
+                                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center gap-2">
+                                            <Mail size={16} className="text-gray-400" />
+                                            {profileData.email}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Teléfono</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Teléfono</label>
                                         {isEditing ? (
                                             <Input
                                                 value={profileData.phone}
                                                 onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                                                 placeholder="Número de teléfono"
+                                                className="py-3"
                                             />
                                         ) : (
-                                            <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.phone || "No definido"}</p>
+                                            <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center gap-2">
+                                                <Phone size={16} className="text-gray-400" />
+                                                {profileData.phone || "No definido"}
+                                            </div>
                                         )}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Ubicación</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Ubicación</label>
                                         {isEditing ? (
                                             <Input
                                                 value={profileData.location}
                                                 onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                                                 placeholder="Ciudad, Departamento"
+                                                className="py-3"
                                             />
                                         ) : (
-                                            <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.location || "No definido"}</p>
+                                            <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center gap-2">
+                                                <MapPin size={16} className="text-gray-400" />
+                                                {profileData.location || "No definido"}
+                                            </div>
                                         )}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Rol</label>
-                                        <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.title}</p>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Rol</label>
+                                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center gap-2">
+                                            <Award size={16} className="text-gray-400" />
+                                            {profileData.title}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Miembro desde</label>
-                                        <p className="text-slate-800 bg-slate-50 p-3 rounded-lg">{profileData.memberSince || "No disponible"}</p>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Miembro desde</label>
+                                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center gap-2">
+                                            <Calendar size={16} className="text-gray-400" />
+                                            {profileData.memberSince || "No disponible"}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === "services" && (
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-slate-800">Servicios Ofrecidos</h3>
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Servicios Ofrecidos</h3>
+                                        <p className="text-sm text-gray-500">Gestiona tus servicios publicados</p>
+                                    </div>
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                        {servicesOffered.length} servicio{servicesOffered.length !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
                                 {servicesOffered.length > 0 ? (
                                     <div className="grid gap-4">
                                         {servicesOffered.map((service) => (
-                                            <div key={service.id_Servicio} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                            <div key={service.id_Servicio} className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-100/50 transition-all">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                        <Briefcase className="text-blue-600" size={20} />
+                                                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                                                        <Briefcase className="text-blue-600" size={22} />
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium text-slate-800">{service.titulo}</p>
-                                                        <p className="text-sm text-slate-500">{service.categoria?.nombre || "Sin categoría"}</p>
+                                                        <p className="font-semibold text-gray-900">{service.titulo}</p>
+                                                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                                                            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                                            {service.categoria?.nombre || "Sin categoría"}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="font-semibold text-blue-600">
-                                                        ${Number(service.precio || 0).toLocaleString("es-CO")} COP
+                                                    <p className="font-bold text-blue-600 text-lg">
+                                                        ${Number(service.precio || 0).toLocaleString("es-CO")}
                                                     </p>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                        service.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${
+                                                        service.estado === 'Activo' 
+                                                            ? 'bg-green-100 text-green-700' 
+                                                            : 'bg-gray-100 text-gray-600'
                                                     }`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                                            service.estado === 'Activo' ? 'bg-green-500' : 'bg-gray-400'
+                                                        }`}></span>
                                                         {service.estado || "Activo"}
                                                     </span>
                                                 </div>
@@ -552,20 +587,39 @@ export default function UserProfile({ onNavigate }) {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <Package size={40} className="mx-auto mb-2 text-slate-300" />
-                                        <p>No has creado servicios todavía</p>
+                                    <div className="text-center py-16 px-8">
+                                        <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                            <Package size={36} className="text-gray-300" />
+                                        </div>
+                                        <h4 className="text-gray-900 font-semibold mb-2">No has creado servicios todavía</h4>
+                                        <p className="text-gray-500 mb-6">Crea tu primer servicio para comenzar a recibir clientes</p>
+                                        <Button className="bg-blue-600 hover:bg-blue-700">
+                                            <Briefcase size={16} />
+                                            Crear Servicio
+                                        </Button>
                                     </div>
                                 )}
                             </div>
                         )}
 
                         {activeTab === "reviews" && (
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                                        Como Ofertante ({reviews.ofertante?.length || 0})
-                                    </h4>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Reseñas</h3>
+                                    <p className="text-sm text-gray-500">Opiniones de otros usuarios sobre tu trabajo</p>
+                                </div>
+                                
+                                {/* Como ofertante */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                                            <TrendingUp size={18} className="text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900">Como Ofertante</h4>
+                                            <p className="text-sm text-gray-500">{reviews.ofertante?.length || 0} reseñas</p>
+                                        </div>
+                                    </div>
                                     {reviews.ofertante?.length > 0 ? (
                                         <div className="space-y-3">
                                             {reviews.ofertante.map((review, idx) => (
@@ -573,13 +627,23 @@ export default function UserProfile({ onNavigate }) {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-slate-400 text-sm">Sin reseñas como ofertante.</p>
+                                        <div className="text-center py-8 px-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <p className="text-gray-400">Sin reseñas como ofertante aún</p>
+                                        </div>
                                     )}
                                 </div>
-                                <div>
-                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                                        Como Cliente ({reviews.cliente?.length || 0})
-                                    </h4>
+
+                                {/* Como cliente */}
+                                <div className="space-y-4 pt-6 border-t border-gray-100">
+                                    <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
+                                            <Globe size={18} className="text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900">Como Cliente</h4>
+                                            <p className="text-sm text-gray-500">{reviews.cliente?.length || 0} reseñas</p>
+                                        </div>
+                                    </div>
                                     {reviews.cliente?.length > 0 ? (
                                         <div className="space-y-3">
                                             {reviews.cliente.map((review, idx) => (
@@ -587,7 +651,9 @@ export default function UserProfile({ onNavigate }) {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-slate-400 text-sm">Sin reseñas como cliente.</p>
+                                        <div className="text-center py-8 px-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <p className="text-gray-400">Sin reseñas como cliente aún</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -595,116 +661,130 @@ export default function UserProfile({ onNavigate }) {
 
                         {activeTab === "settings" && (
                             <div className="space-y-6">
-                                <h3 className="text-lg font-semibold text-slate-800">Configuración de Cuenta</h3>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Configuración de Cuenta</h3>
+                                    <p className="text-sm text-gray-500">Administra la configuración de tu cuenta</p>
+                                </div>
                                 
                                 <div className="space-y-4">
-                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                         <div className="flex items-center gap-3">
-                                             <Shield className="text-slate-500" size={20} />
-                                             <div>
-                                                 <p className="font-medium text-slate-800">Seguridad</p>
-                                                 <p className="text-sm text-slate-500">Gestiona tu contraseña</p>
-                                             </div>
-                                         </div>
-                                         <Button
-                                             variant="outline"
-                                             size="sm"
-                                             onClick={async () => {
-                                                 const { value: passwordValues } = await Swal.fire({
-                                                   title: 'Cambiar contraseña',
-                                                   html:
-                                                     '<input id="password1" type="password" class="swal2-input" placeholder="Nueva contraseña">' +
-                                                     '<input id="password2" type="password" class="swal2-input" placeholder="Confirmar contraseña">',
-                                                   confirmButtonText: 'Cambiar',
-                                                   showCancelButton: true,
-                                                   preConfirm: () => {
-                                                     const password1 = document.getElementById('password1').value
-                                                     const password2 = document.getElementById('password2').value
-                                                     if (!password1 || !password2) {
-                                                       Swal.showValidationError('Por favor ingrese ambas contraseñas')
-                                                       return false
-                                                     }
-                                                     if (password1 !== password2) {
-                                                       Swal.showValidationError('Las contraseñas no coinciden')
-                                                       return false
-                                                     }
-                                                     if (password1.length < 8) {
-                                                       Swal.showValidationError('La contraseña debe tener al menos 8 caracteres')
-                                                       return false
-                                                     }
-                                                     return [password1, password2]
-                                                   }
-                                                 })
-                                               
-                                                 if (passwordValues) {
-                                                   try {
-                                                     const token = localStorage.getItem("access_token");
-                                                     const response = await fetch(`${API_URL}/user`, {
-                                                       method: "PUT",
-                                                       headers: {
-                                                         Authorization: `Bearer ${token}`,
-                                                         "Content-Type": "application/json",
-                                                       },
-                                                       body: JSON.stringify({ password: passwordValues[0] }),
-                                                     });
-                                                     
-                                                     if (response.ok) {
-                                                       Swal.fire({
-                                                         icon: 'success',
-                                                         title: 'Contraseña cambiada',
-                                                         text: 'Tu contraseña ha sido actualizada correctamente.',
-                                                         timer: 1500,
-                                                         showConfirmButton: false,
-                                                       });
-                                                     } else {
-                                                       const errorData = await response.json();
-                                                       Swal.fire({
-                                                         icon: 'error',
-                                                         title: 'Error',
-                                                         text: errorData.message || 'No se pudo cambiar la contraseña.',
-                                                       });
-                                                     }
-                                                   } catch (error) {
-                                                     Swal.fire('Error', error.message, 'error');
-                                                   }
-                                                 }
-                                             }}
-                                         >Cambiar</Button>
-                                     </div>
-                                     
-                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                         <div className="flex items-center gap-3">
-                                             <CreditCard className="text-slate-500" size={20} />
-                                             <div>
-                                                 <p className="font-medium text-slate-800">Métodos de pago</p>
-                                                 <p className="text-sm text-slate-500">Administra tus métodos de pago</p>
-                                             </div>
-                                         </div>
-                                         <Button
-                                             variant="outline"
-                                             size="sm"
-                                             onClick={() => onNavigate && onNavigate('payments')}
-                                         >
-                                             Ver
-                                         </Button>
-                                     </div>
-                                     
-                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                                         <div className="flex items-center gap-3">
-                                             <Clock className="text-slate-500" size={20} />
-                                             <div>
-                                                 <p className="font-medium text-slate-800">Notificaciones</p>
-                                                 <p className="text-sm text-slate-500">Configura tus preferencias</p>
-                                             </div>
-                                         </div>
-                                         <Button
-                                             variant="outline"
-                                             size="sm"
-                                             onClick={() => onNavigate && onNavigate('notifications')}
-                                         >
-                                             Configurar
-                                         </Button>
-                                     </div>
+                                    <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                                <Shield className="text-blue-600" size={22} />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900">Seguridad</p>
+                                                <p className="text-sm text-gray-500">Gestiona tu contraseña</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="px-4"
+                                            onClick={async () => {
+                                                const { value: passwordValues } = await Swal.fire({
+                                                    title: 'Cambiar contraseña',
+                                                    html:
+                                                    '<input id="password1" type="password" class="swal2-input" placeholder="Nueva contraseña">' +
+                                                    '<input id="password2" type="password" class="swal2-input" placeholder="Confirmar contraseña">',
+                                                    confirmButtonText: 'Cambiar',
+                                                    showCancelButton: true,
+                                                    preConfirm: () => {
+                                                        const password1 = document.getElementById('password1').value
+                                                        const password2 = document.getElementById('password2').value
+                                                        if (!password1 || !password2) {
+                                                            Swal.showValidationError('Por favor ingrese ambas contraseñas')
+                                                            return false
+                                                        }
+                                                        if (password1 !== password2) {
+                                                            Swal.showValidationError('Las contraseñas no coinciden')
+                                                            return false
+                                                        }
+                                                        if (password1.length < 8) {
+                                                            Swal.showValidationError('La contraseña debe tener al menos 8 caracteres')
+                                                            return false
+                                                        }
+                                                        return [password1, password2]
+                                                    }
+                                                })
+                                            
+                                                if (passwordValues) {
+                                                    try {
+                                                        const token = localStorage.getItem("access_token");
+                                                        const response = await fetch(`${API_URL}/user`, {
+                                                            method: "PUT",
+                                                            headers: {
+                                                                Authorization: `Bearer ${token}`,
+                                                                "Content-Type": "application/json",
+                                                            },
+                                                            body: JSON.stringify({ password: passwordValues[0] }),
+                                                        });
+                                                        
+                                                        if (response.ok) {
+                                                            Swal.fire({
+                                                                icon: 'success',
+                                                                title: 'Contraseña cambiada',
+                                                                text: 'Tu contraseña ha sido actualizada correctamente.',
+                                                                timer: 1500,
+                                                                showConfirmButton: false,
+                                                            });
+                                                        } else {
+                                                            const errorData = await response.json();
+                                                            Swal.fire({
+                                                                icon: 'error',
+                                                                title: 'Error',
+                                                                text: errorData.message || 'No se pudo cambiar la contraseña.',
+                                                            });
+                                                        }
+                                                    } catch (error) {
+                                                        Swal.fire('Error', error.message, 'error');
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            Cambiar
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                                <CreditCard className="text-green-600" size={22} />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900">Métodos de pago</p>
+                                                <p className="text-sm text-gray-500">Administra tus métodos de pago</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="px-4"
+                                            onClick={() => onNavigate && onNavigate('payments')}
+                                        >
+                                            Ver
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                                <Clock className="text-purple-600" size={22} />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900">Notificaciones</p>
+                                                <p className="text-sm text-gray-500">Configura tus preferencias</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="px-4"
+                                            onClick={() => onNavigate && onNavigate('notifications')}
+                                        >
+                                            Configurar
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}

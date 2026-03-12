@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye } from "lucide-react";
+import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye, Calendar } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -203,8 +203,8 @@ export default function ExploreServices() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-slate-500">Cargando servicios...</p>
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Cargando servicios...</p>
         </div>
       </div>
     );
@@ -213,39 +213,39 @@ export default function ExploreServices() {
   return (
     <div className="max-w-7xl mx-auto p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold text-slate-800">Explorar Servicios</h1>
-        <p className="text-slate-500 mt-1">Descubre servicios profesionales ofrecidos por la comunidad</p>
+      <div className="mb-8">
+        <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Explorar Servicios</h1>
+        <p className="text-gray-500 mt-2 text-lg">Descubre servicios profesionales ofrecidos por la comunidad</p>
       </div>
 
       {/* Barra de búsqueda y filtros */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Input de búsqueda */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Buscar servicios por título, descripción o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
             />
           </div>
 
           {/* Botón de filtros */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
+            className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border transition-all font-medium ${
               showFilters || selectedGrupo || selectedCategoria
                 ? "bg-blue-50 border-blue-300 text-blue-700"
-                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
             <Filter size={18} />
             <span>Filtros</span>
             {(selectedGrupo || selectedCategoria) && (
-              <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+              <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
                 {(selectedGrupo ? 1 : 0) + (selectedCategoria ? 1 : 0)}
               </span>
             )}
@@ -337,191 +337,282 @@ export default function ExploreServices() {
       </div>
 
       {/* Grid de servicios */}
-      {filteredServices.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredServices.map((service) => {
-            const categoryName = service?.categoria?.nombre || "General";
-            const categoryImage = service?.categoria?.imagen;
-            const imageSrc = service.imagen
-              ? resolveImageUrl(service.imagen)
-              : categoryImage
-              ? resolveImageUrl(categoryImage)
-              : getCategoryFallbackImage(categoryName);
-
-            return (
-              <article
-                key={service.id_Servicio}
-                className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-slate-300 transition-all duration-300 group"
-              >
-                {/* Imagen del servicio */}
-                <div className="h-48 bg-slate-100 relative overflow-hidden">
-                  <img
-                    src={imageSrc}
-                    alt={service.titulo}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.src = getCategoryFallbackImage(categoryName);
-                    }}
-                  />
-                  {/* Badge de categoría */}
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
-                      {categoryName}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Contenido */}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
-                    {service.titulo}
-                  </h3>
-                  <p className="text-sm text-slate-600 mt-1.5 line-clamp-2">
-                    {service.descripcion || "Sin descripción."}
-                  </p>
-
-                  {/* Precio */}
-                  <div className="mt-3">
-                    <span className="text-xl font-bold text-blue-600">
-                      {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")}` : "A convenir"}
-                    </span>
-                    {service.precio && <span className="text-sm text-slate-500 ml-1">COP</span>}
-                  </div>
-
-                  {/* Información del ofertante y ubicación */}
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-1 text-slate-500">
-                      <MapPin size={14} />
-                      <span>{service?.cliente_usuario?.ciudad || "Remoto"}</span>
+       {filteredServices.length > 0 ? (
+         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+           {filteredServices.map((service) => {
+             const categoryName = service?.categoria?.nombre || "General";
+             const categoryImage = service?.categoria?.imagen;
+             const imageSrc = service.imagen
+               ? resolveImageUrl(service.imagen)
+               : categoryImage
+               ? resolveImageUrl(categoryImage)
+               : getCategoryFallbackImage(categoryName);
+             
+              return (
+                <article
+                  key={service.id_Servicio}
+                  className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+                >
+                  {/* Imagen del servicio */}
+                  <div className="h-52 relative overflow-hidden">
+                    <img
+                      src={imageSrc}
+                      alt={service.titulo}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      onError={(e) => {
+                        e.target.src = getCategoryFallbackImage(categoryName);
+                      }}
+                    />
+                    {/* Overlay con gradiente */}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                    
+                    {/* Badge de categoría */}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md">
+                        {categoryName}
+                      </span>
                     </div>
-                    <button
-                      onClick={() => openPublicProfile(service?.cliente_usuario?.id_CorreoUsuario)}
-                      className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <User size={14} />
-                      <span>Ver perfil</span>
-                    </button>
                   </div>
-
-                   {/* Botones de acción */}
-                   <div className="mt-4 flex gap-2">
-                     <button
-                       onClick={() => setSelectedItem(service)}
-                       className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                     >
-                       <Eye size={16} />
-                       Ver detalles
-                     </button>
-                     <button
-                       onClick={() => requestService(service)}
-                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                     >
-                       <Briefcase size={16} />
-                       Solicitar
-                     </button>
-                   </div>
-                </div>
-               </article>
-             )}
-           ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search size={28} className="text-slate-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">No se encontraron servicios</h3>
-          <p className="text-slate-500 mb-4">
-            {searchTerm || selectedCategoria
-              ? "Intenta ajustar los filtros de búsqueda"
-              : "No hay servicios disponibles en este momento"}
+                  
+                  {/* Contenido */}
+                  <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors mb-2">
+                      {service.titulo}
+                    </h3>
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+                      {service.descripcion || "Sin descripción."}
+                    </p>
+                    
+                    {/* Precio */}
+                    <div className="mb-4">
+                      <span className="text-2xl font-bold text-blue-600">
+                        {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")}` : "A convenir"}
+                      </span>
+                      {service.precio && <span className="text-sm text-gray-400 ml-1">COP</span>}
+                    </div>
+                    
+                    {/* Información del ofertante y ubicación */}
+                    <div className="flex items-center justify-between text-sm mb-4 pb-4 border-b border-gray-100">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                          <MapPin size={12} className="text-gray-500" />
+                        </div>
+                        <span>{service?.cliente_usuario?.ciudad || "Remoto"}</span>
+                      </div>
+                      <button
+                        onClick={() => openPublicProfile(service?.cliente_usuario?.id_CorreoUsuario)}
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      >
+                        <User size={14} />
+                        <span>Ver perfil</span>
+                      </button>
+                    </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="flex gap-3 mt-auto">
+                      <button
+                        onClick={() => setSelectedItem(service)}
+                        className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 border border-gray-200 hover:border-gray-300"
+                      >
+                        <Eye size={16} />
+                        Detalles
+                      </button>
+                      <button
+                        onClick={() => requestService(service)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:shadow-xl"
+                      >
+                        <Briefcase size={16} />
+                        Solicitar
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+         </div>
+       ) : (
+         <div className="bg-white border border-gray-200 rounded-2xl p-16 text-center">
+           <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+             <Search size={36} className="text-gray-400" />
+           </div>
+           <h3 className="text-xl font-bold text-gray-900 mb-3">No se encontraron servicios</h3>
+           <p className="text-gray-500 mb-6 max-w-md mx-auto">
+             {searchTerm || selectedCategoria
+               ? "Intenta ajustar los filtros de búsqueda"
+               : "No hay servicios disponibles en este momento"}
            </p>
            {(searchTerm || selectedCategoria) && (
              <button
                onClick={clearFilters}
-               className="text-blue-600 hover:text-blue-700 font-medium"
+               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
              >
                Limpiar filtros
              </button>
            )}
-     
-     {/* Modal Detalles */}
-     {selectedItem && (
-       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-         <div className="relative w-full max-w-md p-4">
-           <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
-             {/* Botón cerrar */}
-             <button
-               onClick={() => setSelectedItem(null)}
-               className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full"
-             >
-               <X size={20} />
-             </button>
-             
-             {/* Imagen */}
-             <div className="h-48 w-full overflow-hidden">
-               <img
-                 src={selectedItem.imagen 
-                   ? resolveImageUrl(selectedItem.imagen) 
-                   : selectedItem.categoria?.imagen 
-                     ? resolveImageUrl(selectedItem.categoria.imagen) 
-                     : getCategoryFallbackImage(selectedItem.categoria?.nombre)}
-                 alt={selectedItem.titulo}
-                 className="w-full h-full object-cover"
-               />
-             </div>
-             
-             {/* Contenido */}
-             <div className="p-6 space-y-4">
-               <h2 className="text-xl font-bold text-slate-800">{selectedItem.titulo}</h2>
-               <p className="text-slate-600 line-clamp-4">{selectedItem.descripcion}</p>
-               
-               <div className="grid grid-cols-2 gap-4 text-sm text-slate-500">
-                 <div>
-                   <span className="font-medium">Precio:</span>
-                   <span className="ml-2">{selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}</span>
+         </div>
+       )
+     }
+            : (
+               <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                   <Search size={28} className="text-slate-400" />
                  </div>
-                 <div>
-                   <span className="font-medium">Entrega:</span>
-                   <span className="ml-2">{selectedItem.tiempo_entrega || "No especificado"}</span>
-                 </div>
-                 <div>
-                   <span className="font-medium">Categoría:</span>
-                   <span className="ml-2">{selectedItem.categoria?.nombre || "General"}</span>
-                 </div>
-                 <div>
-                   <span className="font-medium">Usuario:</span>
-                   <span className="ml-2">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</span>
-                 </div>
-                 <div>
-                   <span className="font-medium">Ciudad:</span>
-                   <span className="ml-2">{selectedItem.cliente_usuario?.ciudad || "Remoto"}</span>
-                 </div>
+                 <h3 className="text-lg font-semibold text-slate-800 mb-2">No se encontraron servicios</h3>
+                 <p className="text-slate-500 mb-4">
+                   {searchTerm || selectedCategoria
+                     ? "Intenta ajustar los filtros de búsqueda"
+                     : "No hay servicios disponibles en este momento"}
+                 </p>
+                 {(searchTerm || selectedCategoria) && (
+                   <button
+                     onClick={clearFilters}
+                     className="text-blue-600 hover:text-blue-700 font-medium"
+                   >
+                     Limpiar filtros
+                   </button>
+                 )}
                </div>
-               
-               <div className="mt-6 flex flex-col gap-3">
-                 <button
-                   onClick={() => {
-                     openPublicProfile(selectedItem?.cliente_usuario?.id_CorreoUsuario);
-                     setSelectedItem(null);
-                   }}
-                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
-                 >
-                   <User size={16} />
-                   Ver perfil
-                 </button>
-                 <button
-                   onClick={() => {
-                     requestService(selectedItem);
-                     setSelectedItem(null);
-                   }}
-                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                 >
-                   <Briefcase size={16} />
-                   Solicitar
-                 </button>
-               </div>
-             </div>
+             )
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setSelectedItem(null)}
+              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all p-2 rounded-full"
+            >
+              <X size={24} />
+            </button>
+            
+            <div className="flex flex-col lg:flex-row overflow-hidden">
+              {/* Imagen - Lado izquierdo en PC */}
+              <div className="lg:w-1/2 h-64 lg:h-auto relative">
+                <img
+                  src={selectedItem.imagen 
+                    ? resolveImageUrl(selectedItem.imagen) 
+                    : selectedItem.categoria?.imagen 
+                      ? resolveImageUrl(selectedItem.categoria.imagen) 
+                      : getCategoryFallbackImage(selectedItem.categoria?.nombre)}
+                  alt={selectedItem.titulo}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
+                {/* Badge de categoría en móvil */}
+                <div className="absolute bottom-4 left-4 lg:hidden">
+                  <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-sm font-semibold px-4 py-2 rounded-full shadow-lg">
+                    {selectedItem.categoria?.nombre || "General"}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Contenido - Lado derecho en PC */}
+              <div className="lg:w-1/2 p-6 lg:p-8 overflow-y-auto max-h-[70vh] lg:max-h-[90vh]">
+                {/* Header */}
+                <div className="mb-6">
+                  <div className="hidden lg:flex items-center gap-2 mb-3">
+                    <span className="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
+                      {selectedItem.categoria?.nombre || "General"}
+                    </span>
+                    {selectedItem.estado && (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        selectedItem.estado === 'Activo' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'
+                      }`}>
+                        {selectedItem.estado}
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">{selectedItem.titulo}</h2>
+                  <p className="text-gray-500 text-base leading-relaxed">
+                    {selectedItem.descripcion || "Sin descripción disponible."}
+                  </p>
+                </div>
+                
+                {/* Precio destacado */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
+                  <p className="text-sm text-gray-500 mb-1">Precio del servicio</p>
+                  <p className="text-4xl font-bold text-blue-600">
+                    {selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}
+                  </p>
+                  {selectedItem.precio && <p className="text-sm text-gray-500 mt-1">Pesos colombianos (COP)</p>}
+                </div>
+                
+                {/* Información detallada */}
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Detalles del servicio</h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <Clock size={18} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Tiempo de entrega</p>
+                        <p className="font-semibold text-gray-900">{selectedItem.tiempo_entrega || "A convenir"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                        <MapPin size={18} className="text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Ubicación</p>
+                        <p className="font-semibold text-gray-900">{selectedItem.cliente_usuario?.ciudad || "Remoto"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <User size={18} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Publicado por</p>
+                        <p className="font-semibold text-gray-900">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                        <Calendar size={18} className="text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Publicado</p>
+                        <p className="font-semibold text-gray-900">
+                          {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "最近"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Acciones */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      openPublicProfile(selectedItem?.cliente_usuario?.id_CorreoUsuario);
+                      setSelectedItem(null);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl transition-colors border border-gray-200"
+                  >
+                    <User size={18} />
+                    Ver perfil
+                  </button>
+                  <button
+                    onClick={() => {
+                      requestService(selectedItem);
+                      setSelectedItem(null);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-200"
+                  >
+                    <Briefcase size={18} />
+                    Solicitar servicio
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-       )
-   }
+       )};
+       </div>
+    );
+}

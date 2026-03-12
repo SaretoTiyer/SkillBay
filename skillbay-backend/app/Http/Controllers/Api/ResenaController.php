@@ -169,7 +169,7 @@ class ResenaController extends Controller
                     $q->where('id_Usuario', $id_CorreoUsuario);
                 })
                 ->with(['servicio:id_Servicio,titulo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('fechaResena', 'desc')
+                ->orderBy('created_at', 'desc')
                 ->get();
 
             // Reseñas recibidas COMO CLIENTE:
@@ -179,7 +179,7 @@ class ResenaController extends Controller
                     $q->where('id_Cliente', $id_CorreoUsuario);
                 })
                 ->with(['servicio:id_Servicio,titulo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('fechaResena', 'desc')
+                ->orderBy('created_at', 'desc')
                 ->get();
 
             return response()->json([

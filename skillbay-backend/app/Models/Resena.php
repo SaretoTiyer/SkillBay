@@ -11,7 +11,6 @@ class Resena extends Model
     protected $fillable = [
         'calificacion',
         'comentario',
-        'fechaResena',
         'metodoPago',
         'id_Servicio',
         'id_CorreoUsuario',
@@ -20,7 +19,6 @@ class Resena extends Model
     ];
 
     protected $casts = [
-        'fechaResena' => 'datetime',
         'calificacion' => 'integer',
     ];
 

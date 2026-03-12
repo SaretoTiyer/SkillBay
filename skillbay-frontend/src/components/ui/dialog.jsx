@@ -50,26 +50,28 @@ return (
 )
 }
 
-function DialogContent({ className, children, ...props }) {
+function DialogContent({ className, children, showCloseButton = true, ...props }) {
 return (
     <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 sm:max-w-lg",
+        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border bg-background p-0 shadow-2xl duration-200 sm:max-w-4xl max-h-[90vh] overflow-hidden",
         className
         )}
         {...props}
     >
         {children}
 
+        {showCloseButton && (
         <DialogPrimitive.Close
-        className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            className="absolute right-5 top-5 rounded-xl p-2.5 opacity-60 transition-all hover:opacity-100 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:pointer-events-none z-10"
         >
-        <X className="h-4 w-4" />
-        <span className="sr-only">Cerrar</span>
+            <X className="h-5 w-5 text-gray-500" />
+            <span className="sr-only">Cerrar</span>
         </DialogPrimitive.Close>
+        )}
     </DialogPrimitive.Content>
     </DialogPortal>
 )
