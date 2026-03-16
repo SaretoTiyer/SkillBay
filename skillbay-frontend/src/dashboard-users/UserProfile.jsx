@@ -301,7 +301,7 @@ export default function UserProfile({ onNavigate }) {
                 <div className="lg:col-span-4 xl:col-span-3">
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-8">
                         {/* Cover */}
-                        <div className="h-28 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
+                        <div className="h-28 bg-linear-to-r from-blue-600 via-blue-700 to-indigo-700 relative overflow-hidden">
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHptMCAzMmMtNy43MzIgMC0xNC02LjI2OC0xNC0xNHM2LjI2OC0xNCAxNC0xNCAxNCA2LjI2OCAxNCAxNC02LjI2OCAxNC0xNCAxNHoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvZz48L3N2Zz4=')] opacity-30"></div>
                             {isEditing && (
                                 <button className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all">
@@ -325,7 +325,7 @@ export default function UserProfile({ onNavigate }) {
                                     />
                                 ) : null}
                                 <div
-                                    className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600
+                                    className="w-28 h-28 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600
                                                flex items-center justify-center text-white text-4xl font-bold
                                                border-4 border-white shadow-lg"
                                     style={{ display: profileImage ? 'none' : 'flex' }}
@@ -364,14 +364,14 @@ export default function UserProfile({ onNavigate }) {
 
                             {/* Stats - Tarjetas de estadísticas */}
                             <div className="grid grid-cols-2 gap-3 mt-5">
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
+                                <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
                                     <div className="flex items-center justify-center gap-1.5 mb-1">
                                         <Briefcase size={16} className="text-blue-600" />
                                         <p className="text-2xl font-bold text-gray-900">{servicesOffered.length}</p>
                                     </div>
                                     <p className="text-xs text-gray-500 font-medium">Servicios</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
+                                <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
                                     <div className="flex items-center justify-center gap-1.5 mb-1">
                                         <Calendar size={16} className="text-amber-600" />
                                         <p className="text-2xl font-bold text-gray-900">{profileData.memberSince ? new Date(profileData.memberSince).getFullYear() || profileData.memberSince : "-"}</p>
@@ -383,14 +383,14 @@ export default function UserProfile({ onNavigate }) {
                             {/* Contacto rápido */}
                             <div className="mt-5 space-y-3 pt-5 border-t border-gray-100">
                                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                                         <Mail size={14} className="text-gray-500" />
                                     </div>
                                     <span className="truncate font-medium">{profileData.email}</span>
                                 </div>
                                 {profileData.phone && (
                                     <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                                             <Phone size={14} className="text-gray-500" />
                                         </div>
                                         <span>{profileData.phone}</span>
@@ -398,7 +398,7 @@ export default function UserProfile({ onNavigate }) {
                                 )}
                                 {profileData.location && (
                                     <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                                             <MapPin size={14} className="text-gray-500" />
                                         </div>
                                         <span>{profileData.location}</span>
@@ -557,7 +557,7 @@ export default function UserProfile({ onNavigate }) {
                                         {servicesOffered.map((service) => (
                                             <div key={service.id_Servicio} className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-100/50 transition-all">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                                                    <div className="w-14 h-14 bg-linear-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
                                                         <Briefcase className="text-blue-600" size={22} />
                                                     </div>
                                                     <div>
@@ -612,7 +612,7 @@ export default function UserProfile({ onNavigate }) {
                                 {/* Como ofertante */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-linear-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
                                             <TrendingUp size={18} className="text-blue-600" />
                                         </div>
                                         <div>
@@ -636,7 +636,7 @@ export default function UserProfile({ onNavigate }) {
                                 {/* Como cliente */}
                                 <div className="space-y-4 pt-6 border-t border-gray-100">
                                     <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-linear-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
                                             <Globe size={18} className="text-amber-600" />
                                         </div>
                                         <div>

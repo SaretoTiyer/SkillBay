@@ -496,7 +496,7 @@ export default function ExploreServices() {
                   alt={selectedItem.titulo}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
                 {/* Badge de categoría en móvil */}
                 <div className="absolute bottom-4 left-4 lg:hidden">
                   <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-sm font-semibold px-4 py-2 rounded-full shadow-lg">
@@ -528,7 +528,7 @@ export default function ExploreServices() {
                 </div>
                 
                 {/* Precio destacado */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
+                <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
                   <p className="text-sm text-gray-500 mb-1">Precio del servicio</p>
                   <p className="text-4xl font-bold text-blue-600">
                     {selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}
