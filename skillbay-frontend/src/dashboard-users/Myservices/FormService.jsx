@@ -302,8 +302,6 @@ export default function FormService({ onCancel, onSuccess, editingService = null
                                 <input
                                     type="number"
                                     name="tiempo_entrega_num"
-                                    min="1"
-                                    max="365"
                                     placeholder="Número"
                                     value={formData.tiempo_entrega_num}
                                     onChange={(e) => {

@@ -150,7 +150,6 @@ export default function CategoryManagement() {
           value={form.nombre}
           onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
           placeholder="Nombre"
-          required
         />
         <textarea
           className="w-full border border-slate-200 rounded p-2"

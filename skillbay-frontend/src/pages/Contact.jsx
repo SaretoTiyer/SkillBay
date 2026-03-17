@@ -239,7 +239,6 @@ return (
                     type="text"
                     value={formData.name}
                     onChange={handleChange}
-                    required
                     className="border-2 border-[#E2E8F0] focus:border-[#2B6CB0] focus:ring-[#2B6CB0] h-12 rounded-xl"
                     placeholder="Tu nombre"
                     />
@@ -253,10 +252,9 @@ return (
                     <Input
                     id="email"
                     name="email"
-                    type="email"
+                    type="text"
                     value={formData.email}
                     onChange={handleChange}
-                    required
                     className="border-2 border-[#E2E8F0] focus:border-[#2B6CB0] focus:ring-[#2B6CB0] h-12 rounded-xl"
                     placeholder="tu@email.com"
                     />
@@ -273,7 +271,6 @@ return (
                     type="text"
                     value={formData.subject}
                     onChange={handleChange}
-                    required
                     className="border-2 border-[#E2E8F0] focus:border-[#2B6CB0] focus:ring-[#2B6CB0] h-12 rounded-xl"
                     placeholder="¿En qué podemos ayudarte?"
                     />
@@ -289,7 +286,6 @@ return (
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
-                    required
                     rows={6}
                     className="border-2 border-[#E2E8F0] focus:border-[#2B6CB0] focus:ring-[#2B6CB0] rounded-xl"
                     placeholder="Escribe tu mensaje aquí..."

@@ -339,9 +339,6 @@
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
-                    required
-                    minLength={2}
-                    maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="Juan"
                     />
@@ -356,9 +353,6 @@
                     name="apellido"
                     value={formData.apellido}
                     onChange={handleChange}
-                    required
-                    minLength={2}
-                    maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="Pérez"
                     />
@@ -369,12 +363,10 @@
                 <div className="lg:col-span-2">
                     <label className="block text-[#1E3A5F]">Correo electrónico</label>
                     <input
-                    type="email"
+                    type="text"
                     name="id_CorreoUsuario"
                     value={formData.id_CorreoUsuario}
                     onChange={handleChange}
-                    required
-                    maxLength={191}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="correo@ejemplo.com"
                     />
@@ -393,12 +385,10 @@
                         </select>
 
                         <input
-                        type="tel"
+                        type="number"
                         name="telefono"
                         value={formData.telefono}
                         onChange={handleChange}
-                        required
-                        pattern="[0-9]{7,10}"
                         className="flex-1 border border-[#E2E8F0] rounded-md px-3 py-2"
                         placeholder="3001234567"
                         />
@@ -413,7 +403,6 @@
                     name="genero"
                     value={formData.genero}
                     onChange={handleChange}
-                    required
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
                     <option value="">Selecciona tu género</option>
@@ -431,7 +420,6 @@
                         name="departamento"
                         value={formData.departamento}
                         onChange={handleDepartmentChange}
-                        required
                         disabled={loadingDepartments}
                         className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
@@ -455,7 +443,6 @@
                         name="ciudad"
                         value={formData.ciudad}
                         onChange={handleChange}
-                        required
                         disabled={!Array.isArray(cities) || cities.length === 0}
                         className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
@@ -481,7 +468,6 @@
                         name="fechaNacimiento"
                         value={formData.fechaNacimiento}
                         onChange={handleChange}
-                        required
                         className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     />
                     {renderError('fechaNacimiento')}
@@ -496,9 +482,6 @@
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        required
-                        minLength={8}
-                        maxLength={15}
                         className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
                         placeholder="••••••••"
                         autoComplete="new-password"
@@ -543,9 +526,6 @@
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        required
-                        minLength={8}
-                        maxLength={15}
                         className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
                         placeholder="••••••••"
                         autoComplete="new-password"

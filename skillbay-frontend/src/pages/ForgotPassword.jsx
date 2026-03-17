@@ -63,12 +63,11 @@ export default function ForgotPassword({ onNavigate }) {
         {step === 1 && (
           <form onSubmit={requestCode} className="space-y-4">
             <input
-              type="email"
+              type="text"
               className="w-full border border-slate-200 rounded px-3 py-2"
               placeholder="correo@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
             <button type="submit" disabled={loadingCode} className="w-full py-2 rounded bg-blue-600 text-white disabled:opacity-60">
               {loadingCode ? "Enviando..." : "Enviar codigo"}
@@ -84,7 +83,6 @@ export default function ForgotPassword({ onNavigate }) {
               placeholder="Codigo"
               value={codigo}
               onChange={(e) => setCodigo(e.target.value)}
-              required
             />
             <input
               type="password"
@@ -92,7 +90,6 @@ export default function ForgotPassword({ onNavigate }) {
               placeholder="Nueva contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
             <button type="submit" disabled={loadingReset} className="w-full py-2 rounded bg-emerald-600 text-white disabled:opacity-60">
               {loadingReset ? "Actualizando..." : "Actualizar Contraseña"}
