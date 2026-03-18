@@ -16,6 +16,8 @@ class PagoServicio extends Model
         'estado',
         'metodoPago',
         'referenciaPago',
+        'comprobante',
+        'fecha_comprobante',
         'modalidadPago',
         'modalidadServicio',
         'identificacionCliente',

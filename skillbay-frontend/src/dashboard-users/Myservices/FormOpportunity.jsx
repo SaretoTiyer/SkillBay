@@ -11,6 +11,8 @@ import {
     Loader2,
     MapPin,
     AlertCircle,
+    Globe,
+    CreditCard,
 } from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -49,6 +51,8 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
         tiempo_entrega_num: editingOpportunity?.tiempo_entrega ? editingOpportunity.tiempo_entrega.split(" ")[0] : "",
         tiempo_entrega_unidad: editingOpportunity?.tiempo_entrega ? editingOpportunity.tiempo_entrega.split(" ")[1] || "Días" : "Días",
         imagen: null,
+        modo_trabajo: editingOpportunity?.modo_trabajo || "",
+        metodos_pago: editingOpportunity?.metodos_pago || ["tarjeta", "efectivo"],
     });
 
     const [previewImage, setPreviewImage] = useState(editingOpportunity?.imagen || null);
@@ -113,11 +117,11 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
     const handleSubmit = async () => {
         const idCategoria = formData.subcategoria || formData.categoria;
         
-        if (!formData.titulo || !formData.precio || !idCategoria) {
+        if (!formData.titulo || !formData.precio || !idCategoria || !formData.modo_trabajo) {
             Swal.fire({
                 icon: 'info',
                 title: 'Campos requeridos',
-                text: 'Por favor completa el título, precio y selecciona una subcategoría.',
+                text: 'Por favor completa el título, precio, selecciona una subcategoría y el modo de trabajo.',
                 confirmButtonColor: '#2563EB'
             });
             return;
@@ -136,6 +140,8 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
             formDataToSend.append("urgencia", formData.urgencia);
             formDataToSend.append("ubicacion", formData.ubicacion);
             formDataToSend.append("tipo", "oportunidad");
+            formDataToSend.append("modo_trabajo", formData.modo_trabajo);
+            formDataToSend.append("metodos_pago", JSON.stringify(formData.metodos_pago || []));
             
             if (formData.imagen && typeof formData.imagen !== 'string') {
                 formDataToSend.append("imagen", formData.imagen);
@@ -392,6 +398,85 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
                             onChange={handleInputChange}
                             className="min-h-40 rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 resize-y text-base p-4"
                         />
+                    </div>
+
+                    {/* Modo de Trabajo */}
+                    <div className="col-span-1 lg:col-span-2 space-y-3">
+                        <label className="text-base font-semibold text-gray-700 flex items-center gap-2">
+                            <Globe size={18} /> Modo de Trabajo *
+                        </label>
+                        <div className="grid grid-cols-3 gap-4">
+                            {[
+                                { value: 'virtual', label: 'Virtual', desc: 'Trabajo en línea' },
+                                { value: 'presencial', label: 'Presencial', desc: 'Trabajo físico' },
+                                { value: 'mixto', label: 'Mixto', desc: 'Virtual y presencial' },
+                            ].map((modo) => (
+                                <label
+                                    key={modo.value}
+                                    className={`
+                                        relative flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all
+                                        ${formData.modo_trabajo === modo.value 
+                                            ? 'border-blue-500 bg-blue-50' 
+                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        }
+                                    `}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="modo_trabajo"
+                                        value={modo.value}
+                                        checked={formData.modo_trabajo === modo.value}
+                                        onChange={(e) => setFormData({ ...formData, modo_trabajo: e.target.value })}
+                                        className="sr-only"
+                                    />
+                                    <span className={`font-semibold ${formData.modo_trabajo === modo.value ? 'text-blue-600' : 'text-gray-700'}`}>
+                                        {modo.label}
+                                    </span>
+                                    <span className="text-xs text-gray-500 mt-1">{modo.desc}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Métodos de Pago */}
+                    <div className="col-span-1 lg:col-span-2 space-y-3">
+                        <label className="text-base font-semibold text-gray-700 flex items-center gap-2">
+                            <CreditCard size={18} /> Métodos de Pago Aceptados
+                        </label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { value: 'tarjeta', label: 'Tarjeta' },
+                                { value: 'nequi', label: 'Nequi' },
+                                { value: 'bancolombia_qr', label: 'QR Bancolombia' },
+                                { value: 'efectivo', label: 'Efectivo' },
+                            ].map((metodo) => (
+                                <label
+                                    key={metodo.value}
+                                    className={`
+                                        flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
+                                        ${(formData.metodos_pago || []).includes(metodo.value) 
+                                            ? 'border-blue-500 bg-blue-50' 
+                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        }
+                                    `}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        value={metodo.value}
+                                        checked={(formData.metodos_pago || []).includes(metodo.value)}
+                                        onChange={(e) => {
+                                            const current = formData.metodos_pago || [];
+                                            const nuevos = e.target.checked
+                                                ? [...current, metodo.value]
+                                                : current.filter(m => m !== metodo.value);
+                                            setFormData({ ...formData, metodos_pago: nuevos });
+                                        }}
+                                        className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">{metodo.label}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Image */}

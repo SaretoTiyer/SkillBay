@@ -7,6 +7,7 @@ use App\Models\Notificacion;
 use App\Models\Postulacion;
 use App\Models\Resena;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -92,11 +93,17 @@ class ResenaController extends Controller
             $idUsuarioNotificar = null;
             if ($direccion === 'cliente_a_ofertante') {
                 // Client is rating the offeror - notify the offeror (user who made the application)
-                $postulacion = Postulacion::where('id_Postulacion', $data['id_Postulacion'])
-                    ->where('id_Servicio', $data['id_Servicio'])
-                    ->first();
-                if ($postulacion) {
-                    $idUsuarioNotificar = $postulacion->id_Usuario;
+                if (!empty($data['id_Postulacion'])) {
+                    $postulacion = Postulacion::where('id_Postulacion', $data['id_Postulacion'])
+                        ->where('id_Servicio', $data['id_Servicio'])
+                        ->first();
+                    if ($postulacion) {
+                        $idUsuarioNotificar = $postulacion->id_Usuario;
+                    }
+                }
+                // If no postulacion, try to get the offeror from the servicio
+                if (!$idUsuarioNotificar) {
+                    $idUsuarioNotificar = $servicio->id_Cliente;
                 }
             } elseif ($direccion === 'ofertante_a_cliente') {
                 // Offeror is rating the client - notify the client (service owner)
@@ -104,13 +111,18 @@ class ResenaController extends Controller
             }
 
             // Create notification if we have a valid recipient and it's not the same person
-            if ($idUsuarioNotificar && $idUsuarioNotificar !== $user->id_CorreoUsuario) {
-                Notificacion::create([
-                    'mensaje' => $mensajeNotificacion,
-                    'estado' => 'No leido',
-                    'tipo' => 'resena',
-                    'id_CorreoUsuario' => $idUsuarioNotificar,
-                ]);
+            try {
+                if ($idUsuarioNotificar && $idUsuarioNotificar !== $user->id_CorreoUsuario) {
+                    Notificacion::create([
+                        'mensaje' => $mensajeNotificacion,
+                        'estado' => 'No leido',
+                        'tipo' => 'resena',
+                        'id_CorreoUsuario' => $idUsuarioNotificar,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the review
+                \Log::error('Error creating notification for review: ' . $e->getMessage());
             }
 
             return response()->json([

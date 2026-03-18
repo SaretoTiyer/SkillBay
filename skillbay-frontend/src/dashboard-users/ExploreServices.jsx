@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye, Calendar } from "lucide-react";
+import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye, Calendar, Globe, CreditCard } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 import { resolveImageUrl } from "../utils/image";
@@ -582,6 +582,44 @@ export default function ExploreServices() {
                         </p>
                       </div>
                     </div>
+
+                    {selectedItem.modo_trabajo && (
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                          <Globe size={18} className="text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Modo de trabajo</p>
+                          <p className="font-semibold text-gray-900">
+                            {selectedItem.modo_trabajo === 'virtual' ? 'Virtual' : 
+                             selectedItem.modo_trabajo === 'presencial' ? 'Presencial' : 
+                             selectedItem.modo_trabajo === 'mixto' ? 'Mixto' : selectedItem.modo_trabajo}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedItem.metodos_pago && selectedItem.metodos_pago.length > 0 && (
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                          <CreditCard size={18} className="text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Métodos de pago</p>
+                          <p className="font-semibold text-gray-900">
+                            {Array.isArray(selectedItem.metodos_pago) 
+                              ? selectedItem.metodos_pago.map(m => {
+                                if (m === 'tarjeta') return 'Tarjeta';
+                                if (m === 'nequi') return 'Nequi';
+                                if (m === 'bancolombia_qr') return 'QR Bancolombia';
+                                if (m === 'efectivo') return 'Efectivo';
+                                return m;
+                              }).join(', ')
+                              : selectedItem.metodos_pago}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 

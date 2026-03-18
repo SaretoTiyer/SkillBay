@@ -21,12 +21,15 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import RatingModal from "../components/RatingModal";
 
 export default function Applications({ defaultTab }) {
   const [applications, setApplications] = useState([]);
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingService, setRatingService] = useState(null);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
   
   // Estado para el chat de postulaciones recibidas
@@ -536,50 +539,12 @@ export default function Applications({ defaultTab }) {
                 <Button
                   size="sm"
                   className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  onClick={async () => {
-                    const { value: rating } = await Swal.fire({
-                      title: 'Califica el servicio',
-                      input: 'range',
-                      inputLabel: 'Calificación (1-5 estrellas)',
-                      inputAttributes: {
-                        min: 1,
-                        max: 5,
-                        step: 1
-                      },
-                      inputValue: 5,
-                      showCancelButton: true,
-                      confirmButtonText: 'Calificar',
-                      cancelButtonText: 'Cancelar',
+                  onClick={() => {
+                    setRatingService({
+                      id_Servicio: request.servicio.id_Servicio,
+                      servicio: request.servicio
                     });
-                    
-                    if (!rating) return;
-                    
-                    const { value: comment } = await Swal.fire({
-                      title: 'Deja un comentario (opcional)',
-                      input: 'textarea',
-                      inputPlaceholder: 'Escribe tu experiencia con el servicio...',
-                      showCancelButton: true,
-                      confirmButtonText: 'Enviar',
-                      cancelButtonText: 'Cancelar',
-                    });
-                    
-                    try {
-                      const response = await fetch(`${API_URL}/resenas`, {
-                        method: "POST",
-                        headers: authHeaders(true),
-                        body: JSON.stringify({
-                          id_Servicio: request.servicio.id_Servicio,
-                          calificacion: parseInt(rating),
-                          comentario: comment || ''
-                        }),
-                      });
-                      const data = await response.json();
-                      if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-                      fetchSolicitudesRecibidas();
-                      Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-                    } catch (error) {
-                      Swal.fire('Error', error.message, 'error');
-                    }
+                    setShowRatingModal(true);
                   }}
                 >
                   <Star size={14} className="mr-1" /> Calificar
@@ -707,6 +672,38 @@ export default function Applications({ defaultTab }) {
           )}
         </TabsContent>
       </Tabs>
+
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setRatingService(null);
+        }}
+        onSubmit={async ({ rating, comment }) => {
+          try {
+            const response = await fetch(`${API_URL}/resenas`, {
+              method: "POST",
+              headers: authHeaders(true),
+              body: JSON.stringify({
+                id_Servicio: ratingService?.id_Servicio,
+                calificacion: rating,
+                comentario: comment || ''
+              }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+            fetchSolicitudesRecibidas();
+            Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+          } catch (error) {
+            Swal.fire('Error', error.message, 'error');
+          } finally {
+            setShowRatingModal(false);
+            setRatingService(null);
+          }
+        }}
+        title="Califica el servicio"
+        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este servicio'}?`}
+      />
     </div>
   );
 }

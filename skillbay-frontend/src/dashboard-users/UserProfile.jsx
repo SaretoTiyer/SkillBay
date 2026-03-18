@@ -19,6 +19,9 @@ import {
     Award,
     TrendingUp,
     Globe,
+    Smartphone,
+    QrCode,
+    Upload,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
@@ -33,6 +36,14 @@ export default function UserProfile({ onNavigate }) {
     const [reviews, setReviews] = useState({ ofertante: [], cliente: [] });
     const [activeTab, setActiveTab] = useState("info");
     const [profileImage, setProfileImage] = useState(null);
+    const [metodosPago, setMetodosPago] = useState({
+        nequi_numero: "",
+        nequi_nombre: "",
+        nequi_qr: "",
+        bancolombia_qr: "",
+        metodos_pago_activos: ["tarjeta", "efectivo"],
+    });
+    const [savingMetodos, setSavingMetodos] = useState(false);
 
     const [profileData, setProfileData] = useState({
         name: "",
@@ -67,13 +78,25 @@ export default function UserProfile({ onNavigate }) {
             const token = localStorage.getItem("access_token");
             if (!token) return;
 
-            const [userRes, servicesRes] = await Promise.all([
+            const [userRes, servicesRes, metodosRes] = await Promise.all([
                 fetch(`${API_URL}/user`, { headers: authHeaders() }),
                 fetch(`${API_URL}/servicios`, { headers: authHeaders() }),
+                fetch(`${API_URL}/user/metodos-pago`, { headers: authHeaders() }),
             ]);
 
             const userData = await userRes.json();
             const servicesData = await servicesRes.json();
+            const metodosData = await metodosRes.json();
+
+            if (metodosData.success) {
+                setMetodosPago({
+                    nequi_numero: metodosData.data.nequi_numero || "",
+                    nequi_nombre: metodosData.data.nequi_nombre || "",
+                    nequi_qr: metodosData.data.nequi_qr || "",
+                    bancolombia_qr: metodosData.data.bancolombia_qr || "",
+                    metodos_pago_activos: metodosData.data.metodos_pago_activos || ["tarjeta", "efectivo"],
+                });
+            }
 
             let reviewsData = { resenas_como_ofertante: [], resenas_como_cliente: [] };
             let promedioData = { promedio: { general: 0 } };
@@ -108,7 +131,11 @@ export default function UserProfile({ onNavigate }) {
                 }
             }
 
-            const servicesArray = Array.isArray(servicesData) ? servicesData : (Array.isArray(servicesData?.servicios) ? servicesData.servicios : []);
+            const servicesArray = Array.isArray(servicesData) 
+                ? servicesData.filter(s => s.tipo === 'servicio' || !s.tipo)
+                : (Array.isArray(servicesData?.servicios) 
+                    ? servicesData.servicios.filter(s => s.tipo === 'servicio' || !s.tipo) 
+                    : []);
             setServicesOffered(servicesArray);
             setServicesHired([]);
 
@@ -274,6 +301,7 @@ export default function UserProfile({ onNavigate }) {
         { id: "info", label: "Información", icon: User },
         { id: "services", label: "Servicios", icon: Package },
         { id: "reviews", label: "Reseñas", icon: Star },
+        { id: "payment", label: "Métodos de Pago", icon: CreditCard },
         { id: "settings", label: "Configuración", icon: Settings },
     ];
 
@@ -785,6 +813,294 @@ export default function UserProfile({ onNavigate }) {
                                             Configurar
                                         </Button>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === "payment" && (
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Métodos de Pago</h3>
+                                    <p className="text-sm text-gray-500">Configura cómo recibirás los pagos de tus servicios</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <Shield className="text-blue-600" size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-blue-900">Información importante</p>
+                                                <p className="text-sm text-blue-700 mt-1">
+                                                    Configura tus métodos de pago para que los clientes puedan pagarte por tus servicios. 
+                                                    Tus datos de pago solo serán visibles cuando un cliente complete una contratación.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border border-gray-200 rounded-xl p-6 space-y-6">
+                                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            <Smartphone size={18} className="text-purple-600" />
+                                            Nequi
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Número de Nequi
+                                                </label>
+                                                <Input
+                                                    type="tel"
+                                                    value={metodosPago.nequi_numero}
+                                                    onChange={(e) => setMetodosPago({ ...metodosPago, nequi_numero: e.target.value })}
+                                                    placeholder="3123456789"
+                                                    maxLength={20}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Nombre del titular
+                                                </label>
+                                                <Input
+                                                    type="text"
+                                                    value={metodosPago.nequi_nombre}
+                                                    onChange={(e) => setMetodosPago({ ...metodosPago, nequi_nombre: e.target.value })}
+                                                    placeholder="Nombre como aparece en Nequi"
+                                                    maxLength={100}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                QR de Nequi <span className="text-gray-400 font-normal">(opcional)</span>
+                                            </label>
+                                            {metodosPago.nequi_qr ? (
+                                                <div className="relative inline-block">
+                                                    <img 
+                                                        src={metodosPago.nequi_qr.startsWith('http') ? metodosPago.nequi_qr : `${API_URL.replace('/api', '')}/storage/${metodosPago.nequi_qr}`}
+                                                        alt="QR Nequi"
+                                                        className="w-32 h-32 object-contain border border-gray-200 rounded-lg"
+                                                    />
+                                                    <button
+                                                        onClick={() => setMetodosPago({ ...metodosPago, nequi_qr: '' })}
+                                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (!file) return;
+                                                            
+                                                            const formData = new FormData();
+                                                            formData.append('tipo', 'nequi_qr');
+                                                            formData.append('imagen', file);
+                                                            
+                                                            try {
+                                                                const token = localStorage.getItem("access_token");
+                                                                const response = await fetch(`${API_URL}/user/metodos-pago/qr`, {
+                                                                    method: 'POST',
+                                                                    headers: { Authorization: `Bearer ${token}` },
+                                                                    body: formData,
+                                                                });
+                                                                const data = await response.json();
+                                                                if (data.success) {
+                                                                    setMetodosPago({ ...metodosPago, nequi_qr: data.data.nequi_qr });
+                                                                    Swal.fire('Éxito', 'QR de Nequi actualizado', 'success');
+                                                                }
+                                                            } catch (error) {
+                                                                Swal.fire('Error', 'No se pudo subir el QR', 'error');
+                                                            }
+                                                        }}
+                                                    />
+                                                    <div className="text-center">
+                                                        <Upload className="mx-auto text-gray-400" size={24} />
+                                                        <span className="text-xs text-gray-500 block mt-1">Subir QR</span>
+                                                    </div>
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={metodosPago.metodos_pago_activos?.includes('nequi')}
+                                                onChange={(e) => {
+                                                    const nuevosActivos = e.target.checked
+                                                        ? [...(metodosPago.metodos_pago_activos || []), 'nequi']
+                                                        : (metodosPago.metodos_pago_activos || []).filter(m => m !== 'nequi');
+                                                    setMetodosPago({ ...metodosPago, metodos_pago_activos: nuevosActivos });
+                                                }}
+                                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Activar Nequi como método de pago</span>
+                                        </label>
+                                    </div>
+
+                                    <div className="border border-gray-200 rounded-xl p-6 space-y-6">
+                                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            <QrCode size={18} className="text-yellow-600" />
+                                            QR Bancolombia
+                                        </h4>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Imagen QR de Bancolombia
+                                            </label>
+                                            {metodosPago.bancolombia_qr ? (
+                                                <div className="relative inline-block">
+                                                    <img 
+                                                        src={metodosPago.bancolombia_qr.startsWith('http') ? metodosPago.bancolombia_qr : `${API_URL.replace('/api', '')}/storage/${metodosPago.bancolombia_qr}`}
+                                                        alt="QR Bancolombia"
+                                                        className="w-32 h-32 object-contain border border-gray-200 rounded-lg"
+                                                    />
+                                                    <button
+                                                        onClick={() => setMetodosPago({ ...metodosPago, bancolombia_qr: '' })}
+                                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (!file) return;
+                                                            
+                                                            const formData = new FormData();
+                                                            formData.append('tipo', 'bancolombia_qr');
+                                                            formData.append('imagen', file);
+                                                            
+                                                            try {
+                                                                const token = localStorage.getItem("access_token");
+                                                                const response = await fetch(`${API_URL}/user/metodos-pago/qr`, {
+                                                                    method: 'POST',
+                                                                    headers: { Authorization: `Bearer ${token}` },
+                                                                    body: formData,
+                                                                });
+                                                                const data = await response.json();
+                                                                if (data.success) {
+                                                                    setMetodosPago({ ...metodosPago, bancolombia_qr: data.data.bancolombia_qr });
+                                                                    Swal.fire('Éxito', 'QR de Bancolombia actualizado', 'success');
+                                                                }
+                                                            } catch (error) {
+                                                                Swal.fire('Error', 'No se pudo subir el QR', 'error');
+                                                            }
+                                                        }}
+                                                    />
+                                                    <div className="text-center">
+                                                        <Upload className="mx-auto text-gray-400" size={24} />
+                                                        <span className="text-xs text-gray-500 block mt-1">Subir QR</span>
+                                                    </div>
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={metodosPago.metodos_pago_activos?.includes('bancolombia_qr')}
+                                                onChange={(e) => {
+                                                    const nuevosActivos = e.target.checked
+                                                        ? [...(metodosPago.metodos_pago_activos || []), 'bancolombia_qr']
+                                                        : (metodosPago.metodos_pago_activos || []).filter(m => m !== 'bancolombia_qr');
+                                                    setMetodosPago({ ...metodosPago, metodos_pago_activos: nuevosActivos });
+                                                }}
+                                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">Activar QR Bancolombia como método de pago</span>
+                                        </label>
+                                    </div>
+
+                                    <div className="border border-gray-200 rounded-xl p-6 space-y-4">
+                                        <h4 className="font-semibold text-gray-900">Otros métodos</h4>
+                                        
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={metodosPago.metodos_pago_activos?.includes('tarjeta')}
+                                                onChange={(e) => {
+                                                    const nuevosActivos = e.target.checked
+                                                        ? [...(metodosPago.metodos_pago_activos || []), 'tarjeta']
+                                                        : (metodosPago.metodos_pago_activos || []).filter(m => m !== 'tarjeta');
+                                                    setMetodosPago({ ...metodosPago, metodos_pago_activos: nuevosActivos });
+                                                }}
+                                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <CreditCard size={18} className="text-gray-500" />
+                                            <span className="text-sm text-gray-700">Tarjeta de Crédito/Débito</span>
+                                        </label>
+                                        
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={metodosPago.metodos_pago_activos?.includes('efectivo')}
+                                                onChange={(e) => {
+                                                    const nuevosActivos = e.target.checked
+                                                        ? [...(metodosPago.metodos_pago_activos || []), 'efectivo']
+                                                        : (metodosPago.metodos_pago_activos || []).filter(m => m !== 'efectivo');
+                                                    setMetodosPago({ ...metodosPago, metodos_pago_activos: nuevosActivos });
+                                                }}
+                                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                            />
+                                            <Globe size={18} className="text-gray-500" />
+                                            <span className="text-sm text-gray-700">Pago en efectivo</span>
+                                        </label>
+                                    </div>
+
+                                    <Button
+                                        onClick={async () => {
+                                            setSavingMetodos(true);
+                                            try {
+                                                const token = localStorage.getItem("access_token");
+                                                const response = await fetch(`${API_URL}/user/metodos-pago`, {
+                                                    method: 'PUT',
+                                                    headers: {
+                                                        Authorization: `Bearer ${token}`,
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        nequi_numero: metodosPago.nequi_numero,
+                                                        nequi_nombre: metodosPago.nequi_nombre,
+                                                        metodos_pago_activos: metodosPago.metodos_pago_activos,
+                                                    }),
+                                                });
+                                                const data = await response.json();
+                                                if (data.success) {
+                                                    Swal.fire({
+                                                        icon: 'success',
+                                                        title: 'Guardado',
+                                                        text: 'Métodos de pago actualizados correctamente',
+                                                        timer: 1500,
+                                                        showConfirmButton: false,
+                                                    });
+                                                } else {
+                                                    Swal.fire('Error', data.message || 'No se pudieron guardar los métodos de pago', 'error');
+                                                }
+                                            } catch (error) {
+                                                Swal.fire('Error', 'Error de conexión', 'error');
+                                            } finally {
+                                                setSavingMetodos(false);
+                                            }
+                                        }}
+                                        disabled={savingMetodos}
+                                        className="w-full"
+                                    >
+                                        {savingMetodos ? 'Guardando...' : 'Guardar cambios'}
+                                    </Button>
                                 </div>
                             </div>
                         )}

@@ -134,6 +134,10 @@ class ServicioController extends Controller
             'imagen' => 'nullable|image|max:2048', // 2MB Max
             'estado' => 'nullable|string|in:Activo,Borrador,Inactivo',
             'tipo' => 'nullable|string|in:servicio,oportunidad',
+            'modo_trabajo' => 'nullable|string|in:virtual,presencial,mixto',
+            'metodos_pago' => 'nullable',
+            'urgencia' => 'nullable|string',
+            'ubicacion' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -157,6 +161,11 @@ class ServicioController extends Controller
         $data = $request->all();
         $data['id_Cliente'] = $user->id_CorreoUsuario;
         $data['estado'] = $data['estado'] ?? 'Activo';
+
+        // Handle JSON fields
+        if (isset($data['metodos_pago']) && is_string($data['metodos_pago'])) {
+            $data['metodos_pago'] = json_decode($data['metodos_pago'], true);
+        }
 
         // Determinar el tipo según el rol del usuario:
         // - Clientes crean oportunidades (necesitan servicios)
@@ -231,6 +240,11 @@ class ServicioController extends Controller
             'id_Categoria' => 'required|exists:categorias,id_Categoria',
             'imagen' => 'nullable|image|max:2048',
             'estado' => 'nullable|string',
+            'tipo' => 'nullable|string|in:servicio,oportunidad',
+            'modo_trabajo' => 'nullable|string|in:virtual,presencial,mixto',
+            'metodos_pago' => 'nullable',
+            'urgencia' => 'nullable|string',
+            'ubicacion' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -238,6 +252,11 @@ class ServicioController extends Controller
         }
 
         $data = $request->all();
+
+        // Handle JSON fields
+        if (isset($data['metodos_pago']) && is_string($data['metodos_pago'])) {
+            $data['metodos_pago'] = json_decode($data['metodos_pago'], true);
+        }
 
         // Handle Image Upload
         if ($request->hasFile('imagen')) {

@@ -587,4 +587,164 @@ class UsuarioController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener configuración de métodos de pago del usuario
+     */
+    public function getMetodosPago(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'nequi_numero' => $user->nequi_numero,
+                'nequi_nombre' => $user->nequi_nombre,
+                'nequi_qr' => $user->nequi_qr,
+                'bancolombia_qr' => $user->bancolombia_qr,
+                'metodos_pago_activos' => $user->metodos_pago_activos ?? ['tarjeta', 'efectivo'],
+            ],
+        ]);
+    }
+
+    /**
+     * Actualizar configuración de métodos de pago del usuario
+     */
+    public function updateMetodosPago(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->bloqueado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta está bloqueada.',
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'nequi_numero' => 'nullable|string|min:10|max:20|regex:/^[0-9]+$/',
+                'nequi_nombre' => 'nullable|string|max:100',
+                'nequi_qr' => 'nullable|string|max:500',
+                'bancolombia_qr' => 'nullable|string|max:500',
+                'metodos_pago_activos' => 'nullable|array',
+                'metodos_pago_activos.*' => 'string|in:tarjeta,nequi,bancolombia_qr,efectivo',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $data = $validator->validated();
+
+            if (isset($data['nequi_numero'])) {
+                $user->nequi_numero = strip_tags(trim($data['nequi_numero']));
+            }
+            if (isset($data['nequi_nombre'])) {
+                $user->nequi_nombre = strip_tags(trim($data['nequi_nombre']));
+            }
+            if (isset($data['nequi_qr'])) {
+                $user->nequi_qr = $data['nequi_qr'];
+            }
+            if (isset($data['bancolombia_qr'])) {
+                $user->bancolombia_qr = $data['bancolombia_qr'];
+            }
+            if (isset($data['metodos_pago_activos'])) {
+                $user->metodos_pago_activos = $data['metodos_pago_activos'];
+            }
+
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Métodos de pago actualizados correctamente',
+                'data' => [
+                    'nequi_numero' => $user->nequi_numero,
+                    'nequi_nombre' => $user->nequi_nombre,
+                    'nequi_qr' => $user->nequi_qr,
+                    'bancolombia_qr' => $user->bancolombia_qr,
+                    'metodos_pago_activos' => $user->metodos_pago_activos,
+                ],
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar métodos de pago',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir imagen QR de Nequi o Bancolombia
+     */
+    public function uploadQrPago(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->bloqueado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu cuenta está bloqueada.',
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'tipo' => 'required|string|in:nequi_qr,bancolombia_qr',
+                'imagen' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $data = $validator->validated();
+            $tipo = $data['tipo'];
+
+            $path = $request->file('imagen')->store('qrs-pago', 'public');
+
+            if ($tipo === 'nequi_qr') {
+                if ($user->nequi_qr && Storage::disk('public')->exists($user->nequi_qr)) {
+                    Storage::disk('public')->delete($user->nequi_qr);
+                }
+                $user->nequi_qr = $path;
+            } else {
+                if ($user->bancolombia_qr && Storage::disk('public')->exists($user->bancolombia_qr)) {
+                    Storage::disk('public')->delete($user->bancolombia_qr);
+                }
+                $user->bancolombia_qr = $path;
+            }
+
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'QR subido correctamente',
+                'data' => [
+                    $tipo => $path,
+                ],
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir la imagen',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

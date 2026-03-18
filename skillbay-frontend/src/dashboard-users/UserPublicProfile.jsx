@@ -8,6 +8,7 @@ import {
   Star,
   Package
 } from "lucide-react";
+import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
 
 export default function UserPublicProfile({ onBack }) {
@@ -67,6 +68,98 @@ export default function UserPublicProfile({ onBack }) {
     const names = name.split(' ');
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const requestService = async (service) => {
+    const { value: mensaje } = await Swal.fire({
+      title: "Solicitar servicio",
+      input: "textarea",
+      inputLabel: "Mensaje para el ofertante",
+      inputPlaceholder: "Describe lo que necesitas para este servicio...",
+      inputAttributes: { maxlength: "2000" },
+      showCancelButton: true,
+      confirmButtonText: "Enviar solicitud",
+      cancelButtonText: "Cancelar",
+      preConfirm: (value) => {
+        const text = String(value || "").trim();
+        if (!text) {
+          Swal.showValidationMessage("Debes escribir un mensaje para solicitar el servicio.");
+          return false;
+        }
+        return text;
+      },
+    });
+
+    if (!mensaje) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/postulaciones`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ 
+          id_Servicio: service.id_Servicio, 
+          mensaje,
+          tipo_postulacion: 'solicitante' 
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo enviar la solicitud.");
+      Swal.fire("Enviado", "Tu solicitud de servicio fue enviada.", "success");
+    } catch (error) {
+      Swal.fire("Error", error.message || "No se pudo enviar la solicitud.", "error");
+    }
+  };
+
+  const postular = async (service) => {
+    const { value: mensaje } = await Swal.fire({
+      title: "Enviar postulación",
+      input: "textarea",
+      inputLabel: "Mensaje de postulación",
+      inputPlaceholder: "Explica por qué eres una buena opción para esta oportunidad...",
+      inputAttributes: { maxlength: "2000" },
+      showCancelButton: true,
+      confirmButtonText: "Enviar",
+      cancelButtonText: "Cancelar",
+      preConfirm: (value) => {
+        const text = String(value || "").trim();
+        if (!text) {
+          Swal.showValidationMessage("Debes escribir un mensaje para postularte.");
+          return false;
+        }
+        return text;
+      },
+    });
+
+    if (!mensaje) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/postulaciones`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ 
+          id_Servicio: service.id_Servicio, 
+          mensaje,
+          tipo_postulacion: 'postulante' 
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo registrar la postulación.");
+      Swal.fire("Enviado", "Tu postulación fue enviada.", "success");
+    } catch (error) {
+      Swal.fire("Error", error.message || "No se pudo enviar la postulación.", "error");
+    }
   };
 
   return (
@@ -223,6 +316,13 @@ export default function UserPublicProfile({ onBack }) {
                         {servicio.precio ? `$${Number(servicio.precio).toLocaleString("es-CO")}` : "A convenir"}
                       </p>
                     </div>
+                    <button
+                      onClick={() => requestService(servicio)}
+                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      <Send size={16} />
+                      Solicitar servicio
+                    </button>
                   </div>
                 </article>
               ))}
@@ -292,6 +392,13 @@ export default function UserPublicProfile({ onBack }) {
                         {oportunidad.precio ? `$${Number(oportunidad.precio).toLocaleString("es-CO")}` : "A convenir"}
                       </p>
                     </div>
+                    <button
+                      onClick={() => postular(oportunidad)}
+                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      <Send size={16} />
+                      Postularme
+                    </button>
                   </div>
                 </article>
               ))}

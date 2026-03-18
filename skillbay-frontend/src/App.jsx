@@ -25,6 +25,7 @@ import UserPayments from "./dashboard-users/UserPayments";
 import Applications from "./dashboard-users/MyApplications/MyApplications";
 import NotificationsPage from "./dashboard-users/Notifications/NotificationsPage";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
+import Checkout from "./dashboard-users/Checkout/Checkout";
 import UserMessages from "./dashboard-users/UserMessages";
 import UserPublicProfile from "./dashboard-users/UserPublicProfile";
 
@@ -84,6 +85,16 @@ function App() {
   const isAdmin = useMemo(() => currentUser?.rol === "admin", [currentUser]);
 
   useEffect(() => {
+    if (window.location.hash === "#checkout") {
+      window.location.hash = "";
+      const checkoutData = localStorage.getItem("checkout_data");
+      if (checkoutData && isAuthenticated) {
+        setCurrentView("checkout");
+      }
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     if (isAdmin && !String(currentView).startsWith("admin_")) {
       setCurrentView("admin_overview");
@@ -104,9 +115,34 @@ function App() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("usuario");
     localStorage.removeItem("currentView");
+    localStorage.removeItem("checkout_data");
     setIsAuthenticated(false);
     setCurrentUser(null);
     setCurrentView("home");
+  };
+
+  const getCheckoutData = () => {
+    try {
+      const data = localStorage.getItem("checkout_data");
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // eslint-disable-next-line no-unused-vars
+  const startCheckout = (tipo, idItem, monto, descripcion) => {
+    localStorage.setItem("checkout_data", JSON.stringify({
+      tipo,
+      idItem,
+      monto,
+      descripcion,
+    }));
+    setCurrentView("checkout");
+  };
+
+  const clearCheckoutData = () => {
+    localStorage.removeItem("checkout_data");
   };
 
   const renderUserDashboardView = () => {
@@ -131,6 +167,25 @@ function App() {
         return <UserPublicProfile onBack={() => setCurrentView("explore")} />;
       case "plans":
         return <PlanesUser />;
+      case "checkout": {
+        const checkoutData = getCheckoutData();
+        if (!checkoutData) {
+          return <ExploreOpportunities />;
+        }
+        return (
+          <Checkout
+            tipo={checkoutData.tipo}
+            idItem={checkoutData.idItem}
+            monto={checkoutData.monto}
+            descripcion={checkoutData.descripcion}
+            onNavigate={setCurrentView}
+            onComplete={() => {
+              clearCheckoutData();
+              setCurrentView("explore");
+            }}
+          />
+        );
+      }
       // Retornos de MercadoPago (también accesibles desde el dashboard)
       case "payment_success":
         return <PaymentSuccess onNavigate={setCurrentView} />;

@@ -16,10 +16,13 @@ import Swal from "sweetalert2";
 import { API_URL } from "../../config/api";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
+import RatingModal from "../../components/RatingModal";
 
 export default function ReceivedApplications() {
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingService, setRatingService] = useState(null);
 
   const authHeaders = (json = false) => ({
     Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -309,66 +312,27 @@ export default function ReceivedApplications() {
                    <Badge className="bg-green-500 text-white border-0 px-3 py-1">
                      ✅ Pagada
                    </Badge>
-                   {request.ya_califico_receptor ? (
-                     <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
-                       ⭐ Calificado
-                     </Badge>
-                   ) : (
-                     <Button
-                       size="sm"
-                       className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                       onClick={async () => {
-                         const { value: rating } = await Swal.fire({
-                           title: 'Califica el servicio',
-                           input: 'range',
-                           inputLabel: 'Calificación (1-5 estrellas)',
-                           inputAttributes: {
-                             min: 1,
-                             max: 5,
-                             step: 1
-                           },
-                           inputValue: 5,
-                           showCancelButton: true,
-                           confirmButtonText: 'Calificar',
-                           cancelButtonText: 'Cancelar',
-                         });
-                         
-                         if (!rating) return;
-                         
-                         const { value: comment } = await Swal.fire({
-                           title: 'Deja un comentario (opcional)',
-                           input: 'textarea',
-                           inputPlaceholder: 'Escribe tu experiencia con el servicio...',
-                           showCancelButton: true,
-                           confirmButtonText: 'Enviar',
-                           cancelButtonText: 'Cancelar',
-                         });
-                         
-                         try {
-                           const response = await fetch(`${API_URL}/resenas`, {
-                             method: "POST",
-                             headers: authHeaders(true),
-                             body: JSON.stringify({
-                               direccion: 'cliente_a_ofertante',
-                               id_Postulacion: request.id,
-                               id_Servicio: request.servicio.id_Servicio,
-                               calificacion: parseInt(rating),
-                               comentario: comment || ''
-                             }),
-                           });
-                           const data = await response.json();
-                           if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-                           // Update local state instead of refetching
-                           setSolicitudesRecibidas(prev => prev.map(s => s.id === request.id ? {...s, ya_califico_receptor: true} : s));
-                           Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-                         } catch (error) {
-                           Swal.fire('Error', error.message, 'error');
-                         }
-                       }}
-                     >
-                       <Star size={14} className="mr-1" /> Calificar
-                     </Button>
-                   )}
+                    {request.ya_califico_receptor ? (
+                      <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
+                        ⭐ Calificado
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                        onClick={() => {
+                          setRatingService({
+                            id_Servicio: request.servicio.id_Servicio,
+                            id_Postulacion: request.id,
+                            direccion: 'cliente_a_ofertante',
+                            servicio: request.servicio
+                          });
+                          setShowRatingModal(true);
+                        }}
+                      >
+                        <Star size={14} className="mr-1" /> Calificar
+                      </Button>
+                    )}
                  </div>
                )}
               {(request.estado === "rechazada" || request.estado === "cancelada") && (
@@ -471,6 +435,40 @@ export default function ReceivedApplications() {
           </div>
         </section>
       )}
+
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setRatingService(null);
+        }}
+        onSubmit={async ({ rating, comment }) => {
+          try {
+            const response = await fetch(`${API_URL}/resenas`, {
+              method: "POST",
+              headers: authHeaders(true),
+              body: JSON.stringify({
+                direccion: ratingService?.direccion || 'cliente_a_ofertante',
+                id_Postulacion: ratingService?.id_Postulacion,
+                id_Servicio: ratingService?.id_Servicio,
+                calificacion: rating,
+                comentario: comment || ''
+              }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+            setSolicitudesRecibidas(prev => prev.map(s => s.id === ratingService?.id_Postulacion ? {...s, ya_califico_receptor: true} : s));
+            Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+          } catch (error) {
+            Swal.fire('Error', error.message, 'error');
+          } finally {
+            setShowRatingModal(false);
+            setRatingService(null);
+          }
+        }}
+        title="Califica al cliente"
+        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este cliente'}?`}
+      />
     </div>
   );
 }

@@ -13,6 +13,10 @@ class Servicio extends Model
 
     protected $primaryKey = 'id_Servicio';
 
+    protected $casts = [
+        'metodos_pago' => 'array',
+    ];
+
     protected $fillable = [
         'titulo',
         'descripcion',
@@ -25,6 +29,8 @@ class Servicio extends Model
         'tipo', // 'servicio' o 'oportunidad'
         'urgencia',
         'ubicacion',
+        'metodos_pago',
+        'modo_trabajo',
     ];
 
     public function cliente()

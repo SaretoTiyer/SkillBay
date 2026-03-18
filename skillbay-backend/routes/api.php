@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\MensajeController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\Api\PagoSimuladoController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PostulacionController;
 use App\Http\Controllers\Api\ReporteController;
@@ -42,6 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UsuarioController::class, 'me']);
     Route::put('/user', [UsuarioController::class, 'update']);
     Route::post('/user/imagen-perfil', [UsuarioController::class, 'uploadProfileImage']);
+    Route::get('/user/metodos-pago', [UsuarioController::class, 'getMetodosPago']);
+    Route::put('/user/metodos-pago', [UsuarioController::class, 'updateMetodosPago']);
+    Route::post('/user/metodos-pago/qr', [UsuarioController::class, 'uploadQrPago']);
     Route::get('/usuarios/{id}/perfil', [UsuarioController::class, 'perfilPublico']);
     Route::get('/servicios/explore', [ServicioController::class, 'explore']);
     // Rutas específicas de solicitudes - deben estar ANTES de apiResource
@@ -60,6 +64,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pagos/plan', [PagoController::class, 'pagarPlan']);
     Route::post('/pagos/servicio', [PagoController::class, 'pagarServicio']);
     Route::get('/pagos/historial', [PagoController::class, 'historial']);
+
+    // Pago simulado
+    Route::get('/pagos/metodos', [PagoSimuladoController::class, 'metodosPago']);
+    Route::post('/pagos/plan/simulado', [PagoSimuladoController::class, 'iniciarPagoPlan']);
+    Route::post('/pagos/servicio/simulado', [PagoSimuladoController::class, 'iniciarPagoServicio']);
+    Route::post('/pagos/procesar', [PagoSimuladoController::class, 'procesarPago']);
+    Route::post('/pagos/aprobar-auto', [PagoSimuladoController::class, 'aprobarAutomatico']);
+    Route::get('/pagos/estado', [PagoSimuladoController::class, 'obtenerEstado']);
+    Route::post('/pagos/comprobante', [PagoSimuladoController::class, 'subirComprobante']);
 
     // ── MercadoPago: rutas autenticadas ──────────────────────────────────────
     Route::post('/mp/crear-preferencia', [MercadoPagoController::class, 'crearPreferencia']);

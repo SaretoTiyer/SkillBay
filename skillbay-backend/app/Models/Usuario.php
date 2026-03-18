@@ -36,6 +36,11 @@ class Usuario extends Authenticatable
         'bloqueado',
         'fechaRegistro',
         'imagen_perfil',
+        'nequi_numero',
+        'nequi_nombre',
+        'nequi_qr',
+        'bancolombia_qr',
+        'metodos_pago_activos',
     ];
 
     protected $hidden = [
@@ -46,6 +51,7 @@ class Usuario extends Authenticatable
     protected $casts = [
         'bloqueado' => 'boolean',
         'fechaNacimiento' => 'date',
+        'metodos_pago_activos' => 'array',
     ];
 
     public function plan()
