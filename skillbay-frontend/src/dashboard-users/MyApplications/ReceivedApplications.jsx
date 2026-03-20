@@ -448,7 +448,6 @@ export default function ReceivedApplications() {
               method: "POST",
               headers: authHeaders(true),
               body: JSON.stringify({
-                direccion: ratingService?.direccion || 'cliente_a_ofertante',
                 id_Postulacion: ratingService?.id_Postulacion,
                 id_Servicio: ratingService?.id_Servicio,
                 calificacion: rating,

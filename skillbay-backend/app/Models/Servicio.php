@@ -20,17 +20,18 @@ class Servicio extends Model
     protected $fillable = [
         'titulo',
         'descripcion',
-        'id_Cliente', // Dueño del servicio (ofertante / cliente)
+        'id_Cliente',
         'estado',
         'precio',
         'imagen',
         'tiempo_entrega',
         'id_Categoria',
-        'tipo', // 'servicio' o 'oportunidad'
+        'tipo',
         'urgencia',
         'ubicacion',
         'metodos_pago',
         'modo_trabajo',
+        'fechaPublicacion',
     ];
 
     public function cliente()

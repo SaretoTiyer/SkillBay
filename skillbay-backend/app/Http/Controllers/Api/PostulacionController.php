@@ -7,6 +7,7 @@ use App\Models\Notificacion;
 use App\Models\Postulacion;
 use App\Models\Resena;
 use App\Models\Servicio;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,7 @@ class PostulacionController extends Controller
      */
     public function index()
     {
+        /** @var Usuario $user */
         $user = Auth::user();
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -302,6 +304,7 @@ class PostulacionController extends Controller
      */
     public function store(Request $request)
     {
+        /** @var Usuario $user */
         $user = Auth::user();
         if ($user->bloqueado) {
             return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
@@ -377,6 +380,7 @@ class PostulacionController extends Controller
      */
     public function update(Request $request, $id)
     {
+        /** @var Usuario $user */
         $user = Auth::user();
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -423,6 +427,7 @@ class PostulacionController extends Controller
      */
     public function destroy($id)
     {
+        /** @var Usuario $user */
         $user = Auth::user();
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);

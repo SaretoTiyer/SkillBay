@@ -233,11 +233,11 @@ class ServicioController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'titulo' => 'required|string|max:255',
-            'descripcion' => 'required|string',
+            'titulo' => 'nullable|string|max:255',
+            'descripcion' => 'nullable|string',
             'precio' => 'nullable|numeric',
             'tiempo_entrega' => 'nullable|string|max:191',
-            'id_Categoria' => 'required|exists:categorias,id_Categoria',
+            'id_Categoria' => 'nullable|exists:categorias,id_Categoria',
             'imagen' => 'nullable|image|max:2048',
             'estado' => 'nullable|string',
             'tipo' => 'nullable|string|in:servicio,oportunidad',
@@ -270,7 +270,9 @@ class ServicioController extends Controller
 
         $servicio->update($data);
 
-        if ($servicio->imagen) {
+        $servicio->load('categoria');
+
+        if ($servicio->imagen && !str_starts_with($servicio->imagen, 'http')) {
             $servicio->imagen = asset('storage/'.$servicio->imagen);
         }
 

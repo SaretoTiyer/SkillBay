@@ -11,7 +11,6 @@ class Resena extends Model
     protected $fillable = [
         'calificacion',
         'comentario',
-        'metodoPago',
         'id_Servicio',
         'id_CorreoUsuario',
         'direccion',

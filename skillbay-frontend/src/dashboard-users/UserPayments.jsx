@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, ExternalLink } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
+import RatingModal from "../components/RatingModal";
 
 export default function UserPayments() {
   const [plans, setPlans] = useState([]);
@@ -15,6 +16,10 @@ export default function UserPayments() {
     id_Plan: "",
     modalidadPago: "virtual",
   });
+
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [pendingRatingService, setPendingRatingService] = useState(null);
+  const [ratingLoading, setRatingLoading] = useState(false);
 
   const [serviceForm, setServiceForm] = useState({
     id_Servicio: "",
@@ -211,46 +216,13 @@ export default function UserPayments() {
       // Después del pago exitoso, ofrecer calificar
       const selectedService = services.find(s => s.id_Servicio === serviceForm.id_Servicio);
       if (selectedService) {
-        const { value: ratingData } = await Swal.fire({
-          title: "Califica tu experiencia",
-          html: `
-            <div class="py-4">
-              <p class="mb-4 text-slate-600">¿Cómo fue tu experiencia con este servicio?</p>
-              <div class="flex justify-center gap-2 mb-4" id="star-rating">
-                ${[1,2,3,4,5].map(i => `<button type="button" class="star-btn text-3xl text-slate-300 hover:text-yellow-400 transition-colors" data-rating="${i}">★</button>`).join('')}
-              </div>
-              <textarea id="rating-comment" class="swal2-textarea" placeholder="Escribe un comentario sobre tu experiencia (opcional)"></textarea>
-            </div>
-          `,
-          preConfirm: () => {
-            const selectedStar = document.querySelector('.star-btn.text-yellow-400');
-            const comment = document.getElementById('rating-comment')?.value;
-            return {
-              rating: selectedStar?.dataset.rating || 5,
-              comment: comment || ""
-            };
-          },
-          showCancelButton: true,
-          confirmButtonText: "Enviar calificación",
-          cancelButtonText: "Ahora no",
+        setPendingRatingService({
+          id_Servicio: serviceForm.id_Servicio,
+          titulo: selectedService.titulo,
+          metodoPago: serviceForm.modalidadPago,
+          id_Postulacion: serviceForm.id_Postulacion || null,
         });
-
-        if (ratingData) {
-          try {
-            await fetch(`${API_URL}/resenas`, {
-              method: "POST",
-              headers: authHeaders(),
-              body: JSON.stringify({
-                id_Servicio: serviceForm.id_Servicio,
-                calificacion: ratingData.rating,
-                comentario: ratingData.comment,
-                metodoPago: serviceForm.modalidadPago,
-              }),
-            });
-          } catch (err) {
-            console.error("Error submitting rating:", err);
-          }
-        }
+        setShowRatingModal(true);
       }
       
       await loadData();
@@ -263,35 +235,6 @@ export default function UserPayments() {
 
   const currentPlan = plans.find(p => p.id_Plan === currentPlanId);
   const selectedService = services.find(s => s.id_Servicio === serviceForm.id_Servicio);
-
-  // Agregar event listeners para las estrellas después de renderizar
-  useEffect(() => {
-    const starButtons = document.querySelectorAll('.star-btn');
-    starButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        starButtons.forEach(b => b.classList.remove('text-yellow-400'));
-        starButtons.forEach(b => b.classList.add('text-slate-300'));
-        this.classList.remove('text-slate-300');
-        this.classList.add('text-yellow-400');
-      });
-      btn.addEventListener('mouseenter', function() {
-        const rating = parseInt(this.dataset.rating);
-        starButtons.forEach((b, idx) => {
-          if (idx < rating) {
-            b.classList.add('text-yellow-400');
-          }
-        });
-      });
-      btn.addEventListener('mouseleave', function() {
-        starButtons.forEach(b => {
-          if (!b.classList.contains('clicked')) {
-            b.classList.remove('text-yellow-400');
-            b.classList.add('text-slate-300');
-          }
-        });
-      });
-    });
-  });
 
   if (loading) {
     return (
@@ -507,6 +450,39 @@ export default function UserPayments() {
           </div>
         </div>
       </div>
+
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setPendingRatingService(null);
+        }}
+        onSubmit={async ({ rating, comment }) => {
+          setRatingLoading(true);
+          try {
+            await fetch(`${API_URL}/resenas`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({
+                id_Postulacion: pendingRatingService?.id_Postulacion,
+                id_Servicio: pendingRatingService?.id_Servicio,
+                calificacion: rating,
+                comentario: comment || '',
+              }),
+            });
+            setShowRatingModal(false);
+            setPendingRatingService(null);
+          } catch (err) {
+            console.error("Error submitting rating:", err);
+            Swal.fire('Error', 'No se pudo enviar la calificación.', 'error');
+          } finally {
+            setRatingLoading(false);
+          }
+        }}
+        title="Califica tu experiencia"
+        subtitle={`¿Cómo fue tu experiencia con ${pendingRatingService?.titulo || 'este servicio'}?`}
+        loading={ratingLoading}
+      />
     </div>
   );
 }

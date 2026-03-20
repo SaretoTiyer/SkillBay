@@ -685,6 +685,7 @@ export default function Applications({ defaultTab }) {
               method: "POST",
               headers: authHeaders(true),
               body: JSON.stringify({
+                id_Postulacion: ratingService?.id_Postulacion,
                 id_Servicio: ratingService?.id_Servicio,
                 calificacion: rating,
                 comentario: comment || ''

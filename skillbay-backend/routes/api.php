@@ -86,9 +86,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notificaciones', [NotificacionController::class, 'eliminarTodas']);
 
     Route::post('/reportes', [ReporteController::class, 'store']);
+    
+    // Rutas autenticadas para reseñas
     Route::post('/resenas', [ResenaController::class, 'store']);
     Route::get('/resenas/servicio/{id}', [ResenaController::class, 'porServicio']);
-    // Rutas autenticadas para reseñas
     Route::get('/resenas/usuario/{id}', [ResenaController::class, 'porUsuario']);
     Route::get('/resenas/usuario/{id}/hechas', [ResenaController::class, 'porUsuarioHechas']);
     Route::get('/resenas/usuario/{id}/promedio', [ResenaController::class, 'promedioPorUsuario']);

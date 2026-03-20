@@ -62,6 +62,18 @@ export default function FormService({ onCancel, onSuccess, editingService = null
         }
     }, []);
 
+    useEffect(() => {
+        if (editingService && categories.length > 0 && !formData.categoria) {
+            const idCategoria = editingService.id_Categoria;
+            const categoriaEncontrada = categories.find(
+                cat => cat && cat.id_Categoria === idCategoria
+            );
+            if (categoriaEncontrada && categoriaEncontrada.grupo) {
+                setFormData(prev => ({ ...prev, categoria: categoriaEncontrada.grupo }));
+            }
+        }
+    }, [editingService, categories]);
+
     const fetchCategories = async () => {
         setCategoriesLoading(true);
         try {
@@ -150,6 +162,10 @@ export default function FormService({ onCancel, onSuccess, editingService = null
             const data = await response.json();
 
             if (!response.ok) {
+                if (data.errors) {
+                    const firstError = Object.values(data.errors)[0];
+                    throw new Error(Array.isArray(firstError) ? firstError[0] : firstError);
+                }
                 throw new Error(data.message || "Error al guardar el servicio");
             }
 
