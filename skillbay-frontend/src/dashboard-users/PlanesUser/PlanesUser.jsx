@@ -174,7 +174,7 @@ export default function PlanesUser() {
   return (
     <div className="max-w-7xl mx-auto p-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4 mb-10">
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg shadow-blue-200">
+        <div className="bg-linear-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg shadow-blue-200">
           <CreditCard className="text-white h-8 w-8" />
         </div>
         <div>
@@ -184,13 +184,13 @@ export default function PlanesUser() {
       </div>
 
       {/* Banner de Pago Simulado */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 mb-8 flex items-center gap-3">
+      <div className="bg-linear-to-r from-blue-500 to-indigo-600 rounded-2xl p-4 mb-8 flex items-center gap-3">
         <div className="bg-white/20 rounded-xl p-2">
           <CreditCard className="text-white" size={24} />
         </div>
         <div>
           <p className="text-white font-semibold text-sm">Pagos seguros simulados</p>
-          <p className="text-blue-100 text-xs">Acepta tarjetas, PSE, efectivo y más métodos de pago</p>
+          <p className="text-blue-100 text-xs">Acepta tarjetas y Efectivo</p>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ export default function PlanesUser() {
       {/* Nota de seguridad */}
       <div className="mt-8 text-center">
         <p className="text-xs text-slate-400">
-          🔒 Esta es una simulación de pago para演示. No se procesará dinero real.
+          🔒 Esta es una simulación de pago para Manifestación. No se procesará dinero real.
         </p>
       </div>
     </div>

@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('servicios', function (Blueprint $table) {
-            if (!Schema::hasColumn('servicios', 'metodos_pago')) {
+            if (! Schema::hasColumn('servicios', 'metodos_pago')) {
                 $table->json('metodos_pago')->nullable()->after('estado');
             }
-            if (!Schema::hasColumn('servicios', 'modo_trabajo')) {
+            if (! Schema::hasColumn('servicios', 'modo_trabajo')) {
                 $table->enum('modo_trabajo', ['virtual', 'presencial', 'mixto'])->nullable()->after('metodos_pago');
             }
         });

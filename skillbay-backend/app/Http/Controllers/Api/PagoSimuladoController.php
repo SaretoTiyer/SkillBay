@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Postulacion;
-use App\Models\Servicio;
 use App\Models\Usuario;
 use App\Services\PagoSimuladoService;
 use Illuminate\Http\JsonResponse;
@@ -122,7 +121,7 @@ class PagoSimuladoController extends Controller
             $validated['tipo']
         );
 
-        if (!$resultado) {
+        if (! $resultado) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pago no encontrado',
@@ -179,7 +178,7 @@ class PagoSimuladoController extends Controller
                 $metodos[] = [
                     'id' => 'nequi',
                     'nombre' => 'Nequi',
-                    'descripcion' => $receptor->nequi_numero ? 'Paga con Nequi al ' . $receptor->nequi_numero : 'Paga con QR de Nequi',
+                    'descripcion' => $receptor->nequi_numero ? 'Paga con Nequi al '.$receptor->nequi_numero : 'Paga con QR de Nequi',
                     'icono' => 'smartphone',
                     'categoria' => 'digital',
                     'requiere_datos' => false,
@@ -227,7 +226,7 @@ class PagoSimuladoController extends Controller
 
         $pago = \App\Models\PagoServicio::findOrFail($validated['id_pago']);
 
-        if (!$pago) {
+        if (! $pago) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pago no encontrado',

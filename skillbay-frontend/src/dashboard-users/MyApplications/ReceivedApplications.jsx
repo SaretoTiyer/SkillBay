@@ -442,7 +442,7 @@ export default function ReceivedApplications() {
           setShowRatingModal(false);
           setRatingService(null);
         }}
-        onSubmit={async ({ rating, comment }) => {
+        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
           try {
             const response = await fetch(`${API_URL}/resenas`, {
               method: "POST",
@@ -450,7 +450,8 @@ export default function ReceivedApplications() {
               body: JSON.stringify({
                 id_Postulacion: ratingService?.id_Postulacion,
                 id_Servicio: ratingService?.id_Servicio,
-                calificacion: rating,
+                calificacion_usuario: ratingUsuario,
+                calificacion_servicio: ratingServicio,
                 comentario: comment || ''
               }),
             });
@@ -465,8 +466,9 @@ export default function ReceivedApplications() {
             setRatingService(null);
           }
         }}
-        title="Califica al cliente"
         subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este cliente'}?`}
+        tipo={ratingService?.servicio?.tipo || "servicio"}
+        rolCalificado="cliente"
       />
     </div>
   );

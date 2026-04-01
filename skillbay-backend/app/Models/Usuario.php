@@ -19,8 +19,6 @@ class Usuario extends Authenticatable
 
     protected $keyType = 'string';
 
-    public $timestamps = false;
-
     protected $fillable = [
         'id_CorreoUsuario',
         'id_Plan',

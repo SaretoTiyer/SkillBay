@@ -8,17 +8,23 @@ class Resena extends Model
 {
     protected $table = 'resenas';
 
+    protected $primaryKey = 'id_Reseña';
+
     protected $fillable = [
-        'calificacion',
+        'calificacion_usuario',
+        'calificacion_servicio',
         'comentario',
         'id_Servicio',
         'id_CorreoUsuario',
-        'direccion',
+        'id_CorreoUsuario_Calificado',
+        'rol_calificado',
         'id_Postulacion',
     ];
 
     protected $casts = [
-        'calificacion' => 'integer',
+        'calificacion_usuario' => 'integer',
+        'calificacion_servicio' => 'integer',
+        'rol_calificado' => 'string',
     ];
 
     public function servicio()
@@ -34,5 +40,10 @@ class Resena extends Model
     public function postulacion()
     {
         return $this->belongsTo(Postulacion::class, 'id_Postulacion');
+    }
+
+    public function usuarioCalificado()
+    {
+        return $this->belongsTo(Usuario::class, 'id_CorreoUsuario_Calificado', 'id_CorreoUsuario');
     }
 }

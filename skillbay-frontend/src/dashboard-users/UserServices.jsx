@@ -3,7 +3,6 @@ import { Package, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import CreateOpportunity from "./Myservices/CreateOpportunity";
 import CreateService from "./Myservices/CreateService";
-import MyServices from "./Myservices/MyServices";
 
 
 export default function UserServices() {
@@ -54,12 +53,6 @@ export default function UserServices() {
                     >
                         🔍 Crear Oportunidad
                     </TabsTrigger>
-                    <TabsTrigger 
-                        value="my-services" 
-                        className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-2 text-sm font-medium"
-                    >
-                        💼 Mis Servicios
-                    </TabsTrigger>
                 </TabsList>
 
                 {/* Tab: Crear Servicio */}
@@ -70,11 +63,6 @@ export default function UserServices() {
                 {/* Tab: Crear Oportunidad */}
                 <TabsContent value="create-opportunity" className="mt-6">
                     <CreateOpportunity />
-                </TabsContent>
-
-                {/* Tab: Mis Servicios */}
-                <TabsContent value="my-services" className="mt-6">
-                    <MyServices />
                 </TabsContent>
 
             </Tabs>

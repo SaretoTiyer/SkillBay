@@ -452,7 +452,7 @@ export default function ExploreServices() {
          </div>
        )
      }
-            : (
+             {/* (
                <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                    <Search size={28} className="text-slate-400" />
@@ -472,7 +472,7 @@ export default function ExploreServices() {
                    </button>
                  )}
                </div>
-             )
+             ) */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
@@ -650,7 +650,7 @@ export default function ExploreServices() {
             </div>
           </div>
         </div>
-       )};
+       )}
        </div>
     );
 }

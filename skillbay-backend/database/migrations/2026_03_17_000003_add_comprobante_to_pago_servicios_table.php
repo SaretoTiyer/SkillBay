@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pago_servicios', function (Blueprint $table) {
-            if (!Schema::hasColumn('pago_servicios', 'comprobante')) {
+            if (! Schema::hasColumn('pago_servicios', 'comprobante')) {
                 $table->string('comprobante', 500)->nullable()->after('referenciaPago');
             }
-            if (!Schema::hasColumn('pago_servicios', 'fecha_comprobante')) {
+            if (! Schema::hasColumn('pago_servicios', 'fecha_comprobante')) {
                 $table->timestamp('fecha_comprobante')->nullable()->after('comprobante');
             }
         });

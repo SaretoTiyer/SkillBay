@@ -221,22 +221,50 @@ export default function UserProfile({ onNavigate }) {
     const ReviewCard = ({ review }) => (
         <div className="p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
             <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1" role="img" aria-label={`Calificación: ${review.calificacion} de 5 estrellas`}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                            key={star}
-                            size={14}
-                            className={star <= review.calificacion ? "text-amber-400 fill-amber-400" : "text-gray-300"}
-                            aria-hidden="true"
-                        />
-                    ))}
-                </div>
                 <span className="text-xs text-gray-400 font-medium">
                     {review.created_at ? new Date(review.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : ""}
                 </span>
             </div>
+            
+            <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">Al ofertante:</span>
+                    <div className="flex items-center gap-1" role="img" aria-label={`Calificación al ofertante: ${review.calificacion_usuario} de 5 estrellas`}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                                key={`user-${star}`}
+                                size={14}
+                                className={star <= (review.calificacion_usuario || 0) ? "text-amber-400 fill-amber-400" : "text-gray-300"}
+                                aria-hidden="true"
+                            />
+                        ))}
+                    </div>
+                    <span className="text-sm text-gray-600">({review.calificacion_usuario || 0}/5)</span>
+                </div>
+
+                {review.calificacion_servicio !== null && review.calificacion_servicio !== undefined && (
+                    <div className="flex items-center gap-2">
+                        <Briefcase size={14} className="text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700">Al servicio:</span>
+                        <div className="flex items-center gap-1" role="img" aria-label={`Calificación al servicio: ${review.calificacion_servicio} de 5 estrellas`}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={`service-${star}`}
+                                    size={14}
+                                    className={star <= (review.calificacion_servicio || 0) ? "text-blue-400 fill-blue-400" : "text-gray-300"}
+                                    aria-hidden="true"
+                                />
+                            ))}
+                        </div>
+                        <span className="text-sm text-gray-600">({review.calificacion_servicio}/5)</span>
+                    </div>
+                )}
+            </div>
+
             {review.comentario && (
-                <p className="text-gray-600 text-sm leading-relaxed">{review.comentario}</p>
+                <p className="text-gray-600 text-sm leading-relaxed mt-3 pt-3 border-t border-gray-200">
+                    {review.comentario}
+                </p>
             )}
         </div>
     );

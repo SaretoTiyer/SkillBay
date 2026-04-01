@@ -8,33 +8,35 @@ use App\Models\PagoServicio;
 use App\Models\Postulacion;
 use App\Models\Resena;
 use App\Models\Servicio;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Controlador de Reseñas
- * 
- * SISTEMA DE ROLES:
- * 
- * El OFERTANTE es quien PROPORCIONA el servicio:
- * - En 'servicio': id_Cliente es el OFERTANTE (ofrece el servicio)
- * - En 'oportunidad': El POSTULANTE es el OFERTANTE (hará el trabajo)
- * 
- * El CLIENTE es quien RECIBE/paga por el servicio:
- * - En 'servicio': El SOLICITANTE es el CLIENTE (paga al ofertante)
- * - En 'oportunidad': id_Cliente es el CLIENTE (creó la oportunidad, necesita servicio)
- * 
- * TABLA DE DIRECCIONES:
- * ┌─────────────────┬───────────────┬──────────────────────────────────────────────┐
- * │ Servicio.tipo    │ Usuario      │ Dirección                                  │
- * ├─────────────────┼───────────────┼──────────────────────────────────────────────┤
- * │ servicio        │ id_Cliente   │ 'ofertante_a_cliente' (reseña al cliente)  │
- * │ servicio        │ postulante   │ 'cliente_a_ofertante' (reseña al ofertante)│
- * │ oportunidad     │ id_Cliente  │ 'cliente_a_ofertante' (reseña al ofertante)│
- * │ oportunidad     │ postulante   │ 'ofertante_a_cliente' (reseña al cliente) │
- * └─────────────────┴───────────────┴──────────────────────────────────────────────┘
+ * Controlador de Reseñas (NUEVO MODELO)
+ *
+ * SISTEMA DE CALIFICACIONES:
+ *
+ * TIPO SERVICIO (Bidireccional):
+ * - El CLIENTE (postulante) califica al OFERTANTE (id_Cliente)
+ *   → calificacion_usuario = X
+ *   → calificacion_servicio = Y (opcional)
+ *
+ * TIPO OPORTUNIDAD (Unilateral):
+ * - El CLIENTE (id_Cliente) califica al OFERTANTE (postulante)
+ *   → calificacion_usuario = X
+ *   → calificacion_servicio = NULL
+ *
+ * ROLES:
+ * - OFERTANTE: Quien PROPORCIONA el servicio
+ *   * En 'servicio': id_Cliente es el OFERTANTE
+ *   * En 'oportunidad': El POSTULANTE es el OFERTANTE
+ *
+ * - CLIENTE: Quien RECIBE/paga por el servicio
+ *   * En 'servicio': El POSTULANTE es el CLIENTE
+ *   * En 'oportunidad': id_Cliente es el CLIENTE
  */
 class ResenaController extends Controller
 {
@@ -46,7 +48,10 @@ class ResenaController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'id_Servicio' => 'required|exists:servicios,id_Servicio',
-                'calificacion' => 'required|integer|min:1|max:5',
+                'calificacion_usuario' => 'nullable|integer|min:1|max:5',
+                'ratingUsuario' => 'nullable|integer|min:1|max:5',
+                'calificacion_servicio' => 'nullable|integer|min:1|max:5',
+                'ratingServicio' => 'nullable|integer|min:1|max:5',
                 'comentario' => 'nullable|string|max:1000',
                 'id_Postulacion' => 'nullable|exists:postulaciones,id',
             ]);
@@ -56,15 +61,39 @@ class ResenaController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Normalizar: aceptar ratingUsuario o calificacion_usuario
+            $calificacionUsuario = $data['calificacion_usuario'] ?? $data['ratingUsuario'] ?? null;
+
+            // Normalizar: aceptar ratingServicio o calificacion_servicio
+            $calificacionServicio = $data['calificacion_servicio'] ?? $data['ratingServicio'] ?? null;
+
+            // Validación: se requiere calificación al usuario
+            if (empty($calificacionUsuario)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La calificación al ofertante es requerida.',
+                ], 422);
+            }
+
             $user = $request->user();
             $servicio = Servicio::find($data['id_Servicio']);
 
             /**
+             * VERIFICACIÓN: Solo se puede calificar el SERVICIO en tipo='servicio'
+             */
+            if (! empty($data['calificacion_servicio']) && $servicio->tipo !== 'servicio') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo puedes calificar el servicio en tipo=servicio.',
+                ], 422);
+            }
+
+            /**
              * VERIFICACIÓN DE PARTICIPACIÓN
-             * El usuario debe haber participado en el servicio para reseñar
              */
             $esDueno = ($servicio->id_Cliente === $user->id_CorreoUsuario);
-            
+
             $tienePostulacion = Postulacion::where('id_Servicio', $data['id_Servicio'])
                 ->where('id_Usuario', $user->id_CorreoUsuario)
                 ->exists();
@@ -77,7 +106,7 @@ class ResenaController extends Controller
                 ->where('estado', 'Completado')
                 ->exists();
 
-            if (!$esDueno && !$tienePostulacion && !$tienePagoCompletado) {
+            if (! $esDueno && ! $tienePostulacion && ! $tienePagoCompletado) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Solo puedes reseñar servicios en los que hayas participado.',
@@ -85,29 +114,11 @@ class ResenaController extends Controller
             }
 
             /**
-             * DETERMINACIÓN DE DIRECCIÓN
-             * 
-             * Lógica:
-             * El usuario está reseñando como OFERTANTE cuando:
-             * - Es 'servicio' Y el usuario ES el id_Cliente (el ofertante)
-             * - Es 'oportunidad' Y el usuario NO es el id_Cliente (el postulante que hará el trabajo)
-             * 
-             * El usuario está reseñando como CLIENTE cuando:
-             * - Es 'servicio' Y el usuario NO es el id_Cliente (el solicitante que paga)
-             * - Es 'oportunidad' Y el usuario ES el id_Cliente (el cliente que necesita servicio)
-             */
-            $isOfertanteReview = ($servicio->tipo === 'servicio' && $esDueno)
-                || ($servicio->tipo === 'oportunidad' && !$esDueno);
-
-            $direccion = $isOfertanteReview ? 'ofertante_a_cliente' : 'cliente_a_ofertante';
-
-            /**
              * VERIFICACIÓN ANTI-DUPLICADOS
-             * Un usuario solo puede reseñar una vez en cada dirección por servicio
+             * Un usuario solo puede reseñar una vez por servicio
              */
             $yaReseño = Resena::where('id_Servicio', $data['id_Servicio'])
                 ->where('id_CorreoUsuario', $user->id_CorreoUsuario)
-                ->where('direccion', $direccion)
                 ->exists();
 
             if ($yaReseño) {
@@ -120,73 +131,49 @@ class ResenaController extends Controller
             /**
              * CREACIÓN DE LA RESEÑA
              */
+            $id_CorreoUsuario_Calificado = $this->determinarCalificado($servicio, $data['id_Postulacion'] ?? null);
+            $rolCalificado = $this->determinarRolCalificado($servicio, $user, $id_CorreoUsuario_Calificado);
+
             $resena = Resena::create([
                 'id_Servicio' => $data['id_Servicio'],
-                'calificacion' => $data['calificacion'],
+                'calificacion_usuario' => $calificacionUsuario,
+                'calificacion_servicio' => $calificacionServicio,
                 'comentario' => $data['comentario'] ?? null,
                 'id_CorreoUsuario' => $user->id_CorreoUsuario,
-                'direccion' => $direccion,
+                'id_CorreoUsuario_Calificado' => $id_CorreoUsuario_Calificado,
+                'rol_calificado' => $rolCalificado,
                 'id_Postulacion' => $data['id_Postulacion'] ?? null,
             ]);
 
             /**
              * NOTIFICACIONES
-             * Notificar a quien RECIBE la reseña
+             * El calificador SIEMPRE es el usuario actual (CLIENTE en este contexto)
+             * El destinatario depende del tipo de servicio:
+             * - En 'servicio': El OFERTANTE es id_Cliente
+             * - En 'oportunidad': El OFERTANTE es el postulante
              */
             $nombreCalificador = $user->nombre ?? 'Un usuario';
             $servicioTitulo = $servicio->titulo ?? 'un servicio';
-            $mensajeNotificacion = "{$nombreCalificador} te ha dejado {$data['calificacion']}/5 estrellas en '{$servicioTitulo}'";
+            $calificacion = $data['calificacion_usuario'];
+            $mensajeNotificacion = "{$nombreCalificador} te ha dejado {$calificacion}/5 estrellas en '{$servicioTitulo}'";
 
             $idUsuarioNotificar = null;
 
-            if ($direccion === 'ofertante_a_cliente') {
-                /**
-                 * El OFERTANTE reseña al CLIENTE
-                 * Notificar al CLIENTE:
-                 * - En 'servicio': el cliente es el postulante (solicitante)
-                 * - En 'oportunidad': el cliente es el id_Cliente
-                 */
-                if ($servicio->tipo === 'oportunidad') {
-                    $idUsuarioNotificar = $servicio->id_Cliente;
-                } else {
-                    if (!empty($data['id_Postulacion'])) {
-                        $postulacion = Postulacion::where('id', $data['id_Postulacion'])->first();
-                        if ($postulacion) {
-                            $idUsuarioNotificar = $postulacion->id_Usuario;
-                        }
-                    }
-                    if (!$idUsuarioNotificar) {
-                        $postulacionReciente = Postulacion::where('id_Servicio', $data['id_Servicio'])
-                            ->orderBy('created_at', 'desc')
-                            ->first();
-                        if ($postulacionReciente) {
-                            $idUsuarioNotificar = $postulacionReciente->id_Usuario;
-                        }
+            if ($servicio->tipo === 'servicio') {
+                $idUsuarioNotificar = $servicio->id_Cliente;
+            } else {
+                if (! empty($data['id_Postulacion'])) {
+                    $postulacion = Postulacion::where('id', $data['id_Postulacion'])->first();
+                    if ($postulacion) {
+                        $idUsuarioNotificar = $postulacion->id_Usuario;
                     }
                 }
-            } else {
-                /**
-                 * El CLIENTE reseña al OFERTANTE
-                 * Notificar al OFERTANTE:
-                 * - En 'servicio': el ofertante es el id_Cliente
-                 * - En 'oportunidad': el ofertante es el postulante
-                 */
-                if ($servicio->tipo === 'servicio') {
-                    $idUsuarioNotificar = $servicio->id_Cliente;
-                } else {
-                    if (!empty($data['id_Postulacion'])) {
-                        $postulacion = Postulacion::where('id', $data['id_Postulacion'])->first();
-                        if ($postulacion) {
-                            $idUsuarioNotificar = $postulacion->id_Usuario;
-                        }
-                    }
-                    if (!$idUsuarioNotificar) {
-                        $postulacionReciente = Postulacion::where('id_Servicio', $data['id_Servicio'])
-                            ->orderBy('created_at', 'desc')
-                            ->first();
-                        if ($postulacionReciente) {
-                            $idUsuarioNotificar = $postulacionReciente->id_Usuario;
-                        }
+                if (! $idUsuarioNotificar) {
+                    $postulacionReciente = Postulacion::where('id_Servicio', $data['id_Servicio'])
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    if ($postulacionReciente) {
+                        $idUsuarioNotificar = $postulacionReciente->id_Usuario;
                     }
                 }
             }
@@ -200,14 +187,13 @@ class ResenaController extends Controller
                         'id_CorreoUsuario' => $idUsuarioNotificar,
                     ]);
                 } catch (\Exception $e) {
-                    Log::error('Error creando notificación de reseña: ' . $e->getMessage());
+                    Log::error('Error creando notificación de reseña: '.$e->getMessage());
                 }
             }
 
             return response()->json([
                 'success' => true,
                 'resena' => $resena,
-                'direccion' => $direccion,
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
@@ -249,70 +235,68 @@ class ResenaController extends Controller
 
     /**
      * Obtener reseñas que ha RECIBIDO un usuario
-     * 
-     * Lógica para categorizar reseñas:
-     * 
-     * Reseñas como OFERTANTE (usuario recibió reseña por PROPORCIONAR servicio):
-     * - De 'servicio': direccion = 'cliente_a_ofertante' AND usuario = id_Cliente
-     * - De 'oportunidad': direccion = 'ofertante_a_cliente' AND usuario = id_Usuario de postulacion
-     * 
-     * Reseñas como CLIENTE (usuario recibió reseña por RECIBIR/pagar servicio):
-     * - De 'servicio': direccion = 'ofertante_a_cliente' AND usuario = id_Usuario de postulacion
-     * - De 'oportunidad': direccion = 'cliente_a_ofertante' AND usuario = id_Cliente
+     *
+     * Lógica sin 'direccion':
+     *
+     * Reseñas como OFERTANTE (usuario recibió calificación por PROPORCIONAR servicio):
+     * - El usuario ES el OFERTANTE y recibió una reseña de otra persona
+     * - En 'servicio': El usuario es id_Cliente (ofertante) y fue calificado
+     * - En 'oportunidad': El usuario es el postulante y fue calificado por id_Cliente
+     *
+     * Reseñas como CLIENTE (usuario recibió calificación por RECIBIR/pagar servicio):
+     * - El usuario ES el CLIENTE y recibió una reseña de otra persona
+     * - Solo aplica en 'servicio': El usuario es postulante y fue calificado por id_Cliente
+     * - En 'oportunidad': El cliente (id_Cliente) no recibe reseñas como cliente
      */
-    public function porUsuario($id_CorreoUsuario)
+    public function porUsuario($id_CorreoUsuario, Request $request)
     {
         try {
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 10);
+
             /**
              * Reseñas RECIBIDAS como OFERTANTE
+             * El usuario fue criticado como OFERTANTE (prestó un servicio)
+             * Ahora usamos rol_calificado explícito
              */
-            $resenasComoOfertante = Resena::where(function ($query) use ($id_CorreoUsuario) {
-                    $query->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Cliente', $id_CorreoUsuario)
-                              ->where('tipo', 'servicio');
-                        })
-                        ->where('direccion', 'cliente_a_ofertante');
-                })
-                ->orWhere(function ($query) use ($id_CorreoUsuario) {
-                    $query->where('direccion', 'ofertante_a_cliente')
-                        ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Usuario', $id_CorreoUsuario);
-                        });
-                })
+            $resenasComoOfertanteQuery = Resena::where('id_CorreoUsuario_Calificado', $id_CorreoUsuario)
+                ->where('rol_calificado', 'ofertante')
                 ->with(['servicio:id_Servicio,titulo,tipo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+                ->orderBy('created_at', 'desc');
+
+            $resenasComoOfertante = $resenasComoOfertanteQuery->paginate($perPage, ['*'], 'page_ofertante', $page);
 
             /**
              * Reseñas RECIBIDAS como CLIENTE
+             * El usuario fue criticado como CLIENTE (recibió un servicio)
              */
-            $resenasComoCliente = Resena::where(function ($query) use ($id_CorreoUsuario) {
-                    $query->where('direccion', 'ofertante_a_cliente')
-                        ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Usuario', $id_CorreoUsuario);
-                        })
-                        ->whereHas('servicio', function ($q) {
-                            $q->where('tipo', 'servicio');
-                        });
-                })
-                ->orWhere(function ($query) use ($id_CorreoUsuario) {
-                    $query->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Cliente', $id_CorreoUsuario)
-                              ->where('tipo', 'oportunidad');
-                        })
-                        ->where('direccion', 'cliente_a_ofertante');
-                })
+            $resenasComoClienteQuery = Resena::where('id_CorreoUsuario_Calificado', $id_CorreoUsuario)
+                ->where('rol_calificado', 'cliente')
                 ->with(['servicio:id_Servicio,titulo,tipo', 'usuario:id_CorreoUsuario,nombre,apellido'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+                ->orderBy('created_at', 'desc');
+
+            $resenasComoCliente = $resenasComoClienteQuery->paginate($perPage, ['*'], 'page_cliente', $page);
 
             return response()->json([
                 'success' => true,
-                'resenas' => $resenasComoOfertante,
-                'resenas_como_ofertante' => $resenasComoOfertante,
-                'resenas_como_cliente' => $resenasComoCliente,
-                'total_ofertante' => $resenasComoOfertante->count(),
-                'total_cliente' => $resenasComoCliente->count(),
+                'resenas_como_ofertante' => $resenasComoOfertante->items(),
+                'resenas_como_cliente' => $resenasComoCliente->items(),
+                'total_ofertante' => $resenasComoOfertante->total(),
+                'total_cliente' => $resenasComoCliente->total(),
+                'meta' => [
+                    'ofertante' => [
+                        'current_page' => $resenasComoOfertante->currentPage(),
+                        'per_page' => $resenasComoOfertante->perPage(),
+                        'total' => $resenasComoOfertante->total(),
+                        'last_page' => $resenasComoOfertante->lastPage(),
+                    ],
+                    'cliente' => [
+                        'current_page' => $resenasComoCliente->currentPage(),
+                        'per_page' => $resenasComoCliente->perPage(),
+                        'total' => $resenasComoCliente->total(),
+                        'last_page' => $resenasComoCliente->lastPage(),
+                    ],
+                ],
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -353,45 +337,63 @@ class ResenaController extends Controller
     public function promedioPorUsuario($id_CorreoUsuario)
     {
         try {
-            $promedioOfertante = Resena::where(function ($query) use ($id_CorreoUsuario) {
-                    $query->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Cliente', $id_CorreoUsuario)
-                              ->where('tipo', 'servicio');
-                        })
-                        ->where('direccion', 'cliente_a_ofertante');
-                })
-                ->orWhere(function ($query) use ($id_CorreoUsuario) {
-                    $query->where('direccion', 'ofertante_a_cliente')
-                        ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Usuario', $id_CorreoUsuario);
-                        });
-                })
-                ->avg('calificacion');
+            /**
+             * Promedio de calificaciones RECIBIDAS como OFERTANTE
+             * El usuario fue calificado por otros (no por sí mismo) al proporcionar servicios/oportunidades
+             */
+            $resenasRecibidasOfertante = Resena::where('id_CorreoUsuario_Calificado', $id_CorreoUsuario)
+                ->whereHas('servicio', function ($q) {
+                    $q->where('tipo', 'oportunidad');
+                });
 
-            $promedioCliente = Resena::where(function ($query) use ($id_CorreoUsuario) {
-                    $query->where('direccion', 'ofertante_a_cliente')
-                        ->whereHas('postulacion', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Usuario', $id_CorreoUsuario);
-                        })
-                        ->whereHas('servicio', function ($q) {
-                            $q->where('tipo', 'servicio');
-                        });
-                })
-                ->orWhere(function ($query) use ($id_CorreoUsuario) {
-                    $query->whereHas('servicio', function ($q) use ($id_CorreoUsuario) {
-                            $q->where('id_Cliente', $id_CorreoUsuario)
-                              ->where('tipo', 'oportunidad');
-                        })
-                        ->where('direccion', 'cliente_a_ofertante');
-                })
-                ->avg('calificacion');
+            $promedioOfertanteUsuario = $resenasRecibidasOfertante->avg('calificacion_usuario') ?? 0;
+            $countOfertante = $resenasRecibidasOfertante->count();
+
+            /**
+             * Promedio de calificaciones RECIBIDAS como CLIENTE
+             * El usuario fue calificado por otros al recibir servicios
+             */
+            $resenasRecibidasCliente = Resena::where('id_CorreoUsuario_Calificado', $id_CorreoUsuario)
+                ->whereHas('servicio', function ($q) {
+                    $q->where('tipo', 'servicio');
+                });
+
+            $promedioClienteUsuario = $resenasRecibidasCliente->avg('calificacion_usuario') ?? 0;
+            $countCliente = $resenasRecibidasCliente->count();
+
+            /**
+             * Promedio de calificaciones del SERVICIO
+             * Calificación del servicio en sí (no del ofertante)
+             */
+            $promedioServicio = $resenasRecibidasCliente->avg('calificacion_servicio') ?? 0;
+
+            $promedioOfertanteUsuario = round($promedioOfertanteUsuario, 1);
+            $promedioClienteUsuario = round($promedioClienteUsuario, 1);
+            $promedioServicio = round($promedioServicio, 1);
+
+            /**
+             * Promedio GENERAL: promedio ponderado por cantidad real
+             */
+            $totalCount = $countOfertante + $countCliente;
+
+            $promedioGeneral = 0;
+            if ($totalCount > 0) {
+                $promedioGeneral = round(
+                    (($promedioOfertanteUsuario * $countOfertante) + ($promedioClienteUsuario * $countCliente)) / $totalCount,
+                    1
+                );
+            }
 
             return response()->json([
                 'success' => true,
                 'promedio' => [
-                    'como_ofertante' => round($promedioOfertante ?? 0, 1),
-                    'como_cliente' => round($promedioCliente ?? 0, 1),
-                    'general' => round((($promedioOfertante ?? 0) + ($promedioCliente ?? 0)) / 2, 1),
+                    'como_ofertante' => $promedioOfertanteUsuario,
+                    'count_ofertante' => $countOfertante,
+                    'como_cliente' => $promedioClienteUsuario,
+                    'count_cliente' => $countCliente,
+                    'servicio' => $promedioServicio,
+                    'general' => $promedioGeneral,
+                    'total_resenas' => $totalCount,
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -401,5 +403,78 @@ class ResenaController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function determinarCalificado(Servicio $servicio, ?int $id_Postulacion): ?string
+    {
+        if ($servicio->tipo === 'servicio') {
+            return $servicio->id_Cliente;
+        }
+
+        if ($servicio->tipo === 'oportunidad') {
+            if ($id_Postulacion) {
+                $postulacion = Postulacion::find($id_Postulacion);
+                if ($postulacion && $postulacion->id_Usuario) {
+                    return $postulacion->id_Usuario;
+                }
+            }
+
+            $postulacionReciente = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            return $postulacionReciente?->id_Usuario;
+        }
+
+        return null;
+    }
+
+    /**
+     * Determina el rol del usuario calificado en esta interacción.
+     *
+     * Regla: El rol NUNCA depende del rol actual del usuario,
+     * depende del rol que tuvo en esa interacción específica.
+     *
+     * @param  Servicio  $servicio  El servicio/oportunidad
+     * @param  Usuario  $calificador  El usuario que hace la reseña
+     * @param  string|null  $id_CorreoUsuario_Calificado  El usuario criticado
+     * @return string 'ofertante' | 'cliente'
+     */
+    private function determinarRolCalificado(Servicio $servicio, Usuario $calificador, ?string $id_CorreoUsuario_Calificado): string
+    {
+        if (! $id_CorreoUsuario_Calificado) {
+            return 'ofertante';
+        }
+
+        // En un SERVICIO:
+        // - El OFERTANTE es id_Cliente (proveedor del servicio)
+        // - El CLIENTE es el postulante (quien contrata)
+        if ($servicio->tipo === 'servicio') {
+            // Si el calificado es el id_Cliente, fue criticado como ofertante
+            if ($id_CorreoUsuario_Calificado === $servicio->id_Cliente) {
+                return 'ofertante';
+            }
+
+            // Sino, fue criticado como cliente
+            return 'cliente';
+        }
+
+        // En una OPORTUNIDAD:
+        // - El OFERTANTE es el postulante (quien ofrece sus servicios)
+        // - El CLIENTE es id_Cliente (quien busca servicios)
+        if ($servicio->tipo === 'oportunidad') {
+            // Verificar si el calificado es el postulante
+            $postulacion = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+                ->where('id_Usuario', $id_CorreoUsuario_Calificado)
+                ->first();
+
+            if ($postulacion && $postulacion->tipo_postulacion === 'postulante') {
+                return 'ofertante';
+            }
+
+            return 'cliente';
+        }
+
+        return 'ofertante';
     }
 }

@@ -114,6 +114,19 @@ class PostulacionController extends Controller
         $postulacion->estado = $validated['estado'];
         $postulacion->save();
 
+        // Cambio de rol: Cliente → Ofertante SOLO cuando se acepta una postulación de tipo 'postulante'
+        // (el usuario se postula a una oportunidad para ofrecer sus servicios)
+        // NO cambiar rol cuando se acepta una solicitud de tipo 'solicitante' (cliente solicita servicio)
+        if ($validated['estado'] === 'aceptada'
+            && $postulacion->id_Usuario
+            && $postulacion->tipo_postulacion === 'postulante') {
+            $postulado = Usuario::where('id_CorreoUsuario', $postulacion->id_Usuario)->first();
+            if ($postulado && $postulado->rol === 'cliente') {
+                $postulado->rol = 'ofertante';
+                $postulado->save();
+            }
+        }
+
         Notificacion::create([
             'mensaje' => 'Tu solicitud para "'.($postulacion->servicio->titulo ?? 'servicio').'" ahora esta '.$validated['estado'].'.',
             'estado' => 'No leido',
@@ -356,11 +369,9 @@ class PostulacionController extends Controller
             'tipo_postulacion' => $tipoPostulacion,
         ]);
 
-        // Conversión de rol: Cliente → Ofertante al postulan (una vez ofertante, permanece permanentemente)
-        if ($user->rol === 'cliente') {
-            $user->rol = 'ofertante';
-            $user->save();
-        }
+        // El cambio de rol de Cliente → Ofertante ya NO ocurre aquí
+        // Solo ocurre cuando el usuario ES ACEPTADO en una postulación (actualizarEstadoSolicitud)
+        // o cuando el usuario CREA un servicio (ServicioController)
 
         $servicio = Servicio::find($request->id_Servicio);
         if ($servicio) {

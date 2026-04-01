@@ -531,7 +531,7 @@ export default function Applications({ defaultTab }) {
                 </Button>
               </div>
             )}
-            {request.estado === "pagada" && (
+            {request.estado === "pagada" && request.servicio?.tipo === 'oportunidad' && (
               <div className="flex gap-2 flex-wrap items-center">
                 <Badge className="bg-green-500 text-white border-0 px-3 py-1">
                   ✅ Pagada
@@ -542,6 +542,9 @@ export default function Applications({ defaultTab }) {
                   onClick={() => {
                     setRatingService({
                       id_Servicio: request.servicio.id_Servicio,
+                      id_Postulacion: request.id,
+                      tipo: 'oportunidad',
+                      esDueno: true,
                       servicio: request.servicio
                     });
                     setShowRatingModal(true);
@@ -679,7 +682,7 @@ export default function Applications({ defaultTab }) {
           setShowRatingModal(false);
           setRatingService(null);
         }}
-        onSubmit={async ({ rating, comment }) => {
+        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
           try {
             const response = await fetch(`${API_URL}/resenas`, {
               method: "POST",
@@ -687,7 +690,8 @@ export default function Applications({ defaultTab }) {
               body: JSON.stringify({
                 id_Postulacion: ratingService?.id_Postulacion,
                 id_Servicio: ratingService?.id_Servicio,
-                calificacion: rating,
+                calificacion_usuario: ratingUsuario,
+                calificacion_servicio: ratingServicio,
                 comentario: comment || ''
               }),
             });
@@ -702,8 +706,9 @@ export default function Applications({ defaultTab }) {
             setRatingService(null);
           }
         }}
-        title="Califica el servicio"
-        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este servicio'}?`}
+        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este ofertante'}?`}
+        tipo={ratingService?.tipo || "servicio"}
+        rolCalificado="ofertante"
       />
     </div>
   );

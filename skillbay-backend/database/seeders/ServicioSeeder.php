@@ -2,16 +2,37 @@
 
 namespace Database\Seeders;
 
+use App\Models\Categoria;
 use App\Models\Servicio;
+use App\Models\Usuario;
 use Illuminate\Database\Seeder;
 
 class ServicioSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     *
+     * TIPOS DE SERVICIOS:
+     * - 'servicio': Un OFERTANTE ofrece un servicio
+     *   * id_Cliente = OFERTANTE (quien provee el servicio)
+     *   * Los postulantes son CLIENTES potenciales
+     *
+     * - 'oportunidad': Un CLIENTE busca alguien para un trabajo
+     *   * id_Cliente = CLIENTE (quien necesita el servicio)
+     *   * Los postulantes son OFERTANTES potenciales
+     *
+     * ROLES:
+     * - OFERTANTE: Quien proporciona el servicio
+     *   * En servicio: id_Cliente
+     *   * En oportunidad: postulante
+     *
+     * - CLIENTE: Quien recibe/paga el servicio
+     *   * En servicio: postulante
+     *   * En oportunidad: id_Cliente
+     */
     public function run(): void
     {
         $faker = \Faker\Factory::create('es_CO');
-
-        $clienteId = 'cliente@skillbay.com';
 
         $metodosPagoComunes = ['tarjeta', 'nequi', 'bancolombia_qr', 'efectivo'];
         $modoTrabajo = ['virtual', 'presencial', 'mixto'];
@@ -34,80 +55,86 @@ class ServicioSeeder extends Seeder
             'https://images.unsplash.com/photo-1552581234-26160f608093?w=800',
         ];
 
-        Servicio::create([
-            'titulo' => 'Desarrollo de Landing Page',
-            'descripcion' => 'Diseño y desarrollo de una landing page moderna y responsiva. Incluye diseño personalizado, optimización SEO básica, formularios de contacto y compatibilidad con dispositivos móviles.',
-            'id_Cliente' => $clienteId,
-            'estado' => 'Activo',
-            'precio' => 500000,
-            'tiempo_entrega' => '5 días',
-            'id_Categoria' => 'tec_desarrollo_web',
-            'tipo' => 'servicio',
-            'fechaPublicacion' => now()->subDays(15),
-            'imagen' => $imagenesServicios[0],
-            'metodos_pago' => ['tarjeta', 'nequi', 'bancolombia_qr'],
-            'modo_trabajo' => 'virtual',
-        ]);
-
-        Servicio::create([
-            'titulo' => 'Diseño de Logotipo',
-            'descripcion' => 'Creación de identidad visual completa para tu marca. Incluye logotipo en múltiples formatos, paleta de colores y guía de uso básico.',
-            'id_Cliente' => $clienteId,
-            'estado' => 'Activo',
-            'precio' => 200000,
-            'tiempo_entrega' => '3 días',
-            'id_Categoria' => 'tec_diseno_grafico',
-            'tipo' => 'servicio',
-            'fechaPublicacion' => now()->subDays(10),
-            'imagen' => $imagenesServicios[1],
-            'metodos_pago' => ['tarjeta', 'efectivo'],
-            'modo_trabajo' => 'virtual',
-        ]);
-
-        $clientes = \App\Models\Usuario::where('rol', 'cliente')->get();
-        if ($clientes->isEmpty()) {
-            return;
-        }
-
-        $categorias = \App\Models\Categoria::all();
+        $categorias = Categoria::all();
         if ($categorias->isEmpty()) {
+            $this->command->info('No hay categorías. Ejecuta CategoriaSeeder primero.');
+
             return;
         }
 
-        for ($i = 0; $i < 10; $i++) {
+        $ofertantes = Usuario::where('rol', 'ofertante')->get();
+        $clientes = Usuario::where('rol', 'cliente')->get();
+
+        if ($ofertantes->isEmpty()) {
+            $this->command->info('No hay ofertantes para crear servicios.');
+
+            return;
+        }
+
+        /**
+         * SERVICIOS (tipo = 'servicio')
+         * Creados por OFERTANTES
+         * id_Cliente = OFERTANTE
+         */
+        foreach ($ofertantes->take(5) as $index => $ofertante) {
+            $titulosServicios = [
+                'Desarrollo de Landing Page',
+                'Diseño de Logotipo',
+                'Diseño UI/UX para App',
+                'Marketing Digital Completo',
+                'Soporte Técnico Remoto',
+            ];
+
             Servicio::create([
-                'titulo' => $faker->sentence(4),
+                'titulo' => $titulosServicios[$index] ?? $faker->sentence(4),
                 'descripcion' => $faker->paragraph(3),
-                'id_Cliente' => $clientes->random()->id_CorreoUsuario,
+                'id_Cliente' => $ofertante->id_CorreoUsuario,
                 'estado' => 'Activo',
                 'precio' => $faker->numberBetween(100000, 5000000),
-                'tiempo_entrega' => $faker->numberBetween(1, 60).' días',
+                'tiempo_entrega' => $faker->numberBetween(1, 30).' días',
                 'id_Categoria' => $categorias->random()->id_Categoria,
-                'fechaPublicacion' => $faker->dateTimeBetween('-2 months', 'now'),
                 'tipo' => 'servicio',
-                'imagen' => $faker->randomElement($imagenesServicios),
+                'fechaPublicacion' => $faker->dateTimeBetween('-2 months', 'now'),
+                'imagen' => $imagenesServicios[$index % count($imagenesServicios)],
                 'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
                 'modo_trabajo' => $faker->randomElement($modoTrabajo),
             ]);
         }
 
-        for ($i = 0; $i < 10; $i++) {
-            Servicio::create([
-                'titulo' => 'Se busca: '.$faker->jobTitle(),
-                'descripcion' => 'Empresa busca profesional para proyecto importante. '.$faker->paragraph(2),
-                'id_Cliente' => $clientes->random()->id_CorreoUsuario,
-                'estado' => 'Activo',
-                'precio' => $faker->numberBetween(500000, 10000000),
-                'tiempo_entrega' => $faker->randomElement(['Proyecto único', 'Tiempo completo', 'Medio tiempo', 'Por contrato']),
-                'id_Categoria' => $categorias->random()->id_Categoria,
-                'fechaPublicacion' => $faker->dateTimeBetween('-2 months', 'now'),
-                'tipo' => 'oportunidad',
-                'imagen' => $faker->randomElement($imagenesOportunidades),
-                'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
-                'modo_trabajo' => $faker->randomElement($modoTrabajo),
-                'ubicacion' => $faker->randomElement($ciudades),
-                'urgencia' => $faker->randomElement($urgencias),
-            ]);
+        /**
+         * OPORTUNIDADES (tipo = 'oportunidad')
+         * Creadas por CLIENTES
+         * id_Cliente = CLIENTE
+         */
+        if (! $clientes->isEmpty()) {
+            foreach ($clientes->take(10) as $index => $cliente) {
+                $titulosOportunidades = [
+                    'Se necesita Desarrollador Web',
+                    'Busco Diseñador Gráfico',
+                    'Necesito Marketing Digital',
+                    'Busco Tutor de Programación',
+                    'Se busca Diseñador UI/UX',
+                ];
+
+                Servicio::create([
+                    'titulo' => $titulosOportunidades[$index % count($titulosOportunidades)] ?? 'Se busca: '.$faker->jobTitle(),
+                    'descripcion' => 'Empresa busca profesional para proyecto importante. '.$faker->paragraph(2),
+                    'id_Cliente' => $cliente->id_CorreoUsuario,
+                    'estado' => 'Activo',
+                    'precio' => $faker->numberBetween(500000, 10000000),
+                    'tiempo_entrega' => $faker->randomElement(['Proyecto único', 'Tiempo completo', 'Medio tiempo', 'Por contrato']),
+                    'id_Categoria' => $categorias->random()->id_Categoria,
+                    'tipo' => 'oportunidad',
+                    'fechaPublicacion' => $faker->dateTimeBetween('-2 months', 'now'),
+                    'imagen' => $imagenesOportunidades[$index % count($imagenesOportunidades)],
+                    'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
+                    'modo_trabajo' => $faker->randomElement($modoTrabajo),
+                    'ubicacion' => $faker->randomElement($ciudades),
+                    'urgencia' => $faker->randomElement($urgencias),
+                ]);
+            }
         }
+
+        $this->command->info('Servicios y oportunidades creados correctamente.');
     }
 }

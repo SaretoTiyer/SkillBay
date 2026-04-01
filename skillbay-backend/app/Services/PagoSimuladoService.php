@@ -2,30 +2,36 @@
 
 namespace App\Services;
 
+use App\Models\Notificacion;
 use App\Models\PagoPlan;
 use App\Models\PagoServicio;
 use App\Models\Plan;
-use App\Models\Notificacion;
 use App\Models\Postulacion;
-use App\Models\Servicio;
 use App\Models\Usuario;
 use Illuminate\Support\Str;
 
 class PagoSimuladoService
 {
     public const METODO_TARJETA = 'tarjeta';
+
     public const METODO_EFECTIVO = 'efectivo';
+
     public const METODO_NEQUI = 'nequi';
+
     public const METODO_BANCOLOMBIA_QR = 'bancolombia_qr';
 
     public const CATEGORIA_DIGITAL = 'digital';
+
     public const CATEGORIA_EFECTIVO = 'efectivo';
 
     public const ESTADO_PENDIENTE = 'Pendiente';
+
     public const ESTADO_COMPLETADO = 'Completado';
+
     public const ESTADO_FALLIDO = 'Fallido';
 
     public const TIPO_PLAN = 'plan';
+
     public const TIPO_SERVICIO = 'servicio';
 
     public function iniciarPagoPlan(string|int $idPlan, string $idUsuario, string $metodo): array
@@ -123,7 +129,7 @@ class PagoSimuladoService
     {
         if ($tipo === self::TIPO_PLAN) {
             $pago = PagoPlan::find($idPago);
-            if (!$pago) {
+            if (! $pago) {
                 return null;
             }
 
@@ -139,7 +145,7 @@ class PagoSimuladoService
         }
 
         $pago = PagoServicio::find($idPago);
-        if (!$pago) {
+        if (! $pago) {
             return null;
         }
 
@@ -156,7 +162,7 @@ class PagoSimuladoService
 
     private function generarReferencia(): string
     {
-        return 'PAY-' . strtoupper(Str::random(10));
+        return 'PAY-'.strtoupper(Str::random(10));
     }
 
     private function getModalidadFromMetodo(string $metodo): string
@@ -183,7 +189,7 @@ class PagoSimuladoService
     {
         $numeroTarjeta = $datos['numero_tarjeta'] ?? '';
 
-        if (!empty($numeroTarjeta)) {
+        if (! empty($numeroTarjeta)) {
             $prefijosRechazo = ['4000', '5000', '6000'];
             foreach ($prefijosRechazo as $prefijo) {
                 if (str_starts_with($numeroTarjeta, $prefijo)) {
@@ -236,7 +242,7 @@ class PagoSimuladoService
                 $nombrePlan = $plan?->nombre ?? $pago->id_Plan;
 
                 Notificacion::create([
-                    'mensaje' => '¡Pago aprobado! Tu plan "' . $nombrePlan . '" está activo. Referencia: ' . $pago->referenciaPago,
+                    'mensaje' => '¡Pago aprobado! Tu plan "'.$nombrePlan.'" está activo. Referencia: '.$pago->referenciaPago,
                     'estado' => 'No leido',
                     'tipo' => 'sistema',
                     'id_CorreoUsuario' => $pago->id_CorreoUsuario,

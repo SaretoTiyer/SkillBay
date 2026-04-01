@@ -86,7 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/notificaciones', [NotificacionController::class, 'eliminarTodas']);
 
     Route::post('/reportes', [ReporteController::class, 'store']);
-    
+
     // Rutas autenticadas para reseñas
     Route::post('/resenas', [ResenaController::class, 'store']);
     Route::get('/resenas/servicio/{id}', [ResenaController::class, 'porServicio']);

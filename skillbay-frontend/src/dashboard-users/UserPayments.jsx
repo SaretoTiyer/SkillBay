@@ -457,7 +457,7 @@ export default function UserPayments() {
           setShowRatingModal(false);
           setPendingRatingService(null);
         }}
-        onSubmit={async ({ rating, comment }) => {
+        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
           setRatingLoading(true);
           try {
             await fetch(`${API_URL}/resenas`, {
@@ -466,7 +466,8 @@ export default function UserPayments() {
               body: JSON.stringify({
                 id_Postulacion: pendingRatingService?.id_Postulacion,
                 id_Servicio: pendingRatingService?.id_Servicio,
-                calificacion: rating,
+                calificacion_usuario: ratingUsuario,
+                calificacion_servicio: ratingServicio,
                 comentario: comment || '',
               }),
             });
@@ -479,8 +480,9 @@ export default function UserPayments() {
             setRatingLoading(false);
           }
         }}
-        title="Califica tu experiencia"
         subtitle={`¿Cómo fue tu experiencia con ${pendingRatingService?.titulo || 'este servicio'}?`}
+        tipo="servicio"
+        rolCalificado="ofertante"
         loading={ratingLoading}
       />
     </div>

@@ -272,7 +272,7 @@ class ServicioController extends Controller
 
         $servicio->load('categoria');
 
-        if ($servicio->imagen && !str_starts_with($servicio->imagen, 'http')) {
+        if ($servicio->imagen && ! str_starts_with($servicio->imagen, 'http')) {
             $servicio->imagen = asset('storage/'.$servicio->imagen);
         }
 
