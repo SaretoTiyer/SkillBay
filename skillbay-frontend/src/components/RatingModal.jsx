@@ -73,10 +73,11 @@ export default function RatingModal({
   isOpen,
   onClose,
   onSubmit,
-  title: propTitle,
   subtitle = "¿Cómo fue tu experiencia?",
   tipo = "servicio",
   rolCalificado = "ofertante",
+  usuarioCalificador = "",
+  usuarioCalificado = "",
   loading = false,
 }) {
   const [ratingUsuario, setRatingUsuario] = useState(0);
@@ -84,10 +85,14 @@ export default function RatingModal({
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
 
-  const title = propTitle || (rolCalificado === "ofertante" ? "Califica al ofertante" : "Califica al cliente");
-  
+  // Validación preventiva de auto-calificación
+  const esAutoCalificacion = usuarioCalificador === usuarioCalificado;
+
+  // Texto dinámico del título y label según rol calificado
+  const tituloModal = rolCalificado === "ofertante" ? "Califica al ofertante" : "Califica al cliente";
   const usuarioLabel = rolCalificado === "ofertante" ? "Califica al ofertante" : "Califica al cliente";
-  const showServiceRating = tipo === "servicio";
+  // Solo mostrar calificación de servicio cuando es tipo servicio Y se califica al ofertante
+  const showServiceRating = tipo === "servicio" && rolCalificado === "ofertante";
 
   useEffect(() => {
     if (isOpen) {
@@ -98,24 +103,30 @@ export default function RatingModal({
     }
   }, [isOpen]);
 
-  const handleSubmit = useCallback(() => {
-    if (ratingUsuario === 0) {
-      setError(`Por favor ${rolCalificado === 'ofertante' ? 'califica al ofertante' : 'califica al cliente'}`);
-      return;
-    }
+   const handleSubmit = useCallback(() => {
+     // Prevenir auto-calificación
+     if (esAutoCalificacion) {
+       setError('No puedes calificarte a ti mismo');
+       return;
+     }
 
-    if (showServiceRating && ratingServicio === 0) {
-      setError("Por favor califica el servicio");
-      return;
-    }
+     if (ratingUsuario === 0) {
+       setError(`Por favor ${rolCalificado === 'ofertante' ? 'califica al ofertante' : 'califica al cliente'}`);
+       return;
+     }
 
-    setError("");
-    onSubmit({
-      ratingUsuario,
-      ratingServicio: showServiceRating ? ratingServicio : null,
-      comment,
-    });
-  }, [ratingUsuario, ratingServicio, comment, onSubmit, showServiceRating, rolCalificado]);
+     if (showServiceRating && ratingServicio === 0) {
+       setError("Por favor califica el servicio");
+       return;
+     }
+
+     setError("");
+     onSubmit({
+       ratingUsuario,
+       ratingServicio: showServiceRating ? ratingServicio : null,
+       comment,
+     });
+   }, [ratingUsuario, ratingServicio, comment, onSubmit, showServiceRating, rolCalificado, esAutoCalificacion]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -149,10 +160,10 @@ export default function RatingModal({
       />
 
       <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 id="rating-title" className="text-xl font-bold text-gray-900">
-            {title}
-          </h2>
+         <div className="flex items-center justify-between p-6 border-b border-gray-100">
+           <h2 id="rating-title" className="text-xl font-bold text-gray-900">
+             {tituloModal}
+           </h2>
           <button
             onClick={onClose}
             disabled={loading}
@@ -247,12 +258,12 @@ export default function RatingModal({
             <Button
               variant="outline"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || esAutoCalificacion}
               className="flex-1"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={loading} className="flex-1">
+            <Button onClick={handleSubmit} disabled={loading || esAutoCalificacion} className="flex-1">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <svg

@@ -19,27 +19,27 @@ class ResenaSeeder extends Seeder
      * - id_CorreoUsuario_Calificado = CALIFICADO (quien recibe la reseña)
      *
      * TIPO SERVICIO (Bidireccional):
-     * - El CLIENTE (postulante) califica al OFERTANTE (id_Cliente)
+     * - El CLIENTE (postulante) califica al OFERTANTE (id_Dueno)
      *   → id_CorreoUsuario = postulante
-     *   → id_CorreoUsuario_Calificado = id_Cliente
+     *   → id_CorreoUsuario_Calificado = id_Dueno
      *   → calificacion_usuario = X
      *   → calificacion_servicio = Y
      *
      * TIPO OPORTUNIDAD (Unilateral):
-     * - El CLIENTE (id_Cliente) califica al OFERTANTE (postulante)
-     *   → id_CorreoUsuario = id_Cliente
+     * - El CLIENTE (id_Dueno) califica al OFERTANTE (postulante)
+     *   → id_CorreoUsuario = id_Dueno
      *   → id_CorreoUsuario_Calificado = postulante
      *   → calificacion_usuario = X
      *   → calificacion_servicio = NULL
      *
      * ROLES:
      * - OFERTANTE: Quien PROPORCIONA el servicio
-     *   * En 'servicio': id_Cliente es el OFERTANTE
+     *   * En 'servicio': id_Dueno es el OFERTANTE
      *   * En 'oportunidad': El POSTULANTE es el OFERTANTE
      *
      * - CLIENTE: Quien RECIBE/paga por el servicio
      *   * En 'servicio': El POSTULANTE es el CLIENTE
-     *   * En 'oportunidad': id_Cliente es el CLIENTE
+     *   * En 'oportunidad': id_Dueno es el CLIENTE
      */
     public function run(): void
     {
@@ -75,9 +75,9 @@ class ResenaSeeder extends Seeder
             if ($servicio->tipo === 'servicio') {
                 /**
                  * SERVICIO:
-                 * - CLIENTE (pagador) califica al OFERTANTE (id_Cliente)
+                 * - CLIENTE (pagador) califica al OFERTANTE (id_Dueno)
                  * - id_CorreoUsuario = pagador (CLIENTE)
-                 * - id_CorreoUsuario_Calificado = id_Cliente (OFERTANTE)
+                 * - id_CorreoUsuario_Calificado = id_Dueno (OFERTANTE)
                  */
                 $calificacionUsuario = $faker->randomElement([4, 5, 5, 5, 4]);
                 $calificacionServicio = $faker->randomElement([4, 5, 5, 5, 4]);
@@ -88,7 +88,7 @@ class ResenaSeeder extends Seeder
                     'comentario' => $faker->randomElement($comentariosPositivos),
                     'id_Servicio' => $pago->id_Servicio,
                     'id_CorreoUsuario' => $pago->id_Pagador,
-                    'id_CorreoUsuario_Calificado' => $servicio->id_Cliente,
+                    'id_CorreoUsuario_Calificado' => $servicio->id_Dueno,
                     'id_Postulacion' => $pago->id_Postulacion,
                 ]);
 
@@ -115,8 +115,8 @@ class ResenaSeeder extends Seeder
             } else {
                 /**
                  * OPORTUNIDAD:
-                 * - CLIENTE (id_Cliente del servicio) califica al OFERTANTE (postulante)
-                 * - id_CorreoUsuario = id_Cliente (CLIENTE)
+                 * - CLIENTE (id_Dueno del servicio) califica al OFERTANTE (postulante)
+                 * - id_CorreoUsuario = id_Dueno (CLIENTE)
                  * - id_CorreoUsuario_Calificado = postulante
                  */
                 $calificacionUsuario = $faker->randomElement([4, 5, 5, 5, 4]);
@@ -129,7 +129,7 @@ class ResenaSeeder extends Seeder
                     'calificacion_servicio' => null,
                     'comentario' => $faker->randomElement($comentariosPositivos),
                     'id_Servicio' => $pago->id_Servicio,
-                    'id_CorreoUsuario' => $servicio->id_Cliente,
+                    'id_CorreoUsuario' => $servicio->id_Dueno,
                     'id_CorreoUsuario_Calificado' => $calificado,
                     'id_Postulacion' => $pago->id_Postulacion,
                 ]);

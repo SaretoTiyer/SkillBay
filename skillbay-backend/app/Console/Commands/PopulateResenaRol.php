@@ -83,7 +83,7 @@ class PopulateResenaRol extends Command
     private function determinarRol($servicio, $calificado, $postulacion): ?string
     {
         if ($servicio->tipo === 'servicio') {
-            if ($calificado === $servicio->id_Cliente) {
+            if ($calificado === $servicio->id_Dueno) {
                 return 'ofertante';
             }
 

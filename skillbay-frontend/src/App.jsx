@@ -21,13 +21,14 @@ import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
 import ExploreServices from "./dashboard-users/ExploreServices";
 import UserProfile from "./dashboard-users/UserProfile";
 import UserServices from "./dashboard-users/UserServices";
-import UserPayments from "./dashboard-users/UserPayments";
+import UserPayments from "./dashboard-users/PlanesUser/UserPayments";
 import Applications from "./dashboard-users/MyApplications/MyApplications";
 import NotificationsPage from "./dashboard-users/Notifications/NotificationsPage";
 import PlanesUser from "./dashboard-users/PlanesUser/PlanesUser";
 import Checkout from "./dashboard-users/Checkout/Checkout";
 import UserMessages from "./dashboard-users/UserMessages";
 import UserPublicProfile from "./dashboard-users/UserPublicProfile";
+import UserConfig from "./dashboard-users/UserConfig/UserConfig";
 
 import AdminOverview from "./dashboard-admin/AdminOverview";
 import UserManagement from "./dashboard-admin/UserManagement";
@@ -165,6 +166,8 @@ function App() {
         return <UserMessages />;
       case "public_profile":
         return <UserPublicProfile onBack={() => setCurrentView("explore")} />;
+      case "config":
+        return <UserConfig />;
       case "plans":
         return <PlanesUser />;
       case "checkout": {

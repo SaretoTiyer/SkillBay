@@ -24,7 +24,7 @@ class ReporteController extends Controller
         $idReportado = $validated['id_Reportado'] ?? null;
         if (! $idReportado && ! empty($validated['id_Servicio'])) {
             $servicio = Servicio::find($validated['id_Servicio']);
-            $idReportado = $servicio?->id_Cliente;
+            $idReportado = $servicio?->id_Dueno;
         }
 
         if (! $idReportado) {

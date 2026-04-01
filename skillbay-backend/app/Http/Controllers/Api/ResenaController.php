@@ -20,23 +20,23 @@ use Illuminate\Validation\ValidationException;
  * SISTEMA DE CALIFICACIONES:
  *
  * TIPO SERVICIO (Bidireccional):
- * - El CLIENTE (postulante) califica al OFERTANTE (id_Cliente)
+ * - El CLIENTE (postulante) califica al OFERTANTE (id_Dueno)
  *   → calificacion_usuario = X
  *   → calificacion_servicio = Y (opcional)
  *
  * TIPO OPORTUNIDAD (Unilateral):
- * - El CLIENTE (id_Cliente) califica al OFERTANTE (postulante)
+ * - El CLIENTE (id_Dueno) califica al OFERTANTE (postulante)
  *   → calificacion_usuario = X
  *   → calificacion_servicio = NULL
  *
  * ROLES:
  * - OFERTANTE: Quien PROPORCIONA el servicio
- *   * En 'servicio': id_Cliente es el OFERTANTE
+ *   * En 'servicio': id_Dueno es el OFERTANTE
  *   * En 'oportunidad': El POSTULANTE es el OFERTANTE
  *
  * - CLIENTE: Quien RECIBE/paga por el servicio
  *   * En 'servicio': El POSTULANTE es el CLIENTE
- *   * En 'oportunidad': id_Cliente es el CLIENTE
+ *   * En 'oportunidad': id_Dueno es el CLIENTE
  */
 class ResenaController extends Controller
 {
@@ -79,6 +79,15 @@ class ResenaController extends Controller
             $user = $request->user();
             $servicio = Servicio::find($data['id_Servicio']);
 
+            // VALIDACIÓN CRÍTICA: Prevenir auto-calificación
+            $id_CorreoUsuario_Calificado = $this->determinarCalificado($servicio, $user, $data['id_Postulacion'] ?? null);
+            if ($user->id_CorreoUsuario === $id_CorreoUsuario_Calificado) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes calificarte a ti mismo',
+                ], 422);
+            }
+
             /**
              * VERIFICACIÓN: Solo se puede calificar el SERVICIO en tipo='servicio'
              */
@@ -92,7 +101,7 @@ class ResenaController extends Controller
             /**
              * VERIFICACIÓN DE PARTICIPACIÓN
              */
-            $esDueno = ($servicio->id_Cliente === $user->id_CorreoUsuario);
+            $esDueno = ($servicio->id_Dueno === $user->id_CorreoUsuario);
 
             $tienePostulacion = Postulacion::where('id_Servicio', $data['id_Servicio'])
                 ->where('id_Usuario', $user->id_CorreoUsuario)
@@ -131,7 +140,7 @@ class ResenaController extends Controller
             /**
              * CREACIÓN DE LA RESEÑA
              */
-            $id_CorreoUsuario_Calificado = $this->determinarCalificado($servicio, $data['id_Postulacion'] ?? null);
+            $id_CorreoUsuario_Calificado = $this->determinarCalificado($servicio, $user, $data['id_Postulacion'] ?? null);
             $rolCalificado = $this->determinarRolCalificado($servicio, $user, $id_CorreoUsuario_Calificado);
 
             $resena = Resena::create([
@@ -149,7 +158,7 @@ class ResenaController extends Controller
              * NOTIFICACIONES
              * El calificador SIEMPRE es el usuario actual (CLIENTE en este contexto)
              * El destinatario depende del tipo de servicio:
-             * - En 'servicio': El OFERTANTE es id_Cliente
+             * - En 'servicio': El OFERTANTE es id_Dueno
              * - En 'oportunidad': El OFERTANTE es el postulante
              */
             $nombreCalificador = $user->nombre ?? 'Un usuario';
@@ -160,7 +169,7 @@ class ResenaController extends Controller
             $idUsuarioNotificar = null;
 
             if ($servicio->tipo === 'servicio') {
-                $idUsuarioNotificar = $servicio->id_Cliente;
+                $idUsuarioNotificar = $servicio->id_Dueno;
             } else {
                 if (! empty($data['id_Postulacion'])) {
                     $postulacion = Postulacion::where('id', $data['id_Postulacion'])->first();
@@ -240,13 +249,13 @@ class ResenaController extends Controller
      *
      * Reseñas como OFERTANTE (usuario recibió calificación por PROPORCIONAR servicio):
      * - El usuario ES el OFERTANTE y recibió una reseña de otra persona
-     * - En 'servicio': El usuario es id_Cliente (ofertante) y fue calificado
-     * - En 'oportunidad': El usuario es el postulante y fue calificado por id_Cliente
+     * - En 'servicio': El usuario es id_Dueno (ofertante) y fue calificado
+     * - En 'oportunidad': El usuario es el postulante y fue calificado por id_Dueno
      *
      * Reseñas como CLIENTE (usuario recibió calificación por RECIBIR/pagar servicio):
      * - El usuario ES el CLIENTE y recibió una reseña de otra persona
-     * - Solo aplica en 'servicio': El usuario es postulante y fue calificado por id_Cliente
-     * - En 'oportunidad': El cliente (id_Cliente) no recibe reseñas como cliente
+     * - Solo aplica en 'servicio': El usuario es postulante y fue calificado por id_Dueno
+     * - En 'oportunidad': El cliente (id_Dueno) no recibe reseñas como cliente
      */
     public function porUsuario($id_CorreoUsuario, Request $request)
     {
@@ -405,25 +414,50 @@ class ResenaController extends Controller
         }
     }
 
-    private function determinarCalificado(Servicio $servicio, ?int $id_Postulacion): ?string
+    private function determinarCalificado(Servicio $servicio, Usuario $calificador, ?int $id_Postulacion): ?string
     {
         if ($servicio->tipo === 'servicio') {
-            return $servicio->id_Cliente;
+            // En SERVICIO: id_Dueno = OFERTANTE, Postulante = CLIENTE
+            // Si el calificador es el dueño (ofertante), califica al cliente (postulante)
+            if ($calificador->id_CorreoUsuario === $servicio->id_Dueno) {
+                // El ofertante califica al cliente (postulante)
+                if ($id_Postulacion) {
+                    $postulacion = Postulacion::find($id_Postulacion);
+                    if ($postulacion && $postulacion->id_Usuario) {
+                        return $postulacion->id_Usuario;
+                    }
+                }
+                // Buscar la postulación más reciente
+                $postulacionReciente = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                return $postulacionReciente?->id_Usuario;
+            }
+
+            // Si el calificador es el postulante (cliente), califica al ofertante (dueño)
+            return $servicio->id_Dueno;
         }
 
         if ($servicio->tipo === 'oportunidad') {
-            if ($id_Postulacion) {
-                $postulacion = Postulacion::find($id_Postulacion);
-                if ($postulacion && $postulacion->id_Usuario) {
-                    return $postulacion->id_Usuario;
+            // En OPORTUNIDAD: id_Dueno = CLIENTE, Postulante = OFERTANTE
+            // Si el calificador es el dueño (cliente), califica al ofertante (postulante)
+            if ($calificador->id_CorreoUsuario === $servicio->id_Dueno) {
+                if ($id_Postulacion) {
+                    $postulacion = Postulacion::find($id_Postulacion);
+                    if ($postulacion && $postulacion->id_Usuario) {
+                        return $postulacion->id_Usuario;
+                    }
                 }
+                $postulacionReciente = Postulacion::where('id_Servicio', $servicio->id_Servicio)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                return $postulacionReciente?->id_Usuario;
             }
 
-            $postulacionReciente = Postulacion::where('id_Servicio', $servicio->id_Servicio)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            return $postulacionReciente?->id_Usuario;
+            // Si el calificador es el postulante (ofertante), califica al cliente (dueño)
+            return $servicio->id_Dueno;
         }
 
         return null;
@@ -447,11 +481,11 @@ class ResenaController extends Controller
         }
 
         // En un SERVICIO:
-        // - El OFERTANTE es id_Cliente (proveedor del servicio)
+        // - El OFERTANTE es id_Dueno (proveedor del servicio)
         // - El CLIENTE es el postulante (quien contrata)
         if ($servicio->tipo === 'servicio') {
-            // Si el calificado es el id_Cliente, fue criticado como ofertante
-            if ($id_CorreoUsuario_Calificado === $servicio->id_Cliente) {
+            // Si el calificado es el id_Dueno, fue criticado como ofertante
+            if ($id_CorreoUsuario_Calificado === $servicio->id_Dueno) {
                 return 'ofertante';
             }
 
@@ -461,7 +495,7 @@ class ResenaController extends Controller
 
         // En una OPORTUNIDAD:
         // - El OFERTANTE es el postulante (quien ofrece sus servicios)
-        // - El CLIENTE es id_Cliente (quien busca servicios)
+        // - El CLIENTE es id_Dueno (quien busca servicios)
         if ($servicio->tipo === 'oportunidad') {
             // Verificar si el calificado es el postulante
             $postulacion = Postulacion::where('id_Servicio', $servicio->id_Servicio)

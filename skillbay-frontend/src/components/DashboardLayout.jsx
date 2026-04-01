@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Users, Wallet, X } from "lucide-react";
+import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Users, Wallet, X, Settings } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
 
@@ -38,6 +38,7 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
     { name: "Mensajes", view: "messages", icon: MessageSquare },
     { name: "Planes", view: "plans", icon: CreditCard },
     { name: "Pagos", view: "payments", icon: Wallet },
+    { name: "Configuración", view: "config", icon: Settings },
   ];
 
   useEffect(() => {
@@ -139,28 +140,39 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
                  <ChevronDown size={16} className="text-[#A0AEC0]" />
                </button>
 
-              {profileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
-                  <button
-                    onClick={() => {
-                      onNavigate("profile");
-                      setProfileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    Mi perfil
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      onLogout();
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50"
-                  >
-                    Cerrar sesion
-                  </button>
-                </div>
-              )}
+               {profileMenuOpen && (
+                 <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                   <button
+                     onClick={() => {
+                       onNavigate("profile");
+                       setProfileMenuOpen(false);
+                     }}
+                     className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                   >
+                     <User size={14} />
+                     Mi perfil
+                   </button>
+                   <button
+                     onClick={() => {
+                       onNavigate("config");
+                       setProfileMenuOpen(false);
+                     }}
+                     className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                   >
+                     <Settings size={14} />
+                     Configuración
+                   </button>
+                   <button
+                     onClick={() => {
+                       setProfileMenuOpen(false);
+                       onLogout();
+                     }}
+                     className="w-full text-left px-4 py-2.5 text-sm text-rose-700 hover:bg-rose-50"
+                   >
+                     Cerrar sesion
+                   </button>
+                 </div>
+               )}
             </div>
           </div>
         </div>

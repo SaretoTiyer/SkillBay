@@ -109,7 +109,7 @@ export default function UserMessages() {
     const isPostulant = postulacion.id_Usuario === currentUser.id_CorreoUsuario;
     if (isPostulant) {
       return {
-        name: postulacion.servicio?.cliente_usuario?.nombre || postulacion.servicio?.id_Cliente,
+        name: postulacion.servicio?.cliente_usuario?.nombre || postulacion.servicio?.id_Dueno,
         isClient: true
       };
     }
@@ -221,7 +221,7 @@ export default function UserMessages() {
                   <button
                     onClick={() => openPublicProfile(
                       selected.id_Usuario === currentUser.id_CorreoUsuario 
-                        ? selected.servicio?.id_Cliente 
+                        ? selected.servicio?.id_Dueno 
                         : selected.id_Usuario
                     )}
                     className="text-sm text-blue-600 hover:underline flex items-center gap-1"
@@ -309,3 +309,4 @@ export default function UserMessages() {
     </div>
   );
 }
+

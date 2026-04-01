@@ -26,7 +26,7 @@ class MensajeController extends Controller
     private function validarAccesoPostulacion($user, Postulacion $postulacion): bool
     {
         $esPostulante = $postulacion->id_Usuario === $user->id_CorreoUsuario;
-        $esDuenoServicio = $postulacion->servicio && $postulacion->servicio->id_Cliente === $user->id_CorreoUsuario;
+        $esDuenoServicio = $postulacion->servicio && $postulacion->servicio->id_Dueno === $user->id_CorreoUsuario;
 
         return $esPostulante || $esDuenoServicio || $user->rol === 'admin';
     }
@@ -36,12 +36,12 @@ class MensajeController extends Controller
         $this->limpiarMensajesExpirados();
 
         $user = $request->user();
-        $postulaciones = Postulacion::with(['servicio:id_Servicio,titulo,id_Cliente', 'usuario:id_CorreoUsuario,nombre,apellido,ciudad'])
+        $postulaciones = Postulacion::with(['servicio:id_Servicio,titulo,id_Dueno', 'usuario:id_CorreoUsuario,nombre,apellido,ciudad'])
             ->select('id', 'id_Servicio', 'id_Usuario', 'mensaje', 'presupuesto', 'tiempo_estimado', 'estado', 'created_at', 'updated_at')
             ->where(function ($q) use ($user) {
                 $q->where('id_Usuario', $user->id_CorreoUsuario)
                     ->orWhereHas('servicio', function ($s) use ($user) {
-                        $s->where('id_Cliente', $user->id_CorreoUsuario);
+                        $s->where('id_Dueno', $user->id_CorreoUsuario);
                     });
             })
             ->orderBy('updated_at', 'desc')
@@ -106,7 +106,7 @@ class MensajeController extends Controller
         ]);
 
         $destinatario = $postulacion->id_Usuario === $user->id_CorreoUsuario
-            ? $postulacion->servicio?->id_Cliente
+            ? $postulacion->servicio?->id_Dueno
             : $postulacion->id_Usuario;
 
         if ($destinatario) {

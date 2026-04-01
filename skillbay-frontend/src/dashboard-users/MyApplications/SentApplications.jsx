@@ -19,6 +19,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import RatingModal from "../../components/RatingModal";
+import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
 export default function SentApplications() {
   const [applications, setApplications] = useState([]);
@@ -81,7 +82,7 @@ export default function SentApplications() {
     if (!currentUserEmail || !application.servicio) return 'Postulador';
     
     // El cliente del servicio es quien creó la oportunidad/servicio
-    const clienteEmail = application.servicio.id_Cliente;
+    const clienteEmail = application.servicio.id_Dueno;
     
     if (currentUserEmail === clienteEmail) {
       return 'Solicitante';  // El que publicó la oportunidad
@@ -99,7 +100,7 @@ export default function SentApplications() {
     const clienteDelServicio = application.servicio.cliente_usuario;
     const nombreCliente = clienteDelServicio 
       ? `${clienteDelServicio.nombre || ''} ${clienteDelServicio.apellido || ''}`.trim()
-      : (application.servicio.id_Cliente || 'Cliente');
+      : (application.servicio.id_Dueno || 'Cliente');
     
     // Obtenemos el nombre del aplicante (usuario que realizó la postulación)
     const aplicante = application.usuario;
@@ -374,23 +375,40 @@ export default function SentApplications() {
                  </Badge>
                  {application.tipo_postulacion === 'solicitante' && (
                    <>
-                      {application.ya_califico ? (
-                        <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
-                          ⭐ Calificado
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                          onClick={() => {
-                            setRatingData({
-                              id_Servicio: application.servicio.id_Servicio,
-                              id_Postulacion: application.id,
-                              servicio: application.servicio,
-                            });
-                            setShowRatingModal(true);
-                          }}
-                        >
+                       {application.ya_califico ? (
+                         <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
+                           ⭐ Calificado
+                         </Badge>
+                       ) : (
+                         <Button
+                           size="sm"
+                           className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                           onClick={() => {
+                             // Determinar contexto de calificación usando la utilidad centralizada
+                             const contexto = determinarContextoCalificacion(
+                               application.servicio?.tipo || 'servicio',
+                               currentUserEmail,
+                               application.servicio?.id_Dueno,
+                               application.usuario?.id_CorreoUsuario
+                             );
+
+                             if (contexto.error) {
+                               Swal.fire('Error', contexto.error, 'error');
+                               return;
+                             }
+
+                             setRatingData({
+                               id_Servicio: application.servicio.id_Servicio,
+                               id_Postulacion: application.id,
+                               tipo: application.servicio?.tipo || 'servicio',
+                               servicio: application.servicio,
+                               usuarioCalificado: contexto.usuarioCalificado,
+                               rolCalificado: contexto.rolCalificado,
+                               showServiceRating: contexto.showServiceRating,
+                             });
+                             setShowRatingModal(true);
+                           }}
+                         >
                           <Star size={14} className="mr-1" /> Calificar
                         </Button>
                       )}
@@ -455,43 +473,46 @@ export default function SentApplications() {
         </div>
       )}
 
-      <RatingModal
-        isOpen={showRatingModal}
-        onClose={() => {
-          setShowRatingModal(false);
-          setRatingData(null);
-        }}
-        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
-          setRatingLoading(true);
-          try {
-            const response = await fetch(`${API_URL}/resenas`, {
-              method: "POST",
-              headers: authHeaders(true),
-              body: JSON.stringify({
-                id_Postulacion: ratingData?.id_Postulacion,
-                id_Servicio: ratingData?.id_Servicio,
-                calificacion_usuario: ratingUsuario,
-                calificacion_servicio: ratingServicio,
-                comentario: comment || ''
-              }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-            setApplications(prev => prev.map(a => a.id === ratingData?.id_Postulacion ? {...a, ya_califico: true} : a));
-            setShowRatingModal(false);
-            setRatingData(null);
-            Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-          } catch (error) {
-            Swal.fire('Error', error.message, 'error');
-          } finally {
-            setRatingLoading(false);
-          }
-        }}
-        subtitle={`¿Cómo fue tu experiencia con ${ratingData?.servicio?.titulo || 'este servicio'}?`}
-        tipo={ratingData?.servicio?.tipo || "servicio"}
-        rolCalificado="ofertante"
-        loading={ratingLoading}
-      />
+         <RatingModal
+           isOpen={showRatingModal}
+           onClose={() => {
+             setShowRatingModal(false);
+             setRatingData(null);
+           }}
+           onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
+             setRatingLoading(true);
+             try {
+               const response = await fetch(`${API_URL}/resenas`, {
+                 method: "POST",
+                 headers: authHeaders(true),
+                 body: JSON.stringify({
+                   id_Postulacion: ratingData?.id_Postulacion,
+                   id_Servicio: ratingData?.id_Servicio,
+                   calificacion_usuario: ratingUsuario,
+                   calificacion_servicio: ratingServicio,
+                   comentario: comment || ''
+                 }),
+               });
+               const data = await response.json();
+               if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+               setApplications(prev => prev.map(a => a.id === ratingData?.id_Postulacion ? {...a, ya_califico: true} : a));
+               setShowRatingModal(false);
+               setRatingData(null);
+               Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+             } catch (error) {
+               Swal.fire('Error', error.message, 'error');
+             } finally {
+               setRatingLoading(false);
+             }
+           }}
+           subtitle={`¿Cómo fue tu experiencia con ${ratingData?.servicio?.titulo || 'este servicio'}?`}
+           tipo={ratingData?.tipo || "servicio"}
+           rolCalificado={ratingData?.rolCalificado || "ofertante"}
+           usuarioCalificador={currentUserEmail}
+           usuarioCalificado={ratingData?.usuarioCalificado}
+           loading={ratingLoading}
+         />
     </div>
   );
 }
+

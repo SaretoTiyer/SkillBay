@@ -22,6 +22,7 @@ import { Button } from "../components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import RatingModal from "../components/RatingModal";
+import { determinarContextoCalificacion } from "../utils/ratingContext";
 
 export default function Applications({ defaultTab }) {
   const [applications, setApplications] = useState([]);
@@ -51,11 +52,6 @@ export default function Applications({ defaultTab }) {
     Accept: "application/json",
     ...(json ? { "Content-Type": "application/json" } : {}),
   });
-
-  useEffect(() => {
-    fetchData();
-    fetchCurrentUser();
-  }, []);
 
   const fetchCurrentUser = async () => {
     try {
@@ -88,9 +84,9 @@ export default function Applications({ defaultTab }) {
       const response = await fetch(`${API_URL}/postulaciones`, { headers: authHeaders() });
       if (!response.ok) throw new Error("No se pudo cargar postulaciones.");
       const data = await response.json();
-      setApplications(Array.isArray(data) ? data : []);
+      setApplications(Array.isArray(data.postulaciones) ? data.postulaciones : []);
     } catch (err) {
-      setError(err.message || "Error de conexion");
+      console.error("Error fetching applications:", err);
     }
   };
 
@@ -105,148 +101,64 @@ export default function Applications({ defaultTab }) {
     }
   };
 
-  const openPublicProfile = (idCorreo) => {
-    if (!idCorreo) return;
-    localStorage.setItem("profile_target_user", idCorreo);
-    localStorage.setItem("currentView", "public_profile");
-    window.location.reload();
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchData();
+  }, []);
+
+  // Estados con contadores
+  const ESTADOS = {
+    pendiente: { label: "Pendiente", color: "amber" },
+    aceptada: { label: "Aceptada", color: "emerald" },
+    en_progreso: { label: "En Progreso", color: "blue" },
+    completada: { label: "Completada", color: "purple" },
+    pagada: { label: "Pagada", color: "green" },
+    rechazada: { label: "Rechazada", color: "red" },
+    cancelada: { label: "Cancelada", color: "slate" },
   };
 
-  // Funciones para messaging en postulaciones recibidas
-  const openChat = async (postulacion) => {
-    setSelectedPostulacion(postulacion);
-    setLoadingMessages(true);
-    try {
-      const res = await fetch(`${API_URL}/postulaciones/${postulacion.id}/mensajes`, {
-        headers: authHeaders(),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessages(data.mensajes || []);
-      }
-    } catch (error) {
-      console.error("Error loading messages:", error);
-    } finally {
-      setLoadingMessages(false);
-    }
-  };
+  const counts = useMemo(() => ({
+    pendiente: applications.filter(a => a.estado === "pendiente").length,
+    aceptada: applications.filter(a => a.estado === "aceptada").length,
+    inProgress: applications.filter(a => a.estado === "en_progreso").length,
+    completada: applications.filter(a => a.estado === "completada").length,
+    pagada: applications.filter(a => a.estado === "pagada").length,
+    rechazada: applications.filter(a => a.estado === "rechazada").length,
+    cancelada: applications.filter(a => a.estado === "cancelada").length,
+  }), [applications]);
 
-  const sendMessage = async () => {
-    if (!selectedPostulacion || !newMessage.trim()) return;
-    try {
-      const res = await fetch(`${API_URL}/postulaciones/${selectedPostulacion.id}/mensajes`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({ mensaje: newMessage.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "No se pudo enviar el mensaje.");
-      setNewMessage("");
-      openChat(selectedPostulacion);
-    } catch (error) {
-      Swal.fire("Error", error.message, "error");
-    }
-  };
+  const filteredApplications = useMemo(() => {
+    if (filter === "all") return applications;
+    return applications.filter(a => a.estado === filter);
+  }, [applications, filter]);
 
-  const updateStatus = async (postulacionId, newStatus) => {
-    const confirmMessages = {
-      aceptada: "¿Aceptar esta postulación? El postulante será notificado.",
-      rechazada: "¿Rechazar esta postulación? El postulante será notificado.",
-      en_progreso: "¿Iniciar el trabajo con este postulante?"
+  const getFilterButtonClass = (color, isActive) => {
+    const colors = {
+      amber: "border-amber-200 text-amber-700 hover:bg-amber-50",
+      emerald: "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
+      blue: "border-blue-200 text-blue-700 hover:bg-blue-50",
+      purple: "border-purple-200 text-purple-700 hover:bg-purple-50",
+      green: "border-green-200 text-green-700 hover:bg-green-50",
+      red: "border-red-200 text-red-700 hover:bg-red-50",
+      slate: "border-slate-200 text-slate-700 hover:bg-slate-50",
     };
+    return isActive ? colors[color] : "";
+  };
 
-    const result = await Swal.fire({
-      title: newStatus === "aceptada" ? "Aceptar Postulación" : 
-             newStatus === "rechazada" ? "Rechazar Postulación" : "Iniciar Trabajo",
-      text: confirmMessages[newStatus],
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Sí",
-      cancelButtonText: "Cancelar",
-    });
-
-    if (!result.isConfirmed) return;
-
+  const updateStatus = async (id, newStatus) => {
     try {
-      const response = await fetch(`${API_URL}/servicios/solicitudes/${postulacionId}/estado`, {
+      const response = await fetch(`${API_URL}/postulaciones/${id}/estado`, {
         method: "PATCH",
         headers: authHeaders(true),
         body: JSON.stringify({ estado: newStatus }),
       });
-
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "No se pudo actualizar el estado.");
-
-      Swal.fire({
-        icon: "success",
-        title: newStatus === "aceptada" ? "Postulación aceptada" : 
-               newStatus === "rechazada" ? "Postulación rechazada" : "Trabajo iniciado",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
+      if (!response.ok) throw new Error(data?.message || "Error al actualizar estado.");
       fetchSolicitudesRecibidas();
+      Swal.fire('¡Estado actualizado!', `La solicitud ha sido marcada como ${newStatus}.`, 'success');
     } catch (error) {
-      Swal.fire("Error", error.message, "error");
+      Swal.fire('Error', error.message, 'error');
     }
-  };
-
-  const cancelProposal = async (application) => {
-    const result = await Swal.fire({
-      title: "Cancelar postulación",
-      text: "La propuesta pasará a estado cancelada.",
-      showCancelButton: true,
-      confirmButtonText: "Cancelar postulación",
-    });
-    if (!result.isConfirmed) return;
-    
-    const response = await fetch(`${API_URL}/postulaciones/${application.id}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    const data = await response.json();
-    if (!response.ok) return Swal.fire("Error", data?.message || "No se pudo cancelar.", "error");
-    Swal.fire("Listo", "Postulación cancelada.", "success");
-    fetchApplications();
-  };
-
-  // ============================================
-  // CONFIGURACIÓN CENTRALIZADA DE ESTADOS
-  // ============================================
-  const ESTADOS = {
-    pendiente: { label: 'Pendientes', color: 'amber', key: 'pendiente' },
-    aceptada: { label: 'Aceptadas', color: 'emerald', key: 'aceptada' },
-    en_progreso: { label: 'En Progreso', color: 'blue', key: 'en_progreso' },
-    completada: { label: 'Completadas', color: 'purple', key: 'completada' },
-    pagada: { label: 'Pagadas', color: 'green', key: 'pagada' },
-    rechazada: { label: 'Rechazadas', color: 'red', key: 'rechazada' },
-    cancelada: { label: 'Canceladas', color: 'slate', key: 'cancelada' },
-  };
-
-  // Función reutilizable para filtrar por estado
-  const filterByEstado = (apps, estado) => apps.filter((a) => a.estado === estado);
-
-  // Función reutilizable para obtener conteos
-  const getCounts = (apps, estadoActual) => {
-    const counts = {};
-    Object.keys(ESTADOS).forEach((key) => {
-      counts[key === 'en_progreso' ? 'inProgress' : key] = filterByEstado(apps, key).length;
-    });
-    return counts;
-  };
-
-  // Obtener aplicaciones filtradas según el estado seleccionado
-  const filteredApplications = filter === 'all' 
-    ? applications 
-    : filterByEstado(applications, filter);
-
-  // Calcular conteos
-  const counts = getCounts(applications, filter);
-
-  // Función reutilizable para generar las clases de color del botón
-  const getFilterButtonClass = (color, isActive) => {
-    if (isActive) return '';
-    return `border-${color}-200 text-${color}-700 hover:bg-${color}-50`;
   };
 
   const getStatusBadge = (status) => {
@@ -284,19 +196,15 @@ export default function Applications({ defaultTab }) {
   };
 
   // Función para determinar el rol del usuario en la relación
-  // Según la lógica: un usuario puede ser tanto cliente como ofertante
-  // Si el usuario actual es el cliente del servicio → es "Solicitante" (está pidiendo ayuda)
-  // Si el usuario actual es quien se postuló → es "Postulador" (ofrece su trabajo)
   const getUserRole = (application) => {
     if (!currentUserEmail || !application.servicio) return 'Postulador';
     
-    // El cliente del servicio es quien creó la oportunidad/servicio
-    const clienteEmail = application.servicio.id_Cliente;
+    const clienteEmail = application.servicio.id_Dueno;
     
     if (currentUserEmail === clienteEmail) {
-      return 'Solicitante';  // El que publicó la oportunidad
+      return 'Solicitante';
     }
-    return 'Postulador';     // El que respondió a la oportunidad
+    return 'Postulador';
   };
 
   // Componente Card para postulación enviada
@@ -325,7 +233,7 @@ export default function Applications({ defaultTab }) {
             <div className="flex items-center gap-2">
               <User size={14} className="text-blue-500" />
               <span className="text-slate-400 text-xs">Rol:</span>
-              <span className={`font-medium text-xs ${currentUserEmail === application.servicio?.id_Cliente ? 'text-amber-600' : 'text-blue-600'}`}>
+              <span className={`font-medium text-xs ${currentUserEmail === application.servicio?.id_Dueno ? 'text-amber-600' : 'text-blue-600'}`}>
                 {getUserRole(application)}
               </span>
             </div>
@@ -540,12 +448,28 @@ export default function Applications({ defaultTab }) {
                   size="sm"
                   className="bg-yellow-500 hover:bg-yellow-600 text-white"
                   onClick={() => {
+                    // Determinar contexto de calificación usando la utilidad centralizada
+                    const contexto = determinarContextoCalificacion(
+                      request.servicio?.tipo || 'servicio',
+                      currentUserEmail,
+                      request.servicio?.id_Dueno,
+                      request.usuario?.id_CorreoUsuario
+                    );
+
+                    if (contexto.error) {
+                      Swal.fire('Error', contexto.error, 'error');
+                      return;
+                    }
+
                     setRatingService({
                       id_Servicio: request.servicio.id_Servicio,
                       id_Postulacion: request.id,
-                      tipo: 'oportunidad',
-                      esDueno: true,
-                      servicio: request.servicio
+                      tipo: request.servicio?.tipo || 'servicio',
+                      servicio: request.servicio,
+                      usuario: request.usuario,
+                      usuarioCalificado: contexto.usuarioCalificado,
+                      rolCalificado: contexto.rolCalificado,
+                      showServiceRating: contexto.showServiceRating,
                     });
                     setShowRatingModal(true);
                   }}
@@ -659,11 +583,11 @@ export default function Applications({ defaultTab }) {
           {solicitudesRecibidas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-center">
               <div className="bg-white p-6 rounded-full shadow-sm mb-6">
-                <MessageSquare size={48} className="text-slate-300" />
+                <Briefcase size={48} className="text-slate-300" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes solicitudes</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No tienes solicitudes recibidas</h3>
               <p className="text-slate-500 max-w-md">
-                Cuando alguien se postule a tus servicios, podrás ver las solicitudes aquí.
+                Cuando alguien se postule a tus servicios, aparecerá aquí.
               </p>
             </div>
           ) : (
@@ -706,10 +630,13 @@ export default function Applications({ defaultTab }) {
             setRatingService(null);
           }
         }}
-        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este ofertante'}?`}
+        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este usuario'}?`}
         tipo={ratingService?.tipo || "servicio"}
-        rolCalificado="ofertante"
+        rolCalificado={ratingService?.rolCalificado || "ofertante"}
+        usuarioCalificador={currentUserEmail}
+        usuarioCalificado={ratingService?.usuarioCalificado}
       />
     </div>
   );
 }
+

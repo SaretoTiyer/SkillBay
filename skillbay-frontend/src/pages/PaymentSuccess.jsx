@@ -56,7 +56,7 @@ export default function PaymentSuccess({ onNavigate }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 to-emerald-100">
         <div className="text-center">
           <Loader2 className="animate-spin text-emerald-600 mx-auto mb-4" size={48} />
           <p className="text-slate-600 font-medium">Confirmando tu pago...</p>
@@ -66,7 +66,7 @@ export default function PaymentSuccess({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-50 to-emerald-100 p-4">
       <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full text-center">
         {/* Ícono de éxito */}
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">

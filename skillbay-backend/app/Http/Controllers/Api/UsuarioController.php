@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\BienvenidaMail;
 use App\Models\Notificacion;
 use App\Models\Plan;
+use App\Models\Resena;
 use App\Models\Servicio;
 use App\Models\Usuario;
 use Carbon\Carbon;
@@ -471,7 +472,7 @@ class UsuarioController extends Controller
             ])->findOrFail($id);
 
             // Obtener servicios (tipo=servicio) del usuario
-            $servicios = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
+            $servicios = Servicio::where('id_Dueno', $usuario->id_CorreoUsuario)
                 ->where('tipo', 'servicio')
                 ->with('categoria:id_Categoria,nombre,grupo')
                 ->orderBy('created_at', 'desc')
@@ -493,7 +494,7 @@ class UsuarioController extends Controller
                 });
 
             // Obtener oportunidades (tipo=oportunidad) del usuario
-            $oportunidades = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)
+            $oportunidades = Servicio::where('id_Dueno', $usuario->id_CorreoUsuario)
                 ->where('tipo', 'oportunidad')
                 ->with('categoria:id_Categoria,nombre,grupo')
                 ->orderBy('created_at', 'desc')
@@ -514,16 +515,14 @@ class UsuarioController extends Controller
                     return $s;
                 });
 
-            // Obtener reseñas recibidas como ofertante (cliente_a_ofertante)
-            // Asumiendo que hay una tabla de reseñas con campos: id, id_Usuario (receptor), id_Usuario_Emisor, estrellas, comentario, tipo
-            $resenasComoOfertante = collect(); // Placeholder - implementar según estructura real de BD
+            // Obtener reseñas recibidas como ofertante y como cliente
+            $resenasRes = $this->obtenerResenasUsuario($usuario->id_CorreoUsuario);
+            $resenasComoOfertante = $resenasRes['resenas_como_ofertante'];
+            $resenasComoCliente = $resenasRes['resenas_como_cliente'];
 
-            // Obtener reseñas recibidas como cliente (ofertante_a_cliente)
-            $resenasComoCliente = collect(); // Placeholder - implementar según estructura real de BD
-
-            // Calcular promedios (placeholders)
-            $promedioOfertante = 0.0;
-            $promedioCliente = 0.0;
+            // Calcular promedios
+            $promedioOfertante = $resenasRes['promedio_ofertante'];
+            $promedioCliente = $resenasRes['promedio_cliente'];
 
             return response()->json([
                 'success' => true,
@@ -745,6 +744,39 @@ class UsuarioController extends Controller
                 'message' => 'Error al subir la imagen',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Helper para obtener reseñas y promedios de un usuario.
+     */
+    private function obtenerResenasUsuario(string $email): array
+    {
+        try {
+            $resenas = Resena::where('id_CorreoUsuario_Calificado', $email)
+                ->with(['usuario:id_CorreoUsuario,nombre,apellido', 'servicio:id_Servicio,titulo,tipo'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $comoOfertante = $resenas->where('rol_calificado', 'ofertante')->values();
+            $comoCliente = $resenas->where('rol_calificado', 'cliente')->values();
+
+            $promedioOfertante = $comoOfertante->avg('calificacion_usuario') ?? 0;
+            $promedioCliente = $comoCliente->avg('calificacion_usuario') ?? 0;
+
+            return [
+                'resenas_como_ofertante' => $comoOfertante,
+                'resenas_como_cliente' => $comoCliente,
+                'promedio_ofertante' => round($promedioOfertante, 1),
+                'promedio_cliente' => round($promedioCliente, 1),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'resenas_como_ofertante' => collect(),
+                'resenas_como_cliente' => collect(),
+                'promedio_ofertante' => 0,
+                'promedio_cliente' => 0,
+            ];
         }
     }
 }

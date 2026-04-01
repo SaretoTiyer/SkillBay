@@ -137,8 +137,8 @@ class PagoController extends Controller
             'referenciaPago' => $this->generarReferencia('srv'),
             'id_Servicio' => $servicio->id_Servicio,
             // Flujo de dinero basado en tipo_postulacion:
-            // - 'postulante': el dueño de la oportunidad (id_Cliente) paga al postulante (id_Usuario)
-            // - 'solicitante': el solicitante (id_Usuario) paga al proveedor del servicio (id_Cliente)
+            // - 'postulante': el dueño de la oportunidad (id_Dueno) paga al postulante (id_Usuario)
+            // - 'solicitante': el solicitante (id_Usuario) paga al proveedor del servicio (id_Dueno)
             'id_Pagador' => $idClientePaga,       // El que PAGA
             'id_Receptor' => $idPrestadorRecibe,   // El que RECIBE
         ]);

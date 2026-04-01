@@ -71,7 +71,7 @@ class Postulacion extends Model
     {
         if ($this->esPostulante()) {
             // El cliente (dueño del servicio) paga al postulante
-            return $this->servicio?->id_Cliente;
+            return $this->servicio?->id_Dueno;
         } else {
             // El solicitante paga al proveedor (ofertante)
             return $this->id_Usuario;
@@ -89,7 +89,7 @@ class Postulacion extends Model
             return $this->id_Usuario;
         } else {
             // El proveedor (ofertante del servicio) recibe el pago
-            return $this->servicio?->id_Cliente;
+            return $this->servicio?->id_Dueno;
         }
     }
 }

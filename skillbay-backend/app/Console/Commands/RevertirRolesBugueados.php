@@ -28,7 +28,7 @@ class RevertirRolesBugueados extends Command
             ->whereNotExists(function ($query) {
                 $query->selectRaw(1)
                     ->from('servicios')
-                    ->whereRaw('servicios.id_Cliente = usuarios.id_CorreoUsuario');
+                    ->whereRaw('servicios.id_Dueno = usuarios.id_CorreoUsuario');
             })
             ->whereNotExists(function ($query) {
                 $query->selectRaw(1)
@@ -55,7 +55,7 @@ class RevertirRolesBugueados extends Command
 
         foreach ($usuariosAfectados as $usuario) {
             $resenasCount = Resena::where('id_CorreoUsuario', $usuario->id_CorreoUsuario)->count();
-            $serviciosCount = Servicio::where('id_Cliente', $usuario->id_CorreoUsuario)->count();
+            $serviciosCount = Servicio::where('id_Dueno', $usuario->id_CorreoUsuario)->count();
             $postulacionesAceptadasCount = Postulacion::where('id_Usuario', $usuario->id_CorreoUsuario)
                 ->where('estado', 'aceptada')
                 ->count();

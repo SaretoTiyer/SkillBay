@@ -16,7 +16,7 @@ class ServicioFactory extends Factory
             'titulo' => fake()->sentence(3),
             'descripcion' => fake()->paragraph(),
             'precio' => fake()->numberBetween(50000, 500000),
-            'id_Cliente' => Usuario::factory(),
+            'id_Dueno' => Usuario::factory(),
             'id_Categoria' => 'tec_desarrollo_web',
             'tipo' => fake()->randomElement(['servicio', 'oportunidad']),
             'estado' => 'activo',

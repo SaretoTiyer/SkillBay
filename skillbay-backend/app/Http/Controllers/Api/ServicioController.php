@@ -37,7 +37,7 @@ class ServicioController extends Controller
         $user = $request->user();
         $tipo = $request->query('tipo'); // filtrar por tipo: 'servicio' o 'oportunidad'
 
-        $query = Servicio::where('id_Cliente', $user->id_CorreoUsuario)
+        $query = Servicio::where('id_Dueno', $user->id_CorreoUsuario)
             ->with('categoria')
             ->orderBy('fechaPublicacion', 'desc');
 
@@ -86,7 +86,7 @@ class ServicioController extends Controller
 
         $query = Servicio::with(['categoria', 'cliente_usuario'])
             ->where('estado', 'Activo')
-            ->where('id_Cliente', '!=', $user->id_CorreoUsuario);
+            ->where('id_Dueno', '!=', $user->id_CorreoUsuario);
 
         // Excluir servicios donde el usuario ya tiene postulación activa
         if (! empty($postulacionesActivas)) {
@@ -146,7 +146,7 @@ class ServicioController extends Controller
 
         $user->loadMissing('plan');
         if ($user->plan && $user->plan->limiteServiciosMes !== null) {
-            $serviciosMes = Servicio::where('id_Cliente', $user->id_CorreoUsuario)
+            $serviciosMes = Servicio::where('id_Dueno', $user->id_CorreoUsuario)
                 ->whereYear('created_at', now()->year)
                 ->whereMonth('created_at', now()->month)
                 ->count();
@@ -159,7 +159,7 @@ class ServicioController extends Controller
         }
 
         $data = $request->all();
-        $data['id_Cliente'] = $user->id_CorreoUsuario;
+        $data['id_Dueno'] = $user->id_CorreoUsuario;
         $data['estado'] = $data['estado'] ?? 'Activo';
 
         // Handle JSON fields
@@ -225,7 +225,7 @@ class ServicioController extends Controller
             return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
         }
         $servicio = Servicio::where('id_Servicio', $id)
-            ->where('id_Cliente', $user->id_CorreoUsuario)
+            ->where('id_Dueno', $user->id_CorreoUsuario)
             ->first();
 
         if (! $servicio) {
@@ -287,7 +287,7 @@ class ServicioController extends Controller
             return response()->json(['message' => 'Tu cuenta esta bloqueada.'], 403);
         }
         $servicio = Servicio::where('id_Servicio', $id)
-            ->where('id_Cliente', $user->id_CorreoUsuario)
+            ->where('id_Dueno', $user->id_CorreoUsuario)
             ->first();
 
         if (! $servicio) {

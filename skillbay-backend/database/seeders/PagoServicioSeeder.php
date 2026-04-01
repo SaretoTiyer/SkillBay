@@ -20,13 +20,13 @@ class PagoServicioSeeder extends Seeder
      * FLUJO POR TIPO:
      *
      * SERVICIO:
-     * - El CLIENTE (postulante) paga al OFERTANTE (id_Cliente)
+     * - El CLIENTE (postulante) paga al OFERTANTE (id_Dueno)
      * - id_Pagador = postulante
-     * - id_Receptor = id_Cliente
+     * - id_Receptor = id_Dueno
      *
      * OPORTUNIDAD:
-     * - El CLIENTE (id_Cliente) paga al OFERTANTE (postulante)
-     * - id_Pagador = id_Cliente
+     * - El CLIENTE (id_Dueno) paga al OFERTANTE (postulante)
+     * - id_Pagador = id_Dueno
      * - id_Receptor = postulante
      */
     public function run(): void
@@ -51,9 +51,9 @@ class PagoServicioSeeder extends Seeder
 
             if ($servicio->tipo === 'servicio') {
                 $idPagador = $postulacion->id_Usuario;
-                $idReceptor = $servicio->id_Cliente;
+                $idReceptor = $servicio->id_Dueno;
             } else {
-                $idPagador = $servicio->id_Cliente;
+                $idPagador = $servicio->id_Dueno;
                 $idReceptor = $postulacion->id_Usuario;
             }
 

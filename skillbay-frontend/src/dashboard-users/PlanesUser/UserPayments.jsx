@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, ExternalLink } from "lucide-react";
 import Swal from "sweetalert2";
-import { API_URL } from "../config/api";
-import RatingModal from "../components/RatingModal";
+import { API_URL } from "../../config/api";
+import RatingModal from "../../components/RatingModal";
+import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
 export default function UserPayments() {
   const [plans, setPlans] = useState([]);
@@ -20,6 +21,7 @@ export default function UserPayments() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [pendingRatingService, setPendingRatingService] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   const [serviceForm, setServiceForm] = useState({
     id_Servicio: "",
@@ -50,15 +52,30 @@ export default function UserPayments() {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    try {
-      const [plansRes, servicesRes, historyRes] = await Promise.all([
-        fetch(`${API_URL}/planes`, { headers: { Accept: "application/json" } }),
-        fetch(`${API_URL}/servicios/explore`, { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}`, Accept: "application/json" } }),
-        fetch(`${API_URL}/pagos/historial`, { headers: authHeaders() }),
-      ]);
+   const fetchCurrentUser = async () => {
+     try {
+       const response = await fetch(`${API_URL}/user`, { headers: authHeaders() });
+       if (response.ok) {
+         const data = await response.json();
+         if (data.usuario) {
+           setCurrentUserEmail(data.usuario.id_CorreoUsuario);
+         }
+       }
+     } catch (err) {
+       console.error("Error fetching current user:", err);
+     }
+   };
 
-      const plansData = await plansRes.json();
+   const loadData = async () => {
+     try {
+       const [plansRes, servicesRes, historyRes] = await Promise.all([
+         fetch(`${API_URL}/planes`, { headers: { Accept: "application/json" } }),
+         fetch(`${API_URL}/servicios/explore`, { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}`, Accept: "application/json" } }),
+         fetch(`${API_URL}/pagos/historial`, { headers: authHeaders() }),
+         fetchCurrentUser()
+       ]);
+
+       const plansData = await plansRes.json();
       const servicesData = servicesRes.ok ? await servicesRes.json() : [];
       const historyData = historyRes.ok ? await historyRes.json() : { pagos_plan: [], pagos_servicio: [] };
 
@@ -216,13 +233,27 @@ export default function UserPayments() {
       // Después del pago exitoso, ofrecer calificar
       const selectedService = services.find(s => s.id_Servicio === serviceForm.id_Servicio);
       if (selectedService) {
-        setPendingRatingService({
-          id_Servicio: serviceForm.id_Servicio,
-          titulo: selectedService.titulo,
-          metodoPago: serviceForm.modalidadPago,
-          id_Postulacion: serviceForm.id_Postulacion || null,
-        });
-        setShowRatingModal(true);
+        // Determinar contexto de calificación usando la utilidad centralizada
+        const contexto = determinarContextoCalificacion(
+          selectedService?.tipo || 'servicio',
+          currentUserEmail,
+          selectedService?.id_Dueno,
+          currentUserEmail // El usuario actual es el cliente que paga
+        );
+
+        if (!contexto.error) {
+          setPendingRatingService({
+            id_Servicio: serviceForm.id_Servicio,
+            titulo: selectedService.titulo,
+            tipo: selectedService?.tipo || 'servicio',
+            metodoPago: serviceForm.modalidadPago,
+            id_Postulacion: serviceForm.id_Postulacion || null,
+            usuarioCalificado: contexto.usuarioCalificado,
+            rolCalificado: contexto.rolCalificado,
+            showServiceRating: contexto.showServiceRating,
+          });
+          setShowRatingModal(true);
+        }
       }
       
       await loadData();
@@ -451,40 +482,43 @@ export default function UserPayments() {
         </div>
       </div>
 
-      <RatingModal
-        isOpen={showRatingModal}
-        onClose={() => {
-          setShowRatingModal(false);
-          setPendingRatingService(null);
-        }}
-        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
-          setRatingLoading(true);
-          try {
-            await fetch(`${API_URL}/resenas`, {
-              method: "POST",
-              headers: authHeaders(),
-              body: JSON.stringify({
-                id_Postulacion: pendingRatingService?.id_Postulacion,
-                id_Servicio: pendingRatingService?.id_Servicio,
-                calificacion_usuario: ratingUsuario,
-                calificacion_servicio: ratingServicio,
-                comentario: comment || '',
-              }),
-            });
-            setShowRatingModal(false);
-            setPendingRatingService(null);
-          } catch (err) {
-            console.error("Error submitting rating:", err);
-            Swal.fire('Error', 'No se pudo enviar la calificación.', 'error');
-          } finally {
-            setRatingLoading(false);
-          }
-        }}
-        subtitle={`¿Cómo fue tu experiencia con ${pendingRatingService?.titulo || 'este servicio'}?`}
-        tipo="servicio"
-        rolCalificado="ofertante"
-        loading={ratingLoading}
-      />
+       <RatingModal
+         isOpen={showRatingModal}
+         onClose={() => {
+           setShowRatingModal(false);
+           setPendingRatingService(null);
+         }}
+         onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
+           setRatingLoading(true);
+           try {
+             await fetch(`${API_URL}/resenas`, {
+               method: "POST",
+               headers: authHeaders(),
+               body: JSON.stringify({
+                 id_Postulacion: pendingRatingService?.id_Postulacion,
+                 id_Servicio: pendingRatingService?.id_Servicio,
+                 calificacion_usuario: ratingUsuario,
+                 calificacion_servicio: ratingServicio,
+                 comentario: comment || '',
+               }),
+             });
+             setShowRatingModal(false);
+             setPendingRatingService(null);
+           } catch (err) {
+             console.error("Error submitting rating:", err);
+             Swal.fire('Error', 'No se pudo enviar la calificación.', 'error');
+           } finally {
+             setRatingLoading(false);
+           }
+         }}
+         subtitle={`¿Cómo fue tu experiencia con ${pendingRatingService?.titulo || 'este servicio'}?`}
+         tipo={pendingRatingService?.tipo || "servicio"}
+         rolCalificado={pendingRatingService?.rolCalificado || "ofertante"}
+         usuarioCalificador={currentUserEmail}
+         usuarioCalificado={pendingRatingService?.usuarioCalificado}
+         loading={ratingLoading}
+       />
     </div>
   );
 }
+

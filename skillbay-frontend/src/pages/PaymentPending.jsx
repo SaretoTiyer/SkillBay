@@ -58,7 +58,7 @@ export default function PaymentPending({ onNavigate }) {
   const estaAprobado = estado?.estado === "Completado" || estado?.mp_status === "approved";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-amber-50 to-yellow-100 p-4">
       <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full text-center">
         {/* Ícono de pendiente */}
         <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">

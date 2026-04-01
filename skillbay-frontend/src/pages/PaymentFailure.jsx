@@ -20,7 +20,7 @@ export default function PaymentFailure({ onNavigate }) {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-rose-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-50 to-rose-100 p-4">
       <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full text-center">
         {/* Ícono de error */}
         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">

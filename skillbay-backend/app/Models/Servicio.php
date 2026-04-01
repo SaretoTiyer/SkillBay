@@ -20,7 +20,7 @@ class Servicio extends Model
     protected $fillable = [
         'titulo',
         'descripcion',
-        'id_Cliente',
+        'id_Dueno',
         'estado',
         'precio',
         'imagen',
@@ -34,14 +34,14 @@ class Servicio extends Model
         'fechaPublicacion',
     ];
 
-    public function cliente()
+    public function dueno()
     {
-        return $this->belongsTo(Usuario::class, 'id_Cliente', 'id_CorreoUsuario');
+        return $this->belongsTo(Usuario::class, 'id_Dueno', 'id_CorreoUsuario');
     }
 
     public function cliente_usuario()
     {
-        return $this->belongsTo(Usuario::class, 'id_Cliente', 'id_CorreoUsuario');
+        return $this->belongsTo(Usuario::class, 'id_Dueno', 'id_CorreoUsuario');
     }
 
     public function categoria()

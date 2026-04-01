@@ -60,7 +60,7 @@ class MigrarResenasCalificado extends Command
                 $erroresDetallados[] = [
                     'resena_id' => $resena->id,
                     'servicio_tipo' => $servicio->tipo,
-                    'id_Cliente' => $servicio->id_Cliente,
+                    'id_Dueno' => $servicio->id_Dueno,
                     'postulacion_id' => $resena->id_Postulacion,
                 ];
 
@@ -105,7 +105,7 @@ class MigrarResenasCalificado extends Command
         }
 
         if ($servicio->tipo === 'servicio') {
-            return $servicio->id_Cliente;
+            return $servicio->id_Dueno;
         }
 
         if ($servicio->tipo === 'oportunidad') {

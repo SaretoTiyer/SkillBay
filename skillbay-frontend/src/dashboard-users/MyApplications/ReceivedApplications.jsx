@@ -17,12 +17,14 @@ import { API_URL } from "../../config/api";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
 import RatingModal from "../../components/RatingModal";
+import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
 export default function ReceivedApplications() {
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingService, setRatingService] = useState(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   const authHeaders = (json = false) => ({
     Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -34,14 +36,31 @@ export default function ReceivedApplications() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await fetchSolicitudesRecibidas();
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchCurrentUser = async () => {
+     try {
+       const response = await fetch(`${API_URL}/user`, { headers: authHeaders() });
+       if (response.ok) {
+         const data = await response.json();
+         if (data.usuario) {
+           setCurrentUserEmail(data.usuario.id_CorreoUsuario);
+         }
+       }
+     } catch (err) {
+       console.error("Error fetching current user:", err);
+     }
+   };
+
+   const fetchData = async () => {
+     try {
+       setLoading(true);
+       await Promise.all([
+         fetchSolicitudesRecibidas(),
+         fetchCurrentUser()
+       ]);
+     } finally {
+       setLoading(false);
+     }
+   };
 
    const fetchSolicitudesRecibidas = async () => {
      try {
@@ -109,8 +128,8 @@ export default function ReceivedApplications() {
    * - 'servicio': el usuario publicó un servicio y alguien lo solicita
    *   → sección "Aceptar Cliente"
    *
-   * CORRECCIÓN: antes se comparaba currentUserEmail con servicio.id_Cliente,
-   * pero el endpoint /servicios/solicitudes ya filtra por id_Cliente del usuario
+   * CORRECCIÓN: antes se comparaba currentUserEmail con servicio.id_Dueno,
+   * pero el endpoint /servicios/solicitudes ya filtra por id_Dueno del usuario
    * autenticado, haciendo que esa comparación siempre fuera verdadera.
    */
   const getRequestType = (request) => {
@@ -317,19 +336,36 @@ export default function ReceivedApplications() {
                         ⭐ Calificado
                       </Badge>
                     ) : (
-                      <Button
-                        size="sm"
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                        onClick={() => {
-                          setRatingService({
-                            id_Servicio: request.servicio.id_Servicio,
-                            id_Postulacion: request.id,
-                            direccion: 'cliente_a_ofertante',
-                            servicio: request.servicio
-                          });
-                          setShowRatingModal(true);
-                        }}
-                      >
+                    <Button
+                      size="sm"
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      onClick={() => {
+                        // Determinar contexto de calificación usando la utilidad centralizada
+                        const contexto = determinarContextoCalificacion(
+                          request.servicio?.tipo || 'servicio',
+                          currentUserEmail,
+                          request.servicio?.id_Dueno,
+                          request.usuario?.id_CorreoUsuario
+                        );
+
+                        if (contexto.error) {
+                          Swal.fire('Error', contexto.error, 'error');
+                          return;
+                        }
+
+                        setRatingService({
+                          id_Servicio: request.servicio.id_Servicio,
+                          id_Postulacion: request.id,
+                          tipo: request.servicio?.tipo || 'servicio',
+                          servicio: request.servicio,
+                          usuario: request.usuario,
+                          usuarioCalificado: contexto.usuarioCalificado,
+                          rolCalificado: contexto.rolCalificado,
+                          showServiceRating: contexto.showServiceRating,
+                        });
+                        setShowRatingModal(true);
+                      }}
+                    >
                         <Star size={14} className="mr-1" /> Calificar
                       </Button>
                     )}
@@ -436,40 +472,43 @@ export default function ReceivedApplications() {
         </section>
       )}
 
-      <RatingModal
-        isOpen={showRatingModal}
-        onClose={() => {
-          setShowRatingModal(false);
-          setRatingService(null);
-        }}
-        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
-          try {
-            const response = await fetch(`${API_URL}/resenas`, {
-              method: "POST",
-              headers: authHeaders(true),
-              body: JSON.stringify({
-                id_Postulacion: ratingService?.id_Postulacion,
-                id_Servicio: ratingService?.id_Servicio,
-                calificacion_usuario: ratingUsuario,
-                calificacion_servicio: ratingServicio,
-                comentario: comment || ''
-              }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-            setSolicitudesRecibidas(prev => prev.map(s => s.id === ratingService?.id_Postulacion ? {...s, ya_califico_receptor: true} : s));
-            Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
-          } catch (error) {
-            Swal.fire('Error', error.message, 'error');
-          } finally {
-            setShowRatingModal(false);
-            setRatingService(null);
-          }
-        }}
-        subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este cliente'}?`}
-        tipo={ratingService?.servicio?.tipo || "servicio"}
-        rolCalificado="cliente"
-      />
+       <RatingModal
+         isOpen={showRatingModal}
+         onClose={() => {
+           setShowRatingModal(false);
+           setRatingService(null);
+         }}
+         onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
+           try {
+             const response = await fetch(`${API_URL}/resenas`, {
+               method: "POST",
+               headers: authHeaders(true),
+               body: JSON.stringify({
+                 id_Postulacion: ratingService?.id_Postulacion,
+                 id_Servicio: ratingService?.id_Servicio,
+                 calificacion_usuario: ratingUsuario,
+                 calificacion_servicio: ratingServicio,
+                 comentario: comment || ''
+               }),
+             });
+             const data = await response.json();
+             if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+             setSolicitudesRecibidas(prev => prev.map(s => s.id === ratingService?.id_Postulacion ? {...s, ya_califico_receptor: true} : s));
+             Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+           } catch (error) {
+             Swal.fire('Error', error.message, 'error');
+           } finally {
+             setShowRatingModal(false);
+             setRatingService(null);
+           }
+         }}
+         subtitle={`¿Cómo fue tu experiencia con ${ratingService?.servicio?.titulo || 'este usuario'}?`}
+         tipo={ratingService?.tipo || "servicio"}
+         rolCalificado={ratingService?.rolCalificado || "ofertante"}
+         usuarioCalificador={currentUserEmail}
+         usuarioCalificado={ratingService?.usuarioCalificado}
+       />
     </div>
   );
 }
+

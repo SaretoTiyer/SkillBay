@@ -14,21 +14,21 @@ class ServicioSeeder extends Seeder
      *
      * TIPOS DE SERVICIOS:
      * - 'servicio': Un OFERTANTE ofrece un servicio
-     *   * id_Cliente = OFERTANTE (quien provee el servicio)
+     *   * id_Dueno = OFERTANTE (quien provee el servicio)
      *   * Los postulantes son CLIENTES potenciales
      *
      * - 'oportunidad': Un CLIENTE busca alguien para un trabajo
-     *   * id_Cliente = CLIENTE (quien necesita el servicio)
+     *   * id_Dueno = CLIENTE (quien necesita el servicio)
      *   * Los postulantes son OFERTANTES potenciales
      *
      * ROLES:
      * - OFERTANTE: Quien proporciona el servicio
-     *   * En servicio: id_Cliente
+     *   * En servicio: id_Dueno
      *   * En oportunidad: postulante
      *
      * - CLIENTE: Quien recibe/paga el servicio
      *   * En servicio: postulante
-     *   * En oportunidad: id_Cliente
+     *   * En oportunidad: id_Dueno
      */
     public function run(): void
     {
@@ -74,7 +74,7 @@ class ServicioSeeder extends Seeder
         /**
          * SERVICIOS (tipo = 'servicio')
          * Creados por OFERTANTES
-         * id_Cliente = OFERTANTE
+         * id_Dueno = OFERTANTE
          */
         foreach ($ofertantes->take(5) as $index => $ofertante) {
             $titulosServicios = [
@@ -88,7 +88,7 @@ class ServicioSeeder extends Seeder
             Servicio::create([
                 'titulo' => $titulosServicios[$index] ?? $faker->sentence(4),
                 'descripcion' => $faker->paragraph(3),
-                'id_Cliente' => $ofertante->id_CorreoUsuario,
+                'id_Dueno' => $ofertante->id_CorreoUsuario,
                 'estado' => 'Activo',
                 'precio' => $faker->numberBetween(100000, 5000000),
                 'tiempo_entrega' => $faker->numberBetween(1, 30).' días',
@@ -104,7 +104,7 @@ class ServicioSeeder extends Seeder
         /**
          * OPORTUNIDADES (tipo = 'oportunidad')
          * Creadas por CLIENTES
-         * id_Cliente = CLIENTE
+         * id_Dueno = CLIENTE
          */
         if (! $clientes->isEmpty()) {
             foreach ($clientes->take(10) as $index => $cliente) {
@@ -119,7 +119,7 @@ class ServicioSeeder extends Seeder
                 Servicio::create([
                     'titulo' => $titulosOportunidades[$index % count($titulosOportunidades)] ?? 'Se busca: '.$faker->jobTitle(),
                     'descripcion' => 'Empresa busca profesional para proyecto importante. '.$faker->paragraph(2),
-                    'id_Cliente' => $cliente->id_CorreoUsuario,
+                    'id_Dueno' => $cliente->id_CorreoUsuario,
                     'estado' => 'Activo',
                     'precio' => $faker->numberBetween(500000, 10000000),
                     'tiempo_entrega' => $faker->randomElement(['Proyecto único', 'Tiempo completo', 'Medio tiempo', 'Por contrato']),

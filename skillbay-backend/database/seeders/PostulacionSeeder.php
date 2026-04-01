@@ -40,11 +40,11 @@ class PostulacionSeeder extends Seeder
 
             if ($servicio->tipo === 'servicio') {
                 $usuarios = Usuario::where('rol', 'ofertante')
-                    ->where('id_CorreoUsuario', '!=', $servicio->id_Cliente)
+                    ->where('id_CorreoUsuario', '!=', $servicio->id_Dueno)
                     ->get();
             } else {
                 $usuarios = Usuario::where('rol', 'cliente')
-                    ->where('id_CorreoUsuario', '!=', $servicio->id_Cliente)
+                    ->where('id_CorreoUsuario', '!=', $servicio->id_Dueno)
                     ->get();
             }
 

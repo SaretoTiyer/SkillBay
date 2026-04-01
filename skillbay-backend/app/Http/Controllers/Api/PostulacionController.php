@@ -60,12 +60,12 @@ class PostulacionController extends Controller
         }
 
         $solicitudes = Postulacion::with([
-            'servicio:id_Servicio,titulo,id_Cliente,id_Categoria,imagen,estado,tipo',
+            'servicio:id_Servicio,titulo,id_Dueno,id_Categoria,imagen,estado,tipo',
             'servicio.categoria:id_Categoria,nombre,grupo',
             'usuario:id_CorreoUsuario,nombre,apellido,ciudad',
         ])
             ->whereHas('servicio', function ($query) use ($user) {
-                $query->where('id_Cliente', $user->id_CorreoUsuario);
+                $query->where('id_Dueno', $user->id_CorreoUsuario);
             })
             ->orderByRaw("CASE estado WHEN 'pendiente' THEN 0 WHEN 'aceptada' THEN 1 WHEN 'rechazada' THEN 2 WHEN 'cancelada' THEN 3 ELSE 4 END")
             ->orderBy('created_at', 'desc')
@@ -103,7 +103,7 @@ class PostulacionController extends Controller
         $postulacion = Postulacion::with(['servicio'])
             ->where('id', $id)
             ->whereHas('servicio', function ($query) use ($user) {
-                $query->where('id_Cliente', $user->id_CorreoUsuario);
+                $query->where('id_Dueno', $user->id_CorreoUsuario);
             })
             ->first();
 
@@ -144,7 +144,7 @@ class PostulacionController extends Controller
      * El cliente (quien paga) marca el trabajo como completado.
      * Solo se puede marcar como completado si el estado actual es 'en_progreso'.
      *
-     * FLUJO A (postulante): el cliente (id_Cliente del servicio) marca completado
+     * FLUJO A (postulante): el cliente (id_Dueno del servicio) marca completado
      * FLUJO B (solicitante): el cliente (id_Usuario de la postulación) marca completado
      *
      * Cuando todas las postulaciones del servicio están finalizadas, el servicio se marca como Completado.
@@ -166,11 +166,11 @@ class PostulacionController extends Controller
         }
 
         // Determinar quién es el cliente (quien paga) según el tipo de flujo
-        // FLUJO A (postulante): el cliente es id_Cliente del servicio
+        // FLUJO A (postulante): el cliente es id_Dueno del servicio
         // FLUJO B (solicitante): el cliente es id_Usuario de la postulación
         $esFlujoPosta = $postulacion->tipo_postulacion === 'postulante';
         $emailClienteQuePaga = $esFlujoPosta
-            ? $postulacion->servicio?->id_Cliente   // FLUJO A: dueño de la oportunidad
+            ? $postulacion->servicio?->id_Dueno   // FLUJO A: dueño de la oportunidad
             : $postulacion->id_Usuario;             // FLUJO B: quien solicitó el servicio
 
         // Solo el cliente (quien paga) puede marcar como completado
@@ -200,10 +200,10 @@ class PostulacionController extends Controller
         }
 
         // Notificar al OFERTANTE (quien ejecutó el trabajo) que el trabajo fue aceptado
-        // FLUJO A: ofertante = id_Usuario / FLUJO B: ofertante = id_Cliente del servicio
+        // FLUJO A: ofertante = id_Usuario / FLUJO B: ofertante = id_Dueno del servicio
         $emailOfertante = $esFlujoPosta
             ? $postulacion->id_Usuario
-            : $postulacion->servicio?->id_Cliente;
+            : $postulacion->servicio?->id_Dueno;
 
         Notificacion::create([
             'mensaje' => 'El trabajo para "'.($postulacion->servicio->titulo ?? 'servicio').'" ha sido marcado como completado. El cliente procederá con el pago.',
@@ -270,7 +270,7 @@ class PostulacionController extends Controller
             'mensaje' => 'El proveedor ha cobrado el pago para "'.($postulacion->servicio->titulo ?? 'servicio').'". Ya puedes dejar una calificación.',
             'estado' => 'No leido',
             'tipo' => 'postulacion',
-            'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+            'id_CorreoUsuario' => $postulacion->servicio->id_Dueno,
         ]);
 
         return response()->json([
@@ -301,7 +301,7 @@ class PostulacionController extends Controller
         }
 
         // Solo el cliente (dueño del servicio) puede verificar
-        $esCliente = $postulacion->servicio && $postulacion->servicio->id_Cliente === $user->id_CorreoUsuario;
+        $esCliente = $postulacion->servicio && $postulacion->servicio->id_Dueno === $user->id_CorreoUsuario;
 
         return response()->json([
             'success' => true,
@@ -379,7 +379,7 @@ class PostulacionController extends Controller
                 'mensaje' => 'Nueva postulacion para tu servicio "'.$servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
-                'id_CorreoUsuario' => $servicio->id_Cliente,
+                'id_CorreoUsuario' => $servicio->id_Dueno,
             ]);
         }
 
@@ -423,7 +423,7 @@ class PostulacionController extends Controller
                 'mensaje' => 'Una postulacion fue actualizada en tu servicio "'.$postulacion->servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
-                'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+                'id_CorreoUsuario' => $postulacion->servicio->id_Dueno,
             ]);
         }
 
@@ -465,7 +465,7 @@ class PostulacionController extends Controller
                 'mensaje' => 'Una postulacion fue cancelada en tu servicio "'.$postulacion->servicio->titulo.'".',
                 'estado' => 'No leido',
                 'tipo' => 'postulacion',
-                'id_CorreoUsuario' => $postulacion->servicio->id_Cliente,
+                'id_CorreoUsuario' => $postulacion->servicio->id_Dueno,
             ]);
         }
 
@@ -495,7 +495,7 @@ class PostulacionController extends Controller
         }
 
         $postulaciones = Postulacion::with([
-            'servicio:id_Servicio,titulo,id_Cliente',
+            'servicio:id_Servicio,titulo,id_Dueno',
             'usuario:id_CorreoUsuario,nombre,apellido',
         ])->orderBy('created_at', 'desc')->get();
 
