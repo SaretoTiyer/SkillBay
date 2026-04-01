@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)](https://github.com)
+[![Version](https://img.shields.io/badge/version-alpha.0.0.4-blue?style=flat-square)](https://github.com)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel)](https://laravel.com/)
@@ -70,6 +70,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 - **Mensajería interna** para comunicación directa entre partes
 - **Panel de administración** completo para gestión de la plataforma
 - Sistema de **reportes** para mantener la integridad de la comunidad
+- Sistema de **reseñas bidireccionales** con clasificación por rol (ofertante/cliente)
 
 ### Pregunta de Investigación
 
@@ -120,24 +121,26 @@ Este enfoque asegura que la solución sea robusta y adaptada a las necesidades d
 - Perfiles de usuario públicos y privados
 - Sistema de roles: Cliente, Ofertante, Administrador
 - Bloqueo de usuarios por comportamiento inapropiado
+- Gestión de imagen de perfil
 
 ### Módulo de Servicios
 
-- Creación de servicios por parte de clientes
+- Creación de servicios por parte de ofertantes
 - Dos tipos de publicaciones: **Servicios** (ofrecidos por ofertantes) y **Oportunidades** (buscadas por clientes)
 - Categorización de servicios con grupos temáticos
 - Sistema de estados: activo, en proceso, completado, cancelado
 - Galería de imágenes por servicio
 - Tiempo de entrega configurable
+- Configuración de métodos de pago por servicio
 
 ### Módulo de Postulaciones
 
 - Los ofertantes pueden postularse a servicios/oportunidades
-- Propuesta de presupuesto y tiempo estimado
 - Mensaje de presentación personalizado
 - Estados de postulación: pendiente, aceptada, rechazada, cancelada
 - Seguimiento del estado del trabajo
 - Sistema de completación con verificación para pago
+- Chat interno por postulación
 
 ### Módulo de Pagos
 
@@ -147,6 +150,7 @@ Este enfoque asegura que la solución sea robusta y adaptada a las necesidades d
 - Historial de transacciones
 - Webhook para procesamiento de pagos asíncronos
 - Modo simulador para pruebas de desarrollo
+- Configuración de métodos de pago (Nequi, Bancolombia con QR)
 
 ### Módulo de Comunicación
 
@@ -158,10 +162,20 @@ Este enfoque asegura que la solución sea robusta y adaptada a las necesidades d
 
 ### Módulo de Reputación
 
-- Sistema de reseñas y calificaciones
+- Sistema de reseñas y calificaciones **bidireccional**
 - Calificación por estrellas (1-5)
 - Comentarios detallados
-- Reseñas vinculadas a servicios completados
+- Clasificación por rol: **Como Ofertante** y **Como Cliente**
+- Validación anti-auto-calificación (frontend y backend)
+- Calificación de servicio solo cuando aplica (servicio → ofertante)
+- Reseñas vinculadas a servicios completados y pagados
+
+### Módulo de Configuración de Usuario
+
+- Cambio de contraseña
+- Gestión de métodos de pago (Nequi, Bancolombia)
+- Subida de códigos QR para pagos
+- Preferencias de notificación
 
 ### Módulo de Reportes
 
@@ -205,7 +219,7 @@ Este enfoque asegura que la solución sea robusta y adaptada a las necesidades d
 #### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/SkillBay.git
+git clone https://github.com/SaretoTiyer/SkillBay.git
 cd SkillBay
 ```
 
@@ -239,9 +253,6 @@ php artisan migrate
 
 # Poblar la base de datos con datos de prueba
 php artisan db:seed
-
-# Generar clave JWT (si aplica)
-php artisan jwt:secret
 ```
 
 #### 3. Configuración de MercadoPago (Opcional - Modo Simulador)
@@ -277,20 +288,59 @@ VITE_API_URL=http://localhost:8000/api
 
 #### 5. Ejecución del Proyecto
 
-**Backend (Terminal 1):**
+**Opción A - Desarrollo (todos los servicios):**
 
 ```bash
 cd skillbay-backend
-php artisan serve
-# Servidor disponible en http://localhost:8000
+composer run dev
+# Inicia API, queue, logs y Vite simultáneamente
 ```
 
-**Frontend (Terminal 2):**
+**Opción B - Servicios individuales:**
 
 ```bash
+# Terminal 1 - Backend API
+cd skillbay-backend
+php artisan serve
+
+# Terminal 2 - Frontend
 cd skillbay-frontend
 npm run dev
-# Aplicación disponible en http://localhost:5173
+```
+
+### Comandos de Desarrollo
+
+#### Backend
+
+```bash
+# Iniciar todos los servicios (API, queue, logs, Vite)
+composer run dev
+
+# Ejecutar tests
+composer run test
+php artisan test
+
+# Formatear código
+composer run format
+
+# Verificar estilo de código
+./vendor/bin/pint --test
+```
+
+#### Frontend
+
+```bash
+# Servidor de desarrollo
+npm run dev
+
+# Construir para producción
+npm run build
+
+# Verificar linting
+npm run lint
+
+# Preview de producción
+npm run preview
 ```
 
 ### Variables de Entorno Requeridas
@@ -400,9 +450,7 @@ curl -X POST http://localhost:8000/api/postulaciones \
   -H "Authorization: Bearer TU_ACCESS_TOKEN" \
   -d '{
     "id_Servicio": 1,
-    "mensaje": "Hola, estoy interesado en realizar este trabajo...",
-    "presupuesto": 120000,
-    "tiempo_estimado": 4
+    "mensaje": "Hola, estoy interesado en realizar este trabajo..."
   }'
 ```
 
@@ -506,6 +554,7 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 | **Migrations** | Definen la estructura de la base de datos | `database/migrations/` |
 | **Seeders** | Poblan la base de datos con datos iniciales | `database/seeders/` |
 | **Routes** | Definen los endpoints de la API | `routes/api.php` |
+| **Commands** | Comandos Artisan personalizados | `app/Console/Commands/` |
 
 #### Frontend (React)
 
@@ -513,8 +562,13 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 |------------|-------------|------------|
 | **Pages** | Componentes de vista completa | `src/pages/` |
 | **Components** | Componentes reutilizables | `src/components/` |
+| **UserProfile** | Perfil de usuario (Info, Servicios, Reseñas) | `src/dashboard-users/UserProfile/` |
+| **UserConfig** | Configuración de usuario | `src/dashboard-users/UserConfig/` |
+| **PlanesUser** | Planes y pagos | `src/dashboard-users/PlanesUser/` |
+| **MyApplications** | Gestión de postulaciones | `src/dashboard-users/MyApplications/` |
 | **Dashboard Users** | Vistas del panel de usuario | `src/dashboard-users/` |
 | **Dashboard Admin** | Vistas del panel de admin | `src/dashboard-admin/` |
+| **Utils** | Utilidades (ratingContext, etc.) | `src/utils/` |
 | **Config** | Configuración de API | `src/config/` |
 
 ### Flujo de Datos
@@ -542,6 +596,7 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 | **Laravel Sanctum** | 4.x | Autenticación API Stateless |
 | **MercadoPago SDK** | 3.8 | Integración de pagos en Latinoamérica |
 | **PHPUnit** | 11.x | Framework de testing |
+| **Laravel Pint** | 1.x | Formateo de código PHP |
 
 ### Frontend
 
@@ -549,7 +604,6 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 |------------|---------|---------------|
 | **React** | 19.x | Biblioteca moderna para interfaces de usuario |
 | **Vite** | 7.x | Build tool rápido y moderno |
-| **React Router** | 7.x | Enrutamiento SPA |
 | **Tailwind CSS** | 4.x | Framework de estilos utility-first |
 | **Lucide React** | 0.552+ | Iconos modernos |
 | **SweetAlert2** | 11.x | Alertas y dialogs |
@@ -710,7 +764,6 @@ SOFTWARE.
 
 ---
 
-
 ## ⚙️ Exclusión del Directorio `.kilocodemodes`
 
 El archivo `.kilocodemodes` es un archivo de configuración específico del entorno de desarrollo que contiene definiciones de modos personalizados utilizados por la herramienta KiloCode. **Este archivo NO debe ser versionado** en el repositorio GitHub.
@@ -733,16 +786,6 @@ echo ".kilocodemodes" >> skillbay-backend/.gitignore
 git commit -m "chore: exclude .kilocodemodes from version control"
 ```
 
-#### Opción 2: Eliminar completamente del historial (más estricto)
-
-```bash
-# Ejecutar desde la raíz del repositorio
-git filter-branch --tree-filter 'rm -f .kilocodemodes' HEAD
-
-# O usando git filter-repo (más moderno)
-git filter-repo --path .kilocodemodes --invert-paths
-```
-
 #### Verificar la exclusión
 
 Asegúrate de que `.gitignore` contenga la siguiente línea:
@@ -758,7 +801,7 @@ Asegúrate de que `.gitignore` contenga la siguiente línea:
 
 - **Email**: skillbay.app@gmail.com
 - **Website**: https://skillbay.com
-- **GitHub Issues**: https://github.com/tu-usuario/SkillBay/issues
+- **GitHub Issues**: https://github.com/SaretoTiyer/SkillBay/issues
 
 ---
 
