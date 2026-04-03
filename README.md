@@ -184,13 +184,28 @@ Este enfoque asegura que la solución sea robusta y adaptada a las necesidades d
 - Gestión de reportes por administradores
 - Acciones: advertencia, bloqueo, eliminación
 
+### Módulo de Contacto
+
+- Formulario de contacto público
+- Envío de mensajes por correo electrónico
+- Plantillas de correo personalizadas
+- Almacenamiento de mensajes en base de datos
+
 ### Panel de Administración
 
-- Dashboard con métricas y estadísticas
+- Dashboard con métricas y estadísticas (KPIs)
+- Gráficos interactivos con **Recharts** (barras, pie)
+- Sidebar colapsable con menú hamburguesa
+- Estructura modular por secciones (users/, services/, plans/, shared/)
+- Tarjetas KPI por sección con estadísticas en tiempo real
+- Top 5 Ofertantes mejor valorados
+- Top 5 Clientes mejor valorados
+- Top 5 Servicios mejor valorados
+- Resumen de reseñas con promedios
+- Timeline de actividad reciente
 - Gestión de usuarios (ver, bloquear)
 - Gestión de planes de suscripción
 - Gestión de categorías
-- Gestión de postulaciones
 - Gestión de reportes
 - Notificaciones globales
 
@@ -251,8 +266,28 @@ php artisan key:generate
 # Ejecutar migraciones
 php artisan migrate
 
-# Poblar la base de datos con datos de prueba
+# Poblar la base de datos con datos de prueba (11 seeders)
 php artisan db:seed
+
+# O recrear toda la base de datos desde cero
+php artisan migrate:fresh --seed
+```
+
+#### Seeders Disponibles
+
+| Seeder | Descripción |
+|--------|-------------|
+| **PlanSeeder** | 4 planes: Free, Plus, Ultra, Enterprise |
+| **UsuarioSeeder** | 34 usuarios con planes variados, imágenes, bloqueados |
+| **CategoriaSeeder** | Categorías de servicios con imágenes |
+| **ServicioSeeder** | Servicios y oportunidades por usuario |
+| **PostulacionSeeder** | Postulaciones con 7 estados diferentes |
+| **PagoServicioSeeder** | Registros de pagos de servicios |
+| **ResenaSeeder** | Reseñas bidireccionales con rol_calificado |
+| **PagoPlanSeeder** | Pagos de suscripciones a planes |
+| **ReporteSeeder** | Reportes de usuarios y servicios |
+| **NotificacionSeeder** | Notificaciones variadas por tipo |
+| **MensajeSeeder** | Mensajes entre usuarios por postulación |
 ```
 
 #### 3. Configuración de MercadoPago (Opcional - Modo Simulador)
@@ -479,6 +514,22 @@ curl -X GET http://localhost:8000/api/notificaciones \
 }
 ```
 
+### Obtener Top Ofertantes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/admin/analytics/top-ofertantes \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer TU_ADMIN_TOKEN"
+```
+
+### Obtener Resumen de Reseñas (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/admin/analytics/resenas-resumen \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer TU_ADMIN_TOKEN"
+```
+
 ### Procesar Pago de Plan
 
 ```bash
@@ -568,7 +619,11 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 | **MyApplications** | Gestión de postulaciones | `src/dashboard-users/MyApplications/` |
 | **Dashboard Users** | Vistas del panel de usuario | `src/dashboard-users/` |
 | **Dashboard Admin** | Vistas del panel de admin | `src/dashboard-admin/` |
-| **Utils** | Utilidades (ratingContext, etc.) | `src/utils/` |
+| **Admin Shared** | Componentes compartidos (StatCard, StarRating) | `src/dashboard-admin/shared/` |
+| **Admin Users** | KPIs y tabla de usuarios | `src/dashboard-admin/users/` |
+| **Admin Services** | KPIs y tabla de servicios | `src/dashboard-admin/services/` |
+| **Admin Plans** | KPIs y tabla de planes | `src/dashboard-admin/plans/` |
+| **Utils** | Utilidades (serviceImages, swalHelpers) | `src/utils/` |
 | **Config** | Configuración de API | `src/config/` |
 
 ### Flujo de Datos
@@ -605,6 +660,7 @@ SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backe
 | **React** | 19.x | Biblioteca moderna para interfaces de usuario |
 | **Vite** | 7.x | Build tool rápido y moderno |
 | **Tailwind CSS** | 4.x | Framework de estilos utility-first |
+| **Recharts** | 2.x | Gráficos y visualizaciones para dashboard admin |
 | **Lucide React** | 0.552+ | Iconos modernos |
 | **SweetAlert2** | 11.x | Alertas y dialogs |
 | **Radix UI** | - | Componentes UI accesibles |
@@ -761,6 +817,25 @@ SOFTWARE.
 - El modo simulador de MercadoPago no reproduce todos los escenarios de pago
 - No hay sistema de facturación automática integrada
 - La verificación de identidad de usuarios es manual
+- Las imágenes de perfil usan URLs externas (Unsplash) para datos de prueba
+
+## 📊 Estructura de Datos de Prueba
+
+Al ejecutar `php artisan migrate:fresh --seed` se crean:
+
+- **1 Admin** con plan Enterprise
+- **5 Clientes** con planes variados (Free, Plus, Ultra, Enterprise, Plus bloqueado)
+- **5 Ofertantes** con planes variados (Free, Plus, Ultra, Enterprise, Plus bloqueado)
+- **24 Usuarios aleatorios** con distribución de planes
+- **2 Usuarios bloqueados** para pruebas de administración
+- **~20 Servicios y Oportunidades** con estados variados
+- **~80 Postulaciones** con distribución realista de estados
+- **~70 Pagos de servicios** con métodos de pago variados
+- **~17 Reseñas** bidireccionales con calificaciones 1-5 estrellas
+- **~44 Pagos de planes** para usuarios Plus/Ultra/Enterprise
+- **~13 Reportes** con estados variados
+- **~27 Notificaciones** por tipo
+- **~80 Mensajes** en conversaciones
 
 ---
 
