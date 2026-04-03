@@ -12,9 +12,6 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import PaymentFailure from "./pages/PaymentFailure";
-import PaymentPending from "./pages/PaymentPending";
 import TermsAndConditions from "./pages/TermsAndConditions";
 
 import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
@@ -48,18 +45,6 @@ function getStoredUser() {
 }
 
 /**
- * Detecta si la URL actual corresponde a una página de retorno de MercadoPago.
- * Ejemplo: /payment/success, /payment/failure, /payment/pending
- */
-function detectPaymentReturnView() {
-  const path = window.location.pathname;
-  if (path.startsWith("/payment/success")) return "payment_success";
-  if (path.startsWith("/payment/failure")) return "payment_failure";
-  if (path.startsWith("/payment/pending")) return "payment_pending";
-  return null;
-}
-
-/**
  * Detecta si la URL actual corresponde a la página de términos y condiciones
  */
 function detectTermsView() {
@@ -68,10 +53,9 @@ function detectTermsView() {
 }
 
 function App() {
-  const paymentReturnView = detectPaymentReturnView();
   const termsView = detectTermsView();
   const [currentView, setCurrentView] = useState(
-    () => paymentReturnView || termsView || localStorage.getItem("currentView") || "home"
+    () => termsView || localStorage.getItem("currentView") || "home"
   );
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const token = localStorage.getItem("access_token");
@@ -190,13 +174,6 @@ function App() {
           />
         );
       }
-      // Retornos de MercadoPago (también accesibles desde el dashboard)
-      case "payment_success":
-        return <PaymentSuccess onNavigate={setCurrentView} />;
-      case "payment_failure":
-        return <PaymentFailure onNavigate={setCurrentView} />;
-      case "payment_pending":
-        return <PaymentPending onNavigate={setCurrentView} />;
       default:
         return <ExploreOpportunities />;
     }
@@ -239,16 +216,9 @@ function App() {
          return <ForgotPassword onNavigate={setCurrentView} />;
        case "register":
          return <Register onNavigate={setCurrentView} />;
-       case "terms":
-         return <TermsAndConditions />;
-       // Retornos de MercadoPago (accesibles sin autenticación)
-       case "payment_success":
-         return <PaymentSuccess onNavigate={setCurrentView} />;
-       case "payment_failure":
-         return <PaymentFailure onNavigate={setCurrentView} />;
-       case "payment_pending":
-         return <PaymentPending onNavigate={setCurrentView} />;
-       default:
+        case "terms":
+          return <TermsAndConditions />;
+        default:
          return <Home onNavigate={setCurrentView} />;
      }
    };

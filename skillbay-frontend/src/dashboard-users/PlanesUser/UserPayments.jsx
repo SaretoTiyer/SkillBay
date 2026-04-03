@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, ExternalLink } from "lucide-react";
+import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, Wallet, Smartphone, Banknote, QrCode, ChevronDown, ChevronUp } from "lucide-react";
 import Swal from "sweetalert2";
 import { showSuccess, showError, showInfo } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
 import RatingModal from "../../components/RatingModal";
 import { determinarContextoCalificacion } from "../../utils/ratingContext";
+
+const METODOS_PAGO = [
+  { id: "tarjeta", nombre: "Tarjeta de Crédito/Débito", icono: CreditCard, categoria: "digital", requiereDatos: true },
+  { id: "nequi", nombre: "Nequi", icono: Smartphone, categoria: "digital", requiereDatos: false },
+  { id: "bancolombia_qr", nombre: "QR Bancolombia", icono: QrCode, categoria: "digital", requiereDatos: false },
+  { id: "efectivo", nombre: "Efectivo", icono: Banknote, categoria: "efectivo", requiereDatos: false },
+];
 
 export default function UserPayments() {
   const [plans, setPlans] = useState([]);
@@ -18,6 +25,16 @@ export default function UserPayments() {
     id_Plan: "",
     modalidadPago: "virtual",
   });
+
+  const [metodoPago, setMetodoPago] = useState("tarjeta");
+  const [pasoPago, setPasoPago] = useState("seleccion");
+  const [datosPago, setDatosPago] = useState({
+    numero_tarjeta: "",
+    titular: "",
+    fecha_vencimiento: "",
+    cvv: "",
+  });
+  const [idPagoActual, setIdPagoActual] = useState(null);
 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [pendingRatingService, setPendingRatingService] = useState(null);
@@ -51,6 +68,7 @@ export default function UserPayments() {
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
    const fetchCurrentUser = async () => {
@@ -100,97 +118,128 @@ export default function UserPayments() {
     const plan = plans.find((p) => p.id_Plan === planForm.id_Plan);
     const precio = Number(plan?.precioMensual ?? 0);
 
-    setProcessing(true);
-    try {
-      // Crear preferencia de pago con MercadoPago
-      const response = await fetch(`${API_URL}/mp/crear-preferencia`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ id_Plan: planForm.id_Plan }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.message || "No se pudo iniciar el proceso de pago.");
-      }
-
-      // Plan gratuito: activado directamente
-      if (data?.gratuito) {
+    if (precio <= 0) {
+      try {
+        const response = await fetch(`${API_URL}/pagos/plan`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ id_Plan: planForm.id_Plan, modalidadPago: "virtual" }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.message || "No se pudo activar el plan.");
+        }
         const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
         localStorage.setItem("usuario", JSON.stringify(updatedUser));
         showSuccess("¡Plan activado!", `El plan ${plan?.nombre} ha sido activado exitosamente.`);
         await loadData();
+      } catch (error) {
+        showError("Error", error.message || "No se pudo activar el plan.");
+      }
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const initRes = await fetch(`${API_URL}/pagos/plan/simulado`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          id_plan: planForm.id_Plan,
+          metodo: metodoPago,
+        }),
+      });
+      const initData = await initRes.json();
+      if (!initRes.ok || !initData?.success) {
+        throw new Error(initData?.message || "No se pudo iniciar el pago.");
+      }
+
+      const pagoId = initData.data.id_pago;
+      setIdPagoActual(pagoId);
+
+      if (metodoPago === "tarjeta") {
+        setPasoPago("formulario");
+        setProcessing(false);
         return;
       }
 
-      // Plan de pago: redirigir a MercadoPago Checkout Pro
-      const checkoutUrl = data?.sandbox_init_point || data?.init_point;
-      if (!checkoutUrl) throw new Error("No se recibió la URL de pago de MercadoPago.");
-
-      const { isConfirmed } = await Swal.fire({
-        title: `Pagar Plan ${plan?.nombre}`,
-        html: `
-          <div class="text-center py-2">
-            <p class="text-slate-600 mb-3">Serás redirigido a MercadoPago para completar tu pago de forma segura.</p>
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
-              <p class="text-sm text-blue-700 font-medium">Monto a pagar</p>
-              <p class="text-2xl font-bold text-blue-800">$${precio.toLocaleString("es-CO")} COP</p>
-              <p class="text-xs text-blue-600">/ mes</p>
-            </div>
-            <p class="text-xs text-slate-400">Referencia: ${data?.referencia || "-"}</p>
-          </div>
-        `,
-        icon: "info",
-        showCancelButton: true,
-        confirmButtonText: "Ir a MercadoPago",
-        cancelButtonText: "Cancelar",
-        confirmButtonColor: "#009ee3",
+      const procesarRes = await fetch(`${API_URL}/pagos/procesar`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          id_pago: pagoId,
+          tipo: "plan",
+          datos_pago: metodoPago === "nequi" || metodoPago === "bancolombia_qr"
+            ? { cuenta_banco: "transferencia_realizada" }
+            : {},
+        }),
       });
+      const procesarData = await procesarRes.json();
 
-      if (isConfirmed) {
-        window.open(checkoutUrl, "_blank");
-        Swal.fire({
-          title: "Procesando pago...",
-          html: `
-            <div class="text-center py-4">
-              <p class="text-slate-600 mb-4">Completa el pago en la ventana de MercadoPago.</p>
-              <p class="text-sm text-slate-500">Una vez aprobado, tu plan se activará automáticamente.</p>
-              <p class="text-xs text-slate-400 mt-3">Referencia: ${data?.referencia || "-"}</p>
-            </div>
-          `,
-          icon: "info",
-          showConfirmButton: true,
-          confirmButtonText: "Ya pagué, verificar",
-          showCancelButton: true,
-          cancelButtonText: "Cerrar",
-        }).then(async (result) => {
-          if (result.isConfirmed && data?.referencia) {
-            // Verificar estado del pago
-            try {
-              const estadoRes = await fetch(`${API_URL}/mp/estado/${data.referencia}`, {
-                headers: authHeaders(),
-              });
-              const estadoData = await estadoRes.json();
-              if (estadoData?.aprobado || estadoData?.estado === "Completado") {
-                const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
-                localStorage.setItem("usuario", JSON.stringify(updatedUser));
-                showSuccess("¡Plan activado!");
-                await loadData();
-              } else {
-                showInfo("Estado del pago", `Estado: ${estadoData?.estado || "Pendiente"}`);
-              }
-            } catch (err) {
-              console.error("Error al verificar estado:", err);
-            }
-          }
-        });
+      if (procesarData?.success) {
+        const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
+        localStorage.setItem("usuario", JSON.stringify(updatedUser));
+        showSuccess("¡Pago aprobado!", `Tu plan ${plan?.nombre} ha sido activado exitosamente.`);
+        setPasoPago("seleccion");
+        setMetodoPago("tarjeta");
+        setDatosPago({ numero_tarjeta: "", titular: "", fecha_vencimiento: "", cvv: "" });
+        await loadData();
+      } else {
+        showError("Pago rechazado", procesarData?.data?.mensaje || "Tu pago fue rechazado. Intenta con otro método.");
+        setPasoPago("seleccion");
       }
     } catch (error) {
-      showError("Error", error.message || "No se pudo pagar el plan.");
+      showError("Error", error.message || "No se pudo procesar el pago.");
+      setPasoPago("seleccion");
     } finally {
       setProcessing(false);
     }
   };
 
+  const procesarTarjeta = async (e) => {
+    e.preventDefault();
+    if (!idPagoActual) return;
+
+    setProcessing(true);
+    try {
+      const response = await fetch(`${API_URL}/pagos/procesar`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          id_pago: idPagoActual,
+          tipo: "plan",
+          datos_pago: {
+            numero_tarjeta: datosPago.numero_tarjeta,
+            titular: datosPago.titular,
+            fecha_vencimiento: datosPago.fecha_vencimiento,
+            cvv: datosPago.cvv,
+          },
+        }),
+      });
+      const data = await response.json();
+
+      const plan = plans.find((p) => p.id_Plan === planForm.id_Plan);
+
+      if (data?.success) {
+        const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
+        localStorage.setItem("usuario", JSON.stringify(updatedUser));
+        showSuccess("¡Pago aprobado!", `Tu plan ${plan?.nombre} ha sido activado exitosamente.`);
+        setPasoPago("seleccion");
+        setMetodoPago("tarjeta");
+        setDatosPago({ numero_tarjeta: "", titular: "", fecha_vencimiento: "", cvv: "" });
+        setIdPagoActual(null);
+        await loadData();
+      } else {
+        showError("Pago rechazado", data?.data?.mensaje || "Tu tarjeta fue rechazada. Intenta con otra.");
+      }
+    } catch (error) {
+      showError("Error", error.message || "No se pudo procesar el pago.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // eslint-disable-next-line no-unused-vars
   const submitServicePayment = async (e) => {
     e.preventDefault();
     if (!serviceForm.id_Servicio || !serviceForm.identificacionCliente) {
@@ -225,15 +274,13 @@ export default function UserPayments() {
         icon: "success",
       });
       
-      // Después del pago exitoso, ofrecer calificar
       const selectedService = services.find(s => s.id_Servicio === serviceForm.id_Servicio);
       if (selectedService) {
-        // Determinar contexto de calificación usando la utilidad centralizada
         const contexto = determinarContextoCalificacion(
           selectedService?.tipo || 'servicio',
           currentUserEmail,
           selectedService?.id_Dueno,
-          currentUserEmail // El usuario actual es el cliente que paga
+          currentUserEmail
         );
 
         if (!contexto.error) {
@@ -260,7 +307,9 @@ export default function UserPayments() {
   };
 
   const currentPlan = plans.find(p => p.id_Plan === currentPlanId);
-  const selectedService = services.find(s => s.id_Servicio === serviceForm.id_Servicio);
+  const planSeleccionado = plans.find(p => p.id_Plan === planForm.id_Plan);
+  const precioPlan = Number(planSeleccionado?.precioMensual ?? 0);
+  const MetodoIcon = METODOS_PAGO.find(m => m.id === metodoPago)?.icono || CreditCard;
 
   if (loading) {
     return (
@@ -370,30 +419,146 @@ export default function UserPayments() {
                 ))}
               </div>
 
-              <form onSubmit={submitPlanPayment} className="mt-6 pt-6 border-t border-slate-200">
-                {/* Indicador de pago seguro */}
-                <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2 mb-4">
-                  <ExternalLink size={12} />
-                  <span>Pago seguro procesado por MercadoPago</span>
-                </div>
-                <button
-                  type="submit"
-                  disabled={processing || !planForm.id_Plan}
-                  className="w-full bg-[#009ee3] hover:bg-[#0082c0] disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      Procesando pago...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard size={20} />
-                      Pagar con MercadoPago
-                    </>
-                  )}
-                </button>
-              </form>
+              {/* Selección de método de pago */}
+              {pasoPago === "seleccion" && (
+                <>
+                  <div className="mt-6 pt-6 border-t border-slate-200">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">Método de pago</h3>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {METODOS_PAGO.map((m) => {
+                        const Icon = m.icono;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setMetodoPago(m.id)}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                              metodoPago === m.id
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-slate-200 hover:border-slate-300"
+                            }`}
+                          >
+                            <Icon size={20} className={metodoPago === m.id ? "text-blue-600" : "text-slate-400"} />
+                            <span className="text-sm font-medium text-slate-700">{m.nombre}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <form onSubmit={submitPlanPayment} className="mt-4 pt-4 border-t border-slate-200">
+                    <button
+                      type="submit"
+                      disabled={processing || !planForm.id_Plan}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="animate-spin" size={20} />
+                          Procesando pago...
+                        </>
+                      ) : (
+                        <>
+                          <MetodoIcon size={20} />
+                          Pagar ${precioPlan.toLocaleString("es-CO")} COP
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {/* Formulario de tarjeta */}
+              {pasoPago === "formulario" && metodoPago === "tarjeta" && (
+                <form onSubmit={procesarTarjeta} className="mt-6 pt-6 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <CreditCard size={20} className="text-blue-600" />
+                      Datos de la tarjeta
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => { setPasoPago("seleccion"); setIdPagoActual(null); }}
+                      className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                    >
+                      <ChevronUp size={16} /> Cambiar método
+                    </button>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+                    <p className="text-sm text-blue-700 font-medium">Plan: {planSeleccionado?.nombre}</p>
+                    <p className="text-lg font-bold text-blue-800">${precioPlan.toLocaleString("es-CO")} COP</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Número de tarjeta</label>
+                      <input
+                        type="text"
+                        value={datosPago.numero_tarjeta}
+                        onChange={(e) => setDatosPago(prev => ({ ...prev, numero_tarjeta: e.target.value.replace(/\D/g, "").slice(0, 16) }))}
+                        placeholder="4242 4242 4242 4242"
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Usa 4000, 5000 o 6000 para simular rechazo</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Titular</label>
+                      <input
+                        type="text"
+                        value={datosPago.titular}
+                        onChange={(e) => setDatosPago(prev => ({ ...prev, titular: e.target.value }))}
+                        placeholder="Nombre completo"
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
+                        <input
+                          type="text"
+                          value={datosPago.fecha_vencimiento}
+                          onChange={(e) => setDatosPago(prev => ({ ...prev, fecha_vencimiento: e.target.value }))}
+                          placeholder="MM/AA"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">CVV</label>
+                        <input
+                          type="text"
+                          value={datosPago.cvv}
+                          onChange={(e) => setDatosPago(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                          placeholder="123"
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <Shield size={18} />
+                        Confirmar pago
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           )}
 
@@ -417,7 +582,7 @@ export default function UserPayments() {
                         <div className="text-right">
                           <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            pago.estado === 'aprobado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            pago.estado === 'Completado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                           }`}>
                             {pago.estado}
                           </span>
@@ -466,11 +631,19 @@ export default function UserPayments() {
             <div className="space-y-2">
               <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
                 <CreditCard size={18} className="text-slate-500" />
-                <span className="text-sm text-slate-700">Pago virtual</span>
+                <span className="text-sm text-slate-700">Tarjeta de crédito/débito</span>
               </div>
               <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
-                <CreditCard size={18} className="text-slate-500" />
-                <span className="text-sm text-slate-700">Pago en efectivo</span>
+                <Smartphone size={18} className="text-slate-500" />
+                <span className="text-sm text-slate-700">Nequi</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                <QrCode size={18} className="text-slate-500" />
+                <span className="text-sm text-slate-700">QR Bancolombia</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                <Banknote size={18} className="text-slate-500" />
+                <span className="text-sm text-slate-700">Efectivo</span>
               </div>
             </div>
           </div>
@@ -516,4 +689,3 @@ export default function UserPayments() {
     </div>
   );
 }
-

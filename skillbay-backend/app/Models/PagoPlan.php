@@ -21,12 +21,6 @@ class PagoPlan extends Model
         'fechaFinPlan',
         'id_CorreoUsuario',
         'id_Plan',
-        // Campos MercadoPago
-        'mp_preference_id',
-        'mp_payment_id',
-        'mp_status',
-        'mp_init_point',
-        'mp_sandbox_init_point',
     ];
 
     protected $casts = [
@@ -46,17 +40,11 @@ class PagoPlan extends Model
         return $this->belongsTo(Plan::class, 'id_Plan');
     }
 
-    /**
-     * Verifica si el pago fue aprobado por MercadoPago.
-     */
     public function estaAprobado(): bool
     {
-        return $this->estado === 'Completado' || $this->mp_status === 'approved';
+        return $this->estado === 'Completado';
     }
 
-    /**
-     * Verifica si el plan está vigente (no expirado).
-     */
     public function estaVigente(): bool
     {
         if (! $this->fechaFinPlan) {

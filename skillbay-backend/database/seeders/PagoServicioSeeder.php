@@ -21,7 +21,7 @@ class PagoServicioSeeder extends Seeder
             return;
         }
 
-        $metodosPago = ['MercadoPago', 'Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Credito', 'Transferencia'];
+        $metodosPago = ['Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Credito', 'Transferencia'];
         $modalidades = ['único', 'mensual', 'quincenal', 'por hora'];
 
         foreach ($postulaciones as $postulacion) {

@@ -20,7 +20,7 @@ class PagoPlanSeeder extends Seeder
             return;
         }
 
-        $metodosPago = ['MercadoPago', 'Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Credito', 'Transferencia'];
+        $metodosPago = ['Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Credito', 'Transferencia'];
 
         // Usuarios con planes de pago (Plus, Ultra, Enterprise)
         $usuariosPagos = Usuario::whereIn('id_Plan', ['Plus', 'Ultra', 'Enterprise'])
@@ -58,10 +58,6 @@ class PagoPlanSeeder extends Seeder
                     'metodoPago' => $faker->randomElement($metodosPago),
                     'referenciaPago' => $referencia,
                     'modalidadPago' => 'mensual',
-                    'mp_preference_id' => 'pref_' . $faker->uuid(),
-                    'mp_payment_id' => $estado === 'Completado' ? $faker->numerify('###########') : null,
-                    'mp_status' => $estado === 'Completado' ? 'approved' : 'pending',
-                    'mp_init_point' => $faker->url(),
                     'fechaInicioPlan' => $fechaInicio->format('Y-m-d'),
                     'fechaFinPlan' => $fechaFin->format('Y-m-d'),
                     'id_CorreoUsuario' => $usuario->id_CorreoUsuario,

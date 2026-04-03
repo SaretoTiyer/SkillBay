@@ -112,21 +112,7 @@ php artisan migrate
 php artisan db:seed
 ```
 
-### 3.8 Configurar MercadoPago (Opcional)
-
-El sistema incluye un simulador de pagos para desarrollo. Para usar pagos reales:
-
-```env
-# Modo producción
-MERCADO_PAGO_ACCESS_TOKEN=tu_token_de_produccion
-MERCADO_PAGO_MODE=production
-
-# Modo sandbox (pruebas)
-MERCADO_PAGO_ACCESS_TOKEN=TEST-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-MERCADO_PAGO_MODE=sandbox
-```
-
-### 3.9 Crear Enlace Simbólico de Storage
+### 3.8 Crear Enlace Simbólico de Storage
 
 ```bash
 php artisan storage:link
@@ -388,7 +374,7 @@ npm install
 
 ### 11.1 Modo Simulador de Pagos
 
-El sistema incluye un simulador de MercadoPago para desarrollo. Los pagos no serán reales pero el flujo completo funciona.
+El sistema incluye una pasarela de pago simulada para desarrollo. Los pagos no serán reales pero el flujo completo funciona con múltiples métodos (tarjeta, efectivo, Nequi, QR).
 
 ### 11.2 Usuarios de Prueba
 

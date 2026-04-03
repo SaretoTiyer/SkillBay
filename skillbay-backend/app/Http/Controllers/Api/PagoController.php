@@ -45,7 +45,6 @@ class PagoController extends Controller
             'fechaFinPlan' => now()->addMonth()->toDateString(),
             'id_CorreoUsuario' => $user->id_CorreoUsuario,
             'id_Plan' => $plan->id_Plan,
-            'mp_status' => 'approved', // Simulado como aprobado
         ]);
 
         $user->id_Plan = $plan->id_Plan;

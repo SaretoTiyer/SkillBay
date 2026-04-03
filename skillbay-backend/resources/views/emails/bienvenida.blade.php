@@ -76,7 +76,7 @@
                 <div class="feature">
                     <div class="feature-icon">🔒</div>
                     <div class="feature-title">Pagos Seguros</div>
-                    <div class="feature-desc">Transacciones protegidas con MercadoPago</div>
+                    <div class="feature-desc">Transacciones protegidas y seguras</div>
                 </div>
                 <div class="feature">
                     <div class="feature-icon">⭐</div>

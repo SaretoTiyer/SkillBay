@@ -20,7 +20,7 @@
 | **Frontend** | Tailwind CSS | 4.x |
 | **Base de datos** | MySQL | 8.0+ |
 | **Autenticación** | Laravel Sanctum | 4.x |
-| **Pagos** | MercadoPago SDK | 3.8 |
+| **Pagos** | PagoSimulado | Integrado |
 | **Icons** | Lucide React | 0.552+ |
 | **UI Components** | Radix UI | - |
 | **Alertas** | SweetAlert2 | 11.x |
@@ -266,13 +266,13 @@ skillbay-frontend/
 
 #### PagoPlan
 - **Estados:** Pendiente, Completado, Rechazado
-- **Campos:** id_CorreoUsuario (FK), id_Plan (FK), monto, estado, mp_payment_id, mp_preference_id
+- **Campos:** id_CorreoUsuario (FK), id_Plan (FK), monto, estado, metodoPago, referenciaPago
 - **Relaciones:**
   - belongsTo Usuario
   - belongsTo Plan
 
 #### PagoServicio
-- **Campos:** id_Postulacion (FK), id_Pagador (FK), id_Receptor (FK), monto, estado, mp_payment_id
+- **Campos:** id_Postulacion (FK), id_Pagador (FK), id_Receptor (FK), monto, estado, metodoPago
 - **Relaciones:**
   - belongsTo Postulacion
   - belongsTo Usuario (como pagador)
@@ -348,11 +348,6 @@ Plan (1) ─────< PagoPlan (many)
 | GET | `/api/planes/{id}` | Obtener plan específico |
 | GET | `/api/servicios/public` | Explorar servicios públicos |
 | GET | `/api/categorias/publicas` | Listar categorías públicas |
-| GET | `/api/mp/webhook` | Webhook de prueba MP |
-| POST | `/api/mp/webhook` | Notificaciones de pago MP |
-| GET | `/api/mp/success` | Retorno de pago exitoso |
-| GET | `/api/mp/failure` | Retorno de pago fallido |
-| GET | `/api/mp/pending` | Retorno de pago pendiente |
 | GET | `/api/login` | Verificar autenticación |
 
 ### 5.2 Rutas Autenticadas (auth:sanctum)
@@ -393,8 +388,13 @@ Plan (1) ─────< PagoPlan (many)
 | POST | `/api/pagos/plan` | Pagar plan |
 | POST | `/api/pagos/servicio` | Pagar servicio |
 | GET | `/api/pagos/historial` | Historial de pagos |
-| POST | `/api/mp/crear-preferencia` | Crear preferencia MP |
-| GET | `/api/mp/estado/{ref}` | Verificar estado de pago |
+| GET | `/api/pagos/metodos` | Listar métodos de pago |
+| POST | `/api/pagos/plan/simulado` | Iniciar pago de plan (simulado) |
+| POST | `/api/pagos/servicio/simulado` | Iniciar pago de servicio (simulado) |
+| POST | `/api/pagos/procesar` | Procesar pago simulado |
+| POST | `/api/pagos/aprobar-auto` | Aprobar pago automáticamente |
+| GET | `/api/pagos/estado` | Consultar estado de pago |
+| POST | `/api/pagos/comprobante` | Subir comprobante |
 
 #### Notificaciones
 | Método | Endpoint | Descripción |
@@ -638,27 +638,28 @@ export default defineConfig({
 - Sanitización de entrada de datos
 
 ### 9.4 Pagos
-- Modo sandbox/simulador para pruebas
-- Webhooks para confirmación de pagos
+- Pasarela de pago simulada con múltiples métodos (tarjeta, efectivo, Nequi, QR)
+- Simulación de aprobación/rechazo basada en número de tarjeta
 - Verificación de estado de pago antes de completar
+- Subida de comprobantes para pagos con Nequi/Bancolombia
 
 ---
 
 ## 10. INTEGRACIONES
 
-### 10.1 MercadoPago
+### 10.1 Pasarela de Pago Simulada
 
 **Servicios:**
-- `MercadoPagoInterface` - Interfaz abstracta
-- `MercadoPagoService` - Implementación real
-- `MercadoPagoSimuladorService` - Simulador para pruebas
+- `PagoSimuladoService` - Servicio principal de pago simulado
+- `PagoSimuladoController` - Controlador de endpoints de pago
 
 **Funcionalidades:**
-- Creación de preferencias de pago
-- Webhooks para notificaciones
-- Retornos de pago (success/failure/pending)
-- Pagos de planes mensuales
-- Pagos de servicios individuales
+- Inicio de pago de planes y servicios
+- Procesamiento simulado con aprobación/rechazo
+- Aprobación automática para pruebas
+- Consulta de estado de pago
+- Subida de comprobantes
+- Múltiples métodos: tarjeta, efectivo, Nequi, QR Bancolombia
 
 ### 10.2 Librerías Externas
 
@@ -695,7 +696,7 @@ npm run lint --prefix skillbay-frontend
 
 - El sistema de mensajería no soporta adjuntos de archivos
 - Las notificaciones en tiempo real requieren configuración adicional de WebSockets
-- El modo simulador de MercadoPago no reproduce todos los escenarios
+- La pasarela de pago es simulada y no procesa pagos reales
 - No hay sistema de facturación automática integrada
 - La verificación de identidad de usuarios es manual
 
@@ -711,7 +712,7 @@ npm run lint --prefix skillbay-frontend
 | **Oportunidad** | Publicación de una necesidad buscada por un cliente |
 | **Postulación** | Solicitud de un ofertante para realizar un servicio |
 | **Plan** | Suscripción mensual con límites de servicios |
-| **MercadoPago** | Plataforma de pagos utilizada |
+| **PagoSimulado** | Pasarela de pago simulada integrada |
 | **Sanctum** | Sistema de autenticación API de Laravel |
 
 ---

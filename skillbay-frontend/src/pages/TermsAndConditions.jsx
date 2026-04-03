@@ -112,13 +112,13 @@ const TermsAndConditions = () => {
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
                   SkillBay facilita la conexión entre usuarios que buscan servicios y profesionales que los ofrecidos. Los pagos se procesan a través de
-                  MercadoPago como intermediario de pago seguro.
+                  nuestra pasarela de pago simulada integrada en la plataforma.
                 </p>
                 <ul className="list-disc list-inside space-y-2 pl-5 text-gray-700">
                   <li>Los precios de los servicios son establecidos directamente por los profesionales;</li>
                   <li>SkillBay cobra una comisión por plataforma que se indica claramente antes de confirmar cualquier pago;</li>
-                  <li>Los pagos se procesan únicamente a través de MercadoPago para garantizar la seguridad de las transacciones;</li>
-                  <li>SkillBay no retiene fondos de los profesionales por más tiempo del necesario para procesar el pago a través de MercadoPago;</li>
+                  <li>Los pagos se procesan de forma segura a través de la pasarela de pago integrada de SkillBay;</li>
+                  <li>SkillBay gestiona los fondos de manera segura hasta completar la transacción entre las partes;</li>
                   <li>Las disputas relacionadas con pagos deben resolverse directamente entre las partes, aunque SkillBay puede ofrecer mediación.</li>
                 </ul>
               </div>

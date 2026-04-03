@@ -80,7 +80,7 @@ Desarrollar una plataforma web que permita a los colombianos mayores de 18 años
 ### 5.1 Valor Añadido
 SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 
-- **Integración directa con MercadoPago** para pagos seguros
+- **Pasarela de pago simulada** integrada para transacciones seguras
 - **Sistema de postulaciones** que permite a los ofertantes competir por proyectos
 - **Mensajería interna** para comunicación directa entre partes
 - **Panel de administración** completo para gestión de la plataforma
@@ -137,7 +137,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 
 | ID | Requisito | Prioridad | Estado |
 |----|-----------|-----------|--------|
-| RF-19 | Integración completa con MercadoPago | Alta | Por implementar |
+| RF-19 | Integración de pasarela de pago simulada | Alta | Implementado |
 | RF-20 | Suscripciones a planes (mensuales) | Alta | Por implementar |
 | RF-21 | Pagos por servicios individuales | Alta | Por implementar |
 | RF-22 | Historial de transacciones | Media | Por implementar |
@@ -292,9 +292,9 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 **Actor**: Cliente autenticado
 **Flujo principal**:
 1. El cliente selecciona un plan de suscripción o servicio
-2. Selecciona método de pago (MercadoPago)
-3. Completa datos de pago en checkout de MercadoPago
-4. El sistema procesa el pago via webhook
+2. Selecciona método de pago (tarjeta, efectivo, Nequi, QR Bancolombia)
+3. Completa datos de pago en la pasarela simulada
+4. El sistema procesa y aprueba/rechaza el pago
 5. El sistema actualiza el estado del servicio/suscripción
 
 ### 9.5 Caso de Uso: Dejar una Reseña
@@ -319,7 +319,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 | **Backend** | Laravel 12.x + PHP 8.2+ |
 | **Base de Datos** | MySQL 8.0+ |
 | **Autenticación** | Laravel Sanctum |
-| **Pagos** | MercadoPago SDK |
+| **Pagos** | PagoSimulado (pasarela simulada) |
 | **Testing** | PHPUnit |
 
 ### 10.2 Arquitectura del Sistema
@@ -365,7 +365,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 | **Fase 1: Fundamentos** | Autenticación, perfiles, estructura base | 2 semanas | Registro, login, gestión de perfiles |
 | **Fase 2: Servicios** | CRUD servicios, categorías, estados | 3 semanas | Publicar, buscar, gestionar servicios |
 | **Fase 3: Postulaciones** | Sistema de postulaciones y gestión | 3 semanas | Postularse, aceptar, rechazar |
-| **Fase 4: Pagos** | Integración MercadoPago, suscripciones | 3 semanas | Pagos, planes, webhooks |
+| **Fase 4: Pagos** | Pasarela de pago simulada, suscripciones | 3 semanas | Pagos, planes, métodos múltiples |
 | **Fase 5: Comunicación** | Mensajería, notificaciones | 2 semanas | Chat, notificaciones |
 | **Fase 6: Reputación** | Reseñas, calificaciones | 1 semana | Sistema de ratings |
 | **Fase 7: Reportes** | Sistema de reportes, moderation | 2 semanas | Reportar usuarios, gestión admin |
@@ -415,7 +415,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 | ID | Riesgo | Probabilidad | Impacto | Mitigación |
 |----|--------|--------------|---------|------------|
 | R-01 | Baja adopción de usuarios | Alta | Alto | Marketing,referidos, SEO |
-| R-02 | Problemas con MercadoPago | Media | Alto | Modo simulador, soporte alternativo |
+| R-02 | Limitaciones de pasarela simulada | Media | Alto | Preparar integración con pasarela real cuando sea necesario |
 | R-03 | Seguridad de pagos | Media | Crítico | Auditorías, cumplimiento PCI |
 | R-04 | Escalabilidad | Media | Medio | Arquitectura modular |
 | R-05 | Competencia de otras plataformas | Media | Medio | Diferenciación, comunidad |
@@ -424,7 +424,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 
 | Dependencia | Descripción | Criticidad |
 |-------------|-------------|------------|
-| MercadoPago | Procesamiento de pagos | Crítica |
+| Pasarela de Pago | Procesamiento de pagos simulado | Media |
 | Servidor SMTP | Envío de correos | Alta |
 | Hosting/Infraestructura | Infraestructura del servidor | Crítica |
 | Dominio skillbay.com | Dominio principal | Alta |
@@ -434,7 +434,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 1. El mercado objetivo (colombianos mayores de 18 años) tiene acceso a internet
 2. Los usuarios tienen dispositivos para acceder a la plataforma
 3. Existe demanda real de servicios freelance en Colombia
-4. MercadoPago sigue disponible en Colombia
+4. La pasarela de pago simulada funciona correctamente para pruebas
 5. La regulación permite este tipo de plataformas
 
 ---
@@ -444,7 +444,7 @@ SkillBay se diferencia por ofrecer una experiencia completa que incluye:
 ### 14.1 Limitaciones Conocidas
 - El sistema de mensajería no soporta adjuntos de archivos en la versión actual
 - Las notificaciones en tiempo real requieren configuración adicional de WebSockets
-- El modo simulador de MercadoPago no reproduce todos los escenarios de pago
+- La pasarela de pago es simulada y no procesa pagos reales
 - No hay sistema de facturación automática integrada
 - La verificación de identidad de usuarios es manual
 

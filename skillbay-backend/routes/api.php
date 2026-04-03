@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\AuthRecoveryController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\MensajeController;
-use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PagoSimuladoController;
@@ -41,13 +40,6 @@ Route::get('/categorias/publicas', function () {
 
     return $categorias;
 });
-
-// ── MercadoPago: rutas públicas (webhook y retornos no requieren auth) ──────
-Route::post('/mp/webhook', [MercadoPagoController::class, 'webhook']);
-Route::get('/mp/webhook', [MercadoPagoController::class, 'webhookTest']); // Para prueba de MercadoPago
-Route::get('/mp/success', [MercadoPagoController::class, 'success']);
-Route::get('/mp/failure', [MercadoPagoController::class, 'failure']);
-Route::get('/mp/pending', [MercadoPagoController::class, 'pending']);
 
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
@@ -89,10 +81,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pagos/aprobar-auto', [PagoSimuladoController::class, 'aprobarAutomatico']);
     Route::get('/pagos/estado', [PagoSimuladoController::class, 'obtenerEstado']);
     Route::post('/pagos/comprobante', [PagoSimuladoController::class, 'subirComprobante']);
-
-    // ── MercadoPago: rutas autenticadas ──────────────────────────────────────
-    Route::post('/mp/crear-preferencia', [MercadoPagoController::class, 'crearPreferencia']);
-    Route::get('/mp/estado/{referencia}', [MercadoPagoController::class, 'estadoPago']);
 
     Route::get('/notificaciones', [NotificacionController::class, 'index']);
     Route::get('/notificaciones/resumen', [NotificacionController::class, 'resumen']);
