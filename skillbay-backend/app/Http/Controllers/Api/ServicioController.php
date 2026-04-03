@@ -22,7 +22,11 @@ class ServicioController extends Controller
 
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/'.$servicio->imagen);
+                if (str_starts_with($servicio->imagen, 'http://') || str_starts_with($servicio->imagen, 'https://')) {
+                    $servicio->imagen = $servicio->imagen;
+                } else {
+                    $servicio->imagen = asset('storage/'.$servicio->imagen);
+                }
             }
 
             return $servicio;
@@ -51,7 +55,11 @@ class ServicioController extends Controller
         // Transformar respuesta para incluir URL completa de la imagen
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/'.$servicio->imagen);
+                if (str_starts_with($servicio->imagen, 'http://') || str_starts_with($servicio->imagen, 'https://')) {
+                    $servicio->imagen = $servicio->imagen;
+                } else {
+                    $servicio->imagen = asset('storage/'.$servicio->imagen);
+                }
             }
 
             return $servicio;
@@ -107,7 +115,11 @@ class ServicioController extends Controller
 
         $servicios->transform(function ($servicio) {
             if ($servicio->imagen) {
-                $servicio->imagen = asset('storage/'.$servicio->imagen);
+                if (str_starts_with($servicio->imagen, 'http://') || str_starts_with($servicio->imagen, 'https://')) {
+                    $servicio->imagen = $servicio->imagen;
+                } else {
+                    $servicio->imagen = asset('storage/'.$servicio->imagen);
+                }
             }
 
             return $servicio;
@@ -204,7 +216,11 @@ class ServicioController extends Controller
         // La reversión solo debe ocurrir si el usuario elimina todos sus servicios activos
 
         if ($servicio->imagen) {
-            $servicio->imagen = asset('storage/'.$servicio->imagen);
+            if (str_starts_with($servicio->imagen, 'http://') || str_starts_with($servicio->imagen, 'https://')) {
+                $servicio->imagen = $servicio->imagen;
+            } else {
+                $servicio->imagen = asset('storage/'.$servicio->imagen);
+            }
         }
 
         Notificacion::create([
@@ -301,5 +317,135 @@ class ServicioController extends Controller
         $servicio->delete();
 
         return response()->json(['message' => 'Servicio eliminado correctamente']);
+    }
+
+    // Eliminar servicio (solo admin)
+    public function destroyAdmin(Request $request, $id)
+    {
+        try {
+            $servicio = Servicio::findOrFail($id);
+
+            $ownerEmail = $servicio->id_Dueno;
+
+            if ($servicio->imagen && ! str_starts_with($servicio->imagen, 'http')) {
+                Storage::disk('public')->delete($servicio->imagen);
+            }
+
+            $servicio->delete();
+
+            Notificacion::create([
+                'mensaje' => 'Tu servicio "'.$servicio->titulo.'" fue eliminado por administracion por contenido inapropiado.',
+                'estado' => 'No leido',
+                'tipo' => 'servicio',
+                'id_CorreoUsuario' => $ownerEmail,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Servicio eliminado correctamente',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el servicio',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Listar todos los servicios (solo admin)
+    public function adminIndex(Request $request)
+    {
+        try {
+            $query = Servicio::with(['categoria', 'cliente_usuario'])
+                ->orderBy('fechaPublicacion', 'desc');
+
+            if ($request->has('q') && $request->q) {
+                $search = $request->q;
+                $query->where(function ($q) use ($search) {
+                    $q->where('titulo', 'like', "%{$search}%")
+                        ->orWhere('descripcion', 'like', "%{$search}%")
+                        ->orWhere('id_Dueno', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('tipo') && $request->tipo) {
+                $query->where('tipo', $request->tipo);
+            }
+
+            if ($request->has('estado') && $request->estado) {
+                $query->where('estado', $request->estado);
+            }
+
+            $servicios = $query->get();
+
+            $servicios->transform(function ($servicio) {
+                if ($servicio->imagen) {
+                    if (str_starts_with($servicio->imagen, 'http://') || str_starts_with($servicio->imagen, 'https://')) {
+                        $servicio->imagen = $servicio->imagen;
+                    } else {
+                        $servicio->imagen = asset('storage/'.$servicio->imagen);
+                    }
+                }
+
+                return $servicio;
+            });
+
+            return response()->json([
+                'success' => true,
+                'total' => $servicios->count(),
+                'servicios' => $servicios,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los servicios',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Cambiar estado de un servicio (solo admin)
+    public function cambiarEstadoAdmin(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'estado' => 'required|string|in:Activo,Borrador,Inactivo',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Estado inválido',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $servicio = Servicio::findOrFail($id);
+            $estadoAnterior = $servicio->estado;
+            $nuevoEstado = $validator->validated()['estado'];
+
+            $servicio->estado = $nuevoEstado;
+            $servicio->save();
+
+            Notificacion::create([
+                'mensaje' => 'Tu servicio "'.$servicio->titulo.'" cambió de estado: '.$estadoAnterior.' → '.$nuevoEstado,
+                'estado' => 'No leido',
+                'tipo' => 'servicio',
+                'id_CorreoUsuario' => $servicio->id_Dueno,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado actualizado correctamente',
+                'servicio' => $servicio,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar el estado',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

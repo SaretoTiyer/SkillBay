@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Swal from "sweetalert2";
+import { showSuccess, showError } from "../utils/swalHelpers";
 import { API_URL } from "../config/api";
 import logoFull from "../assets/IconoSkillBay.png";
 
@@ -22,10 +22,10 @@ export default function ForgotPassword({ onNavigate }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo enviar el codigo.");
-      Swal.fire("Listo", data.message, "success");
+      showSuccess("Listo", data.message);
       setStep(2);
     } catch (error) {
-      Swal.fire("Error", error.message, "error");
+      showError("Error", error.message);
     } finally {
       setLoadingCode(false);
     }
@@ -42,10 +42,10 @@ export default function ForgotPassword({ onNavigate }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo restablecer.");
-      Swal.fire("Listo", data.message, "success");
+      showSuccess("Listo", data.message);
       onNavigate("login");
     } catch (error) {
-      Swal.fire("Error", error.message, "error");
+      showError("Error", error.message);
     } finally {
       setLoadingReset(false);
     }

@@ -10,25 +10,6 @@ use Illuminate\Database\Seeder;
 
 class PagoServicioSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * ESTRUCTURA DE PAGOS:
-     * - id_Pagador = CLIENTE (quien paga)
-     * - id_Receptor = OFERTANTE (quien recibe el pago)
-     *
-     * FLUJO POR TIPO:
-     *
-     * SERVICIO:
-     * - El CLIENTE (postulante) paga al OFERTANTE (id_Dueno)
-     * - id_Pagador = postulante
-     * - id_Receptor = id_Dueno
-     *
-     * OPORTUNIDAD:
-     * - El CLIENTE (id_Dueno) paga al OFERTANTE (postulante)
-     * - id_Pagador = id_Dueno
-     * - id_Receptor = postulante
-     */
     public function run(): void
     {
         $faker = Faker::create('es_CO');
@@ -36,12 +17,12 @@ class PagoServicioSeeder extends Seeder
         $postulaciones = Postulacion::whereIn('estado', ['aceptada', 'en_progreso', 'completada', 'pagada'])->get();
 
         if ($postulaciones->isEmpty()) {
-            $this->command->info('No hay postulaciones aceptadas para crear pagos. Ejecuta PostulacionSeeder primero.');
-
+            $this->command->info('No hay postulaciones para crear pagos.');
             return;
         }
 
-        $metodosPago = ['MercadoPago', 'Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Crédito', 'Transferencia'];
+        $metodosPago = ['MercadoPago', 'Nequi', 'Bancolombia', 'PSE', 'Tarjeta de Credito', 'Transferencia'];
+        $modalidades = ['único', 'mensual', 'quincenal', 'por hora'];
 
         foreach ($postulaciones as $postulacion) {
             $servicio = Servicio::find($postulacion->id_Servicio);
@@ -49,6 +30,7 @@ class PagoServicioSeeder extends Seeder
                 continue;
             }
 
+            // Determinar pagador y receptor según tipo
             if ($servicio->tipo === 'servicio') {
                 $idPagador = $postulacion->id_Usuario;
                 $idReceptor = $servicio->id_Dueno;
@@ -57,17 +39,36 @@ class PagoServicioSeeder extends Seeder
                 $idReceptor = $postulacion->id_Usuario;
             }
 
-            $monto = $postulacion->presupuesto ?? $servicio->precio;
-            $isCompletado = in_array($postulacion->estado, ['completada', 'pagada']) || $faker->boolean(60);
-            $estado = $isCompletado ? 'Completado' : 'Pendiente';
-            $fechaPago = $faker->dateTimeBetween($postulacion->updated_at, 'now');
+            $monto = $postulacion->presupuesto ?? $servicio->precio ?? $faker->numberBetween(100000, 3000000);
+            
+            // Estado del pago basado en estado de postulación
+            $estadoPago = match($postulacion->estado) {
+                'pagada' => 'Completado',
+                'completada' => $faker->randomElement(['Completado', 'Pendiente']),
+                'en_progreso' => 'Pendiente',
+                'aceptada' => 'Pendiente',
+                default => 'Pendiente',
+            };
+
+            $fechaPago = $faker->dateTimeBetween($postulacion->created_at, 'now');
+            $referencia = 'PAY-' . strtoupper($faker->regexify('[A-Z0-9]{8}'));
+
+            // Para pagos completados, agregar más datos
+            $comprobante = $estadoPago === 'Completado' ? $faker->imageUrl(400, 300, 'payment') : null;
+            $fechaComprobante = $comprobante ? $faker->dateTimeBetween($fechaPago, 'now') : null;
 
             PagoServicio::create([
                 'monto' => $monto,
                 'fechaPago' => $fechaPago,
-                'estado' => $estado,
+                'estado' => $estadoPago,
                 'metodoPago' => $faker->randomElement($metodosPago),
-                'referenciaPago' => $faker->regexify('[A-Z0-9]{10}'),
+                'referenciaPago' => $referencia,
+                'comprobante' => $comprobante,
+                'fecha_comprobante' => $fechaComprobante,
+                'modalidadPago' => $faker->randomElement($modalidades),
+                'modalidadServicio' => $servicio->modo_trabajo,
+                'identificacionCliente' => $faker->numerify('###########'),
+                'origenSolicitud' => $faker->randomElement(['web', 'mobile', 'api']),
                 'id_Servicio' => $postulacion->id_Servicio,
                 'id_Postulacion' => $postulacion->id,
                 'id_Pagador' => $idPagador,

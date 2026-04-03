@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, CreditCard, Loader2, ExternalLink, CheckCircle } from "lucide-react";
 import Swal from "sweetalert2";
+import { showSuccess, showError, showWarning, showConfirm, showInfo } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
 import { Button } from "../../components/ui/Button";
 
@@ -75,7 +76,7 @@ export default function PlanesUser() {
   const selectPlan = async (idPlan) => {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      Swal.fire("Sesión expirada", "Inicia sesión nuevamente.", "warning");
+      showWarning("Sesión expirada", "Inicia sesión nuevamente.");
       return;
     }
 
@@ -100,18 +101,12 @@ export default function PlanesUser() {
           const savedUser = { ...currentUser, id_Plan: idPlan };
           localStorage.setItem("usuario", JSON.stringify(savedUser));
 
-          await Swal.fire({
-            icon: "success",
-            title: "¡Plan activado!",
-            text: `El plan ${plan?.nombre} ha sido activado exitosamente.`,
-            timer: 2000,
-            showConfirmButton: false,
-          });
+          showSuccess("¡Plan activado!", `El plan ${plan?.nombre} ha sido activado exitosamente.`);
           window.location.reload();
         }
       } catch (error) {
         console.error("Error activating plan:", error);
-        Swal.fire("Error", "No se pudo activar el plan gratuito.", "error");
+        showError("Error", "No se pudo activar el plan gratuito.");
       } finally {
         setUpdatingPlanId(null);
       }
@@ -157,7 +152,7 @@ export default function PlanesUser() {
       }
     } catch (error) {
       console.error("Error al iniciar pago:", error);
-      Swal.fire("Error", error.message || "No se pudo iniciar el proceso de pago.", "error");
+      showError("Error", error.message || "No se pudo iniciar el proceso de pago.");
     } finally {
       setUpdatingPlanId(null);
     }

@@ -1,6 +1,6 @@
     import { useEffect,useState, useMemo } from 'react';
     import { ArrowLeft, Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
-    import Swal from 'sweetalert2';
+    import { showSuccess, showError } from '../utils/swalHelpers';
     import { API_URL } from '../config/api';
     import { API_Departamentos } from '../config/api';
     import logoFull from '../assets/IconoSkillBay.png';
@@ -24,7 +24,7 @@
             setDepartments(data);
             } catch (error) {
             console.error('Error cargando departamentos', error);
-            Swal.fire('Error', 'No se pudieron cargar los departamentos', 'error');
+            showError('Error', 'No se pudieron cargar los departamentos');
             } finally {
             setLoadingDepartments(false);
             }
@@ -63,7 +63,7 @@
             setCities(cityNames);
         } catch (error) {
             console.error('Error cargando ciudades', error);
-            Swal.fire('Error', 'No se pudieron cargar las ciudades', 'error');
+            showError('Error', 'No se pudieron cargar las ciudades');
             setCities([]);
         }
     };
@@ -280,24 +280,19 @@
         }
 
         if (response.ok) {
-            Swal.fire({
-            icon: 'success',
-            title: 'Registro exitoso',
-            text: '¡Bienvenido a SkillBay!',
-            confirmButtonColor: '#2563eb',
-            }).then(() => onNavigate && onNavigate('login'));
+            showSuccess('Registro exitoso', '¡Bienvenido a SkillBay!').then(() => onNavigate && onNavigate('login'));
         } else {
             // Mostrar errores de validación del backend si vienen
             if (data && data.errors) {
             const messages = Object.values(data.errors).flat().join('\n');
-            Swal.fire('Error', messages, 'error');
+            showError('Error', messages);
             } else {
-            Swal.fire('Error', data.message || 'No se pudo completar el registro', 'error');
+            showError('Error', data.message || 'No se pudo completar el registro');
             }
         }
         } catch (error) {
         console.error(error);
-        Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+        showError('Error', 'Error de conexión con el servidor');
         } finally {
             setIsLoading(false); // apaga ciclo de carga
         }

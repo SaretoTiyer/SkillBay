@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Camera, Save, X, Mail, Phone, MapPin, Calendar, Award, Edit2 } from "lucide-react";
-import Swal from "sweetalert2";
+import { showSuccess, showError } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -47,19 +47,13 @@ export default function ProfileInfo({ profileData, profileImage, servicesOffered
             if (response.ok) {
                 setIsEditing(false);
                 onUpdate();
-                Swal.fire({
-                    icon: "success",
-                    title: "Perfil actualizado",
-                    text: "Tus datos han sido guardados correctamente.",
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
+                showSuccess("Perfil actualizado", "Tus datos han sido guardados correctamente.");
             } else {
-                Swal.fire({ icon: "error", title: "Error", text: data.message || "No se pudo actualizar el perfil." });
+                showError("Error", data.message || "No se pudo actualizar el perfil.");
             }
         } catch (error) {
             console.error("Error updating profile:", error);
-            Swal.fire({ icon: "error", title: "Error", text: "Error de conexión." });
+            showError("Error", "Error de conexión.");
         }
     };
 
@@ -87,13 +81,13 @@ export default function ProfileInfo({ profileData, profileImage, servicesOffered
                 const data = await response.json();
                 if (response.ok) {
                     onUpdate();
-                    Swal.fire({ icon: 'success', title: 'Foto actualizada', text: 'Tu foto de perfil ha sido actualizada.', timer: 1500, showConfirmButton: false });
+                    showSuccess('Foto actualizada', 'Tu foto de perfil ha sido actualizada.');
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo subir la imagen.' });
+                    showError('Error', data.message || 'No se pudo subir la imagen.');
                 }
             } catch (error) {
                 console.error('Error uploading image:', error);
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Error de conexión.' });
+                showError('Error', 'Error de conexión.');
             }
         };
         input.click();

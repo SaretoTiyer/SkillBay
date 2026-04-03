@@ -16,7 +16,7 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { API_URL } from "../../config/api";
 import { resolveImageUrl } from "../../utils/image";
 import FormOpportunity from "./FormOpportunity";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showConfirm } from "../../utils/swalHelpers";
 
 export default function CreateOpportunity() {
     const [opportunities, setOpportunities] = useState([]);
@@ -64,15 +64,7 @@ export default function CreateOpportunity() {
     };
 
     const handleDeleteOpportunity = async (opportunityId) => {
-        const confirm = await Swal.fire({
-            title: '¿Eliminar oportunidad?',
-            text: 'Esta acción no se puede deshacer.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc2626',
-        });
+        const confirm = await showConfirm('¿Eliminar oportunidad?', 'Esta acción no se puede deshacer.', 'Sí, eliminar');
 
         if (!confirm.isConfirmed) return;
 
@@ -89,9 +81,9 @@ export default function CreateOpportunity() {
             if (!response.ok) throw new Error("Error al eliminar la oportunidad");
 
             setOpportunities(opportunities.filter(o => o.id_Servicio !== opportunityId));
-            Swal.fire('Eliminado', 'La oportunidad ha sido eliminada.', 'success');
+            showSuccess('Eliminado', 'La oportunidad ha sido eliminada.');
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         }
     };
 
@@ -116,15 +108,9 @@ export default function CreateOpportunity() {
                     : opportunity
             ));
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Estado actualizado',
-                text: `La oportunidad ha sido marcada como ${newStatus.toLowerCase()}.`,
-                timer: 1500,
-                showConfirmButton: false
-            });
+            showSuccess('Estado actualizado', `La oportunidad ha sido marcada como ${newStatus.toLowerCase()}.`);
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         }
     };
 

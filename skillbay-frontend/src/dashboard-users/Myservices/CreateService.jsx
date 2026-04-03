@@ -14,7 +14,7 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { API_URL } from "../../config/api";
 import { resolveImageUrl } from "../../utils/image";
 import FormService from "./FormService";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showConfirm } from "../../utils/swalHelpers";
 
 export default function CreateService() {
     const [services, setServices] = useState([]);
@@ -62,15 +62,7 @@ export default function CreateService() {
     };
 
     const handleDeleteService = async (serviceId) => {
-        const confirm = await Swal.fire({
-            title: '¿Eliminar servicio?',
-            text: 'Esta acción no se puede deshacer.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc2626',
-        });
+        const confirm = await showConfirm('¿Eliminar servicio?', 'Esta acción no se puede deshacer.', 'Sí, eliminar');
 
         if (!confirm.isConfirmed) return;
 
@@ -87,9 +79,9 @@ export default function CreateService() {
             if (!response.ok) throw new Error("Error al eliminar el servicio");
 
             setServices(services.filter(s => s.id_Servicio !== serviceId));
-            Swal.fire('Eliminado', 'El servicio ha sido eliminado.', 'success');
+            showSuccess('Eliminado', 'El servicio ha sido eliminado.');
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         }
     };
 
@@ -114,15 +106,9 @@ export default function CreateService() {
                     : service
             ));
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Estado actualizado',
-                text: `El servicio ha sido marcado como ${newStatus.toLowerCase()}.`,
-                timer: 1500,
-                showConfirmButton: false
-            });
+            showSuccess('Estado actualizado', `El servicio ha sido marcado como ${newStatus.toLowerCase()}.`);
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         }
     };
 

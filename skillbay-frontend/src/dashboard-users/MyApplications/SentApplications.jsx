@@ -12,9 +12,9 @@ import {
   Briefcase,
   FileCheck
 } from "lucide-react";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showConfirm } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
-import { resolveImageUrl } from "../../utils/image";
+import { getServiceImage } from "../../utils/serviceImages";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
@@ -131,12 +131,7 @@ export default function SentApplications() {
   };
 
   const cancelProposal = async (application) => {
-    const result = await Swal.fire({
-      title: "Cancelar postulación",
-      text: "La propuesta pasará a estado cancelada.",
-      showCancelButton: true,
-      confirmButtonText: "Cancelar postulación",
-    });
+    const result = await showConfirm("Cancelar postulación", "La propuesta pasará a estado cancelada.", "Cancelar postulación");
     if (!result.isConfirmed) return;
     
     const response = await fetch(`${API_URL}/postulaciones/${application.id}`, {
@@ -144,8 +139,8 @@ export default function SentApplications() {
       headers: authHeaders(),
     });
     const data = await response.json();
-    if (!response.ok) return Swal.fire("Error", data?.message || "No se pudo cancelar.", "error");
-    Swal.fire("Listo", "Postulación cancelada.", "success");
+    if (!response.ok) return showError("Error", data?.message || "No se pudo cancelar.");
+    showSuccess("Listo", "Postulación cancelada.");
     fetchApplications();
   };
 
@@ -222,7 +217,7 @@ export default function SentApplications() {
       <div className="grid md:grid-cols-[180px_1fr] gap-5">
         <div className="h-44 md:h-auto relative">
           <ImageWithFallback 
-            src={resolveImageUrl(application.servicio?.imagen)} 
+            src={getServiceImage(application.servicio)} 
             alt={application.servicio?.titulo || "Servicio"} 
             className="w-full h-full object-cover" 
           />
@@ -284,14 +279,7 @@ export default function SentApplications() {
                     size="sm"
                     className="bg-purple-600 hover:bg-purple-700 text-white"
                     onClick={async () => {
-                      const confirm = await Swal.fire({
-                        title: '¿Marcar trabajo como completado?',
-                        text: 'Esto notificará al ofertante para que espere el pago.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Sí, está completado',
-                        cancelButtonText: 'Cancelar',
-                      });
+                      const confirm = await showConfirm('¿Marcar trabajo como completado?', 'Esto notificará al ofertante para que espere el pago.', 'Sí, está completado');
                       if (!confirm.isConfirmed) return;
                       try {
                         const response = await fetch(`${API_URL}/postulaciones/${application.id}/completar`, {
@@ -301,9 +289,9 @@ export default function SentApplications() {
                         const data = await response.json();
                         if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
                         fetchApplications();
-                        Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado. El ofertante será notificado.', 'success');
+                        showSuccess('¡Completado!', 'El trabajo ha sido marcado como completado. El ofertante será notificado.');
                       } catch (error) {
-                        Swal.fire('Error', error.message, 'error');
+                        showError('Error', error.message);
                       }
                     }}
                   >
@@ -325,14 +313,7 @@ export default function SentApplications() {
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   onClick={async () => {
-                    const confirm = await Swal.fire({
-                      title: '¿Proceder con el pago?',
-                      text: 'El pago será realizado al proveedor/prestador del servicio.',
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonText: 'Sí, pagar al proveedor',
-                      cancelButtonText: 'Cancelar',
-                    });
+                    const confirm = await showConfirm('¿Proceder con el pago?', 'El pago será realizado al proveedor/prestador del servicio.', 'Sí, pagar al proveedor');
                     if (!confirm.isConfirmed) return;
                     try {
                       const response = await fetch(`${API_URL}/pagos/servicio`, {
@@ -351,9 +332,9 @@ export default function SentApplications() {
                       const data = await response.json();
                       if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
                       fetchApplications();
-                      Swal.fire('¡Pago exitoso!', 'El pago ha sido procesado y el proveedor será notificado.', 'success');
+                      showSuccess('¡Pago exitoso!', 'El pago ha sido procesado y el proveedor será notificado.');
                     } catch (error) {
-                      Swal.fire('Error', error.message, 'error');
+                      showError('Error', error.message);
                     }
                   }}
                 >
@@ -393,7 +374,7 @@ export default function SentApplications() {
                              );
 
                              if (contexto.error) {
-                               Swal.fire('Error', contexto.error, 'error');
+                               showError('Error', contexto.error);
                                return;
                              }
 
@@ -498,9 +479,9 @@ export default function SentApplications() {
                setApplications(prev => prev.map(a => a.id === ratingData?.id_Postulacion ? {...a, ya_califico: true} : a));
                setShowRatingModal(false);
                setRatingData(null);
-               Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+               showSuccess('¡Gracias!', 'Tu calificación ha sido registrada.');
              } catch (error) {
-               Swal.fire('Error', error.message, 'error');
+               showError('Error', error.message);
              } finally {
                setRatingLoading(false);
              }

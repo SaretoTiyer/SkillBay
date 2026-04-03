@@ -9,10 +9,12 @@ import {
   TrendingUp,
   Users,
   Award,
-  MessageSquare
+  MessageSquare,
+  Flag
 } from "lucide-react";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showInputModal } from "../utils/swalHelpers";
 import { API_URL } from "../config/api";
+import { getServiceImage, getOpportunityImage } from "../utils/serviceImages";
 import ReviewCard from "../components/ReviewCard";
 
 export default function UserPublicProfile({ onBack }) {
@@ -102,23 +104,11 @@ export default function UserPublicProfile({ onBack }) {
   );
 
   const requestService = async (service) => {
-    const { value: mensaje } = await Swal.fire({
+    const { value: mensaje } = await showInputModal({
       title: "Solicitar servicio",
-      input: "textarea",
       inputLabel: "Mensaje para el ofertante",
       inputPlaceholder: "Describe lo que necesitas para este servicio...",
-      inputAttributes: { maxlength: "2000" },
-      showCancelButton: true,
-      confirmButtonText: "Enviar solicitud",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        const text = String(value || "").trim();
-        if (!text) {
-          Swal.showValidationMessage("Debes escribir un mensaje para solicitar el servicio.");
-          return false;
-        }
-        return text;
-      },
+      confirmText: "Enviar solicitud",
     });
 
     if (!mensaje) return;
@@ -141,30 +131,18 @@ export default function UserPublicProfile({ onBack }) {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo enviar la solicitud.");
-      Swal.fire("Enviado", "Tu solicitud de servicio fue enviada.", "success");
+      showSuccess("Enviado", "Tu solicitud de servicio fue enviada.");
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la solicitud.", "error");
+      showError("Error", error.message || "No se pudo enviar la solicitud.");
     }
   };
 
   const postular = async (service) => {
-    const { value: mensaje } = await Swal.fire({
+    const { value: mensaje } = await showInputModal({
       title: "Enviar postulación",
-      input: "textarea",
       inputLabel: "Mensaje de postulación",
       inputPlaceholder: "Explica por qué eres una buena opción para esta oportunidad...",
-      inputAttributes: { maxlength: "2000" },
-      showCancelButton: true,
-      confirmButtonText: "Enviar",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        const text = String(value || "").trim();
-        if (!text) {
-          Swal.showValidationMessage("Debes escribir un mensaje para postularte.");
-          return false;
-        }
-        return text;
-      },
+      confirmText: "Enviar",
     });
 
     if (!mensaje) return;
@@ -187,9 +165,42 @@ export default function UserPublicProfile({ onBack }) {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo registrar la postulación.");
-      Swal.fire("Enviado", "Tu postulación fue enviada.", "success");
+      showSuccess("Enviado", "Tu postulación fue enviada.");
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la postulación.", "error");
+      showError("Error", error.message || "No se pudo enviar la postulación.");
+    }
+  };
+
+  const reportUser = async () => {
+    const { value: motivo } = await showInputModal({
+      title: "Reportar usuario",
+      inputLabel: "Motivo del reporte",
+      inputPlaceholder: "Ej: comportamiento inapropiado, fraude, suplantación...",
+      confirmText: "Enviar reporte",
+      minLength: 10,
+    });
+
+    if (!motivo) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/reportes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id_Reportado: user.id_CorreoUsuario,
+          motivo: motivo.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo enviar el reporte.");
+      showSuccess("Reporte enviado", "Tu reporte ha sido registrado y será revisado por el administrador.");
+    } catch (error) {
+      showError("Error al reportar", error.message || "No se pudo enviar el reporte.");
     }
   };
 
@@ -249,6 +260,16 @@ export default function UserPublicProfile({ onBack }) {
                 <p className="text-xs text-gray-500">{totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</p>
               </div>
             </div>
+
+            {/* Report User Button */}
+            <button
+              onClick={reportUser}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
+              title="Reportar usuario"
+            >
+              <Flag size={16} />
+              <span className="hidden sm:inline">Reportar</span>
+            </button>
           </div>
         </div>
       </div>
@@ -336,9 +357,10 @@ export default function UserPublicProfile({ onBack }) {
                     <div className="h-44 relative overflow-hidden">
                       {servicio.imagen ? (
                         <img
-                          src={servicio.imagen}
+                          src={getServiceImage(servicio)}
                           alt={servicio.titulo}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { e.target.src = getServiceImage({ ...servicio, imagen: null }); }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -409,9 +431,10 @@ export default function UserPublicProfile({ onBack }) {
                     <div className="h-44 relative overflow-hidden">
                       {oportunidad.imagen ? (
                         <img
-                          src={oportunidad.imagen}
+                          src={getOpportunityImage(oportunidad)}
                           alt={oportunidad.titulo}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { e.target.src = getOpportunityImage({ ...oportunidad, imagen: null }); }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthRecoveryController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\MensajeController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\NotificacionController;
@@ -25,7 +26,20 @@ Route::get('/planes', [PlanController::class, 'listar']);
 Route::get('/planes/{id}', [PlanController::class, 'ver']);
 Route::get('/servicios/public', [ServicioController::class, 'publicExplore']);
 Route::get('/categorias/publicas', function () {
-    return \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
+    $categorias = \App\Models\Categoria::orderBy('grupo')->orderBy('nombre')->get();
+    $categorias->transform(function ($categoria) {
+        if ($categoria->imagen) {
+            if (str_starts_with($categoria->imagen, 'http://') || str_starts_with($categoria->imagen, 'https://')) {
+                $categoria->imagen = $categoria->imagen;
+            } else {
+                $categoria->imagen = asset('storage/'.$categoria->imagen);
+            }
+        }
+
+        return $categoria;
+    });
+
+    return $categorias;
 });
 
 // ── MercadoPago: rutas públicas (webhook y retornos no requieren auth) ──────
@@ -34,6 +48,8 @@ Route::get('/mp/webhook', [MercadoPagoController::class, 'webhookTest']); // Par
 Route::get('/mp/success', [MercadoPagoController::class, 'success']);
 Route::get('/mp/failure', [MercadoPagoController::class, 'failure']);
 Route::get('/mp/pending', [MercadoPagoController::class, 'pending']);
+
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -104,8 +120,16 @@ Route::middleware(['auth:sanctum', 'es.admin'])->group(function () {
     // Admin
     Route::get('/admin/resumen', [AdminController::class, 'resumen']);
     Route::get('/admin/metricas', [AdminController::class, 'metricas']);
+    Route::get('/admin/analytics/top-ofertantes', [AdminController::class, 'topOfertantes']);
+    Route::get('/admin/analytics/top-clientes', [AdminController::class, 'topClientes']);
+    Route::get('/admin/analytics/top-servicios', [AdminController::class, 'topServicios']);
+    Route::get('/admin/analytics/resenas-resumen', [AdminController::class, 'resenasResumen']);
     Route::get('/admin/usuarios', [UsuarioController::class, 'listarAdmin']);
     Route::patch('/admin/usuarios/{id}/bloqueo', [UsuarioController::class, 'cambiarBloqueo']);
+    Route::patch('/admin/usuarios/{email}/bloquear', [UsuarioController::class, 'bloquearAdmin']);
+    Route::delete('/admin/servicios/{id}', [ServicioController::class, 'destroyAdmin']);
+    Route::get('/admin/servicios', [ServicioController::class, 'adminIndex']);
+    Route::patch('/admin/servicios/{id}/estado', [ServicioController::class, 'cambiarEstadoAdmin']);
 
     Route::get('/admin/planes', [PlanController::class, 'listar']);
     Route::post('/admin/planes', [PlanController::class, 'crear']);

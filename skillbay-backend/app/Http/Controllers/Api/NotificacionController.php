@@ -211,8 +211,26 @@ class NotificacionController extends Controller
         $validated = $request->validate([
             'mensaje' => 'required|string|max:500',
             'tipo' => 'nullable|string|max:50',
+            'titulo' => 'nullable|string|max:200',
+            'id_CorreoUsuario' => 'nullable|email|exists:usuarios,id_CorreoUsuario',
         ]);
 
+        // Si se especifica un usuario, enviar solo a ese usuario
+        if (! empty($validated['id_CorreoUsuario'])) {
+            Notificacion::create([
+                'mensaje' => $validated['mensaje'],
+                'estado' => 'No leido',
+                'tipo' => $validated['tipo'] ?? 'admin',
+                'id_CorreoUsuario' => $validated['id_CorreoUsuario'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notificación enviada al usuario.',
+            ]);
+        }
+
+        // De lo contrario, enviar a todos los usuarios
         $usuarios = Usuario::select('id_CorreoUsuario')->get();
 
         $ahora = now();

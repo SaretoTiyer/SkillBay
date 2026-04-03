@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Eye, EyeOff, LogIn } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { showSuccess, showError, showWarning } from '../utils/swalHelpers';
 import { API_URL } from '../config/api';
 import logoFull from '../assets/IconoSkillBay.png';
 import Loader from '../components/Loader';
@@ -36,30 +36,18 @@ export default function Login({ onNavigate, onLogin }) {
 
     const validate = () => {
         if (!formData.id_CorreoUsuario.trim() || !formData.password.trim()) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campos vacios',
-                text: 'Por favor, completa todos los campos antes de continuar.',
-            });
+            showWarning('Campos vacios', 'Por favor, completa todos los campos antes de continuar.');
             return false;
         }
 
         const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.id_CorreoUsuario);
         if (!emailOk) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Correo invalido',
-                text: 'Ingresa un correo electronico valido.',
-            });
+            showError('Correo invalido', 'Ingresa un correo electronico valido.');
             return false;
         }
 
         if (formData.password.length < 8) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Contraseña invalida',
-                text: 'La contraseña debe tener minimo 8 caracteres.',
-            });
+            showError('Contraseña invalida', 'La contraseña debe tener minimo 8 caracteres.');
             return false;
         }
 
@@ -89,22 +77,12 @@ export default function Login({ onNavigate, onLogin }) {
                 data = await response.json();
             } else {
                 const text = await response.text();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error inesperado',
-                    text: text || 'Respuesta no valida del servidor.',
-                });
+                showError('Error inesperado', text || 'Respuesta no valida del servidor.');
                 return;
             }
 
             if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Bienvenido',
-                    text: 'Inicio de sesion exitoso',
-                    timer: 1500,
-                    showConfirmButton: false,
-                });
+                showSuccess('Bienvenido', 'Inicio de sesion exitoso');
 
                 localStorage.setItem('usuario', JSON.stringify(data.usuario || {}));
                 if (data.access_token) {
@@ -116,19 +94,11 @@ export default function Login({ onNavigate, onLogin }) {
                 const nextView = data?.usuario?.rol === 'admin' ? 'admin_overview' : 'explore';
                 onNavigate(nextView);
             } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de autenticacion',
-                    text: data.message || 'Credenciales incorrectas.',
-                });
+                showError('Error de autenticacion', data.message || 'Credenciales incorrectas.');
             }
         } catch (error) {
             console.error(error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error del servidor',
-                text: 'No se pudo conectar con el servidor. Intentalo mas tarde.',
-            });
+            showError('Error del servidor', 'No se pudo conectar con el servidor. Intentalo mas tarde.');
         } finally {
             setIsLoading(false);
         }

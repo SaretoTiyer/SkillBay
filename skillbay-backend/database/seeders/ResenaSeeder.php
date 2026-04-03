@@ -11,36 +11,6 @@ use Illuminate\Database\Seeder;
 
 class ResenaSeeder extends Seeder
 {
-    /**
-     * Sistema de calificaciones (MODELO ACTUALIZADO):
-     *
-     * ESTRUCTURA:
-     * - id_CorreoUsuario = CALIFICADOR (quien hace la reseña)
-     * - id_CorreoUsuario_Calificado = CALIFICADO (quien recibe la reseña)
-     *
-     * TIPO SERVICIO (Bidireccional):
-     * - El CLIENTE (postulante) califica al OFERTANTE (id_Dueno)
-     *   → id_CorreoUsuario = postulante
-     *   → id_CorreoUsuario_Calificado = id_Dueno
-     *   → calificacion_usuario = X
-     *   → calificacion_servicio = Y
-     *
-     * TIPO OPORTUNIDAD (Unilateral):
-     * - El CLIENTE (id_Dueno) califica al OFERTANTE (postulante)
-     *   → id_CorreoUsuario = id_Dueno
-     *   → id_CorreoUsuario_Calificado = postulante
-     *   → calificacion_usuario = X
-     *   → calificacion_servicio = NULL
-     *
-     * ROLES:
-     * - OFERTANTE: Quien PROPORCIONA el servicio
-     *   * En 'servicio': id_Dueno es el OFERTANTE
-     *   * En 'oportunidad': El POSTULANTE es el OFERTANTE
-     *
-     * - CLIENTE: Quien RECIBE/paga por el servicio
-     *   * En 'servicio': El POSTULANTE es el CLIENTE
-     *   * En 'oportunidad': id_Dueno es el CLIENTE
-     */
     public function run(): void
     {
         $faker = Faker::create('es_CO');
@@ -48,20 +18,35 @@ class ResenaSeeder extends Seeder
         $pagosCompletados = PagoServicio::where('estado', 'Completado')->get();
 
         if ($pagosCompletados->isEmpty()) {
-            $this->command->info('No hay pagos completados para crear reseñas. Ejecuta PagoServicioSeeder primero.');
-
+            $this->command->info('No hay pagos completados para crear reseñas.');
             return;
         }
 
         $comentariosPositivos = [
             'Excelente servicio, muy profesional y puntual.',
-            'Quedé muy satisfecho con el resultado. ¡Recomendado!',
-            'Gran trabajo, superó mis expectativas.',
+            'Quede muy satisfecho con el resultado. ¡Recomendado!',
+            'Gran trabajo, supero mis expectativas.',
             'Muy buena comunicación y entregado a tiempo.',
-            'El freelancer es muy talentoso, volveré a contratar.',
-            'Experiencia excelente, resolvió todas mis dudas.',
+            'El freelancer es muy talentoso, volvere a contratar.',
+            'Experiencia excelente, resolvio todas mis dudas.',
             'Trabajo de alta calidad, muy recomendado.',
-            'Cumplió con todo lo pactado, excelente.',
+            'Cumplio con todo lo pactado, excelente.',
+            'Perfecto, exactamente lo que necesitaba.',
+            'Gran atención y calidad en el trabajo.',
+        ];
+
+        $comentariosNeutrales = [
+            'Buen servicio, cumpliria expectativas.',
+            'Trabajo correcto, puntuales.',
+            'Aceptable, aunque hubo pequeños retrasos.',
+            'Bien en general,推荐.',
+        ];
+
+        $comentariosNegativos = [
+            'El servicio no fue lo que esperaba.',
+            'Tuvo retrasos en la entrega.',
+            'No recomiendo este proveedor.',
+            'Calidad inferior a lo pactado.',
         ];
 
         $count = 0;
@@ -73,71 +58,111 @@ class ResenaSeeder extends Seeder
             }
 
             if ($servicio->tipo === 'servicio') {
-                /**
-                 * SERVICIO:
-                 * - CLIENTE (pagador) califica al OFERTANTE (id_Dueno)
-                 * - id_CorreoUsuario = pagador (CLIENTE)
-                 * - id_CorreoUsuario_Calificado = id_Dueno (OFERTANTE)
-                 */
-                $calificacionUsuario = $faker->randomElement([4, 5, 5, 5, 4]);
-                $calificacionServicio = $faker->randomElement([4, 5, 5, 5, 4]);
+                // ========== SERVICIO ==========
+                // CLIENTE (pagador) califica al OFERTANTE (dueno del servicio)
+                $calificacionUsuario = $this->weightedRating([1, 2, 3, 4, 5], [5, 8, 15, 35, 37]);
+                $calificacionServicio = $this->weightedRating([1, 2, 3, 4, 5], [3, 5, 12, 40, 40]);
+
+                $comentario = $this->getComentario($calificacionUsuario, $comentariosPositivos, $comentariosNeutrales, $comentariosNegativos);
 
                 Resena::create([
                     'calificacion_usuario' => $calificacionUsuario,
                     'calificacion_servicio' => $calificacionServicio,
-                    'comentario' => $faker->randomElement($comentariosPositivos),
+                    'comentario' => $comentario,
                     'id_Servicio' => $pago->id_Servicio,
                     'id_CorreoUsuario' => $pago->id_Pagador,
                     'id_CorreoUsuario_Calificado' => $servicio->id_Dueno,
+                    'rol_calificado' => 'ofertante',
                     'id_Postulacion' => $pago->id_Postulacion,
                 ]);
-
                 $count++;
 
-                /**
-                 * Reseña del OFERTANTE al CLIENTE (opcional, bidireccional)
-                 */
-                if ($faker->boolean(60)) {
-                    $calificacionReceptor = $faker->randomElement([4, 5, 5, 4, 4]);
+                // ========== RESEÑA INVERSA ==========
+                // OFERTANTE (receptor) califica al CLIENTE (pagador)
+                if ($faker->boolean(70)) {
+                    $calificacionReceptor = $this->weightedRating([1, 2, 3, 4, 5], [3, 5, 12, 45, 35]);
+                    $comentarioReceptor = $this->getComentario($calificacionReceptor, $comentariosPositivos, $comentariosNeutrales, $comentariosNegativos);
 
                     Resena::create([
                         'calificacion_usuario' => $calificacionReceptor,
                         'calificacion_servicio' => null,
-                        'comentario' => $faker->randomElement($comentariosPositivos),
+                        'comentario' => $comentarioReceptor,
                         'id_Servicio' => $pago->id_Servicio,
                         'id_CorreoUsuario' => $pago->id_Receptor,
                         'id_CorreoUsuario_Calificado' => $pago->id_Pagador,
+                        'rol_calificado' => 'cliente',
                         'id_Postulacion' => $pago->id_Postulacion,
                     ]);
-
                     $count++;
                 }
             } else {
-                /**
-                 * OPORTUNIDAD:
-                 * - CLIENTE (id_Dueno del servicio) califica al OFERTANTE (postulante)
-                 * - id_CorreoUsuario = id_Dueno (CLIENTE)
-                 * - id_CorreoUsuario_Calificado = postulante
-                 */
-                $calificacionUsuario = $faker->randomElement([4, 5, 5, 5, 4]);
-
+                // ========== OPORTUNIDAD ==========
+                // CLIENTE (dueno del servicio) califica al OFERTANTE (postulante)
+                $calificacionUsuario = $this->weightedRating([1, 2, 3, 4, 5], [5, 8, 15, 35, 37]);
+                
                 $postulacion = Postulacion::find($pago->id_Postulacion);
                 $calificado = $postulacion?->id_Usuario ?? $pago->id_Receptor;
+
+                $comentario = $this->getComentario($calificacionUsuario, $comentariosPositivos, $comentariosNeutrales, $comentariosNegativos);
 
                 Resena::create([
                     'calificacion_usuario' => $calificacionUsuario,
                     'calificacion_servicio' => null,
-                    'comentario' => $faker->randomElement($comentariosPositivos),
+                    'comentario' => $comentario,
                     'id_Servicio' => $pago->id_Servicio,
                     'id_CorreoUsuario' => $servicio->id_Dueno,
                     'id_CorreoUsuario_Calificado' => $calificado,
+                    'rol_calificado' => 'ofertante',
                     'id_Postulacion' => $pago->id_Postulacion,
                 ]);
-
                 $count++;
+
+                // ========== RESEÑA INVERSA ==========
+                // OFERTANTE (postulant) califica al CLIENTE (dueno)
+                if ($faker->boolean(60)) {
+                    $calificacionReceptor = $this->weightedRating([1, 2, 3, 4, 5], [3, 5, 12, 45, 35]);
+                    $comentarioReceptor = $this->getComentario($calificacionReceptor, $comentariosPositivos, $comentariosNeutrales, $comentariosNegativos);
+
+                    Resena::create([
+                        'calificacion_usuario' => $calificacionReceptor,
+                        'calificacion_servicio' => null,
+                        'comentario' => $comentarioReceptor,
+                        'id_Servicio' => $pago->id_Servicio,
+                        'id_CorreoUsuario' => $calificado,
+                        'id_CorreoUsuario_Calificado' => $servicio->id_Dueno,
+                        'rol_calificado' => 'cliente',
+                        'id_Postulacion' => $pago->id_Postulacion,
+                    ]);
+                    $count++;
+                }
             }
         }
 
         $this->command->info("Se crearon {$count} registros de reseñas.");
+    }
+
+    private function weightedRating(array $values, array $weights): int
+    {
+        $total = array_sum($weights);
+        $random = rand(1, $total);
+        $running = 0;
+        foreach ($values as $i => $value) {
+            $running += $weights[$i];
+            if ($random <= $running) {
+                return $value;
+            }
+        }
+        return 4;
+    }
+
+    private function getComentario(int $rating, array $positivos, array $neutrales, array $negativos): string
+    {
+        if ($rating >= 4) {
+            return $positivos[array_rand($positivos)];
+        } elseif ($rating === 3) {
+            return $neutrales[array_rand($neutrales)];
+        } else {
+            return $negativos[array_rand($negativos)];
+        }
     }
 }

@@ -31,11 +31,12 @@ import UserPublicProfile from "./dashboard-users/UserPublicProfile";
 import UserConfig from "./dashboard-users/UserConfig/UserConfig";
 
 import AdminOverview from "./dashboard-admin/AdminOverview";
-import UserManagement from "./dashboard-admin/UserManagement";
-import PlanManagement from "./dashboard-admin/PlanManagement";
-import ApplicationManagement from "./dashboard-admin/ApplicationManagement";
+import UserManagement from "./dashboard-admin/users/UserTable";
+import PlanManagement from "./dashboard-admin/plans/PlanTable";
+import ServiceManagement from "./dashboard-admin/services/ServiceTable";
 import CategoryManagement from "./dashboard-admin/CategoryManagement";
 import ReportManagement from "./dashboard-admin/ReportManagement";
+import AdminNotifications from "./dashboard-admin/AdminNotifications";
 
 function getStoredUser() {
   try {
@@ -209,12 +210,14 @@ function App() {
         return <UserManagement />;
       case "admin_plans":
         return <PlanManagement />;
-      case "admin_applications":
-        return <ApplicationManagement />;
+      case "admin_services":
+        return <ServiceManagement />;
       case "admin_reports":
         return <ReportManagement />;
       case "admin_categories":
         return <CategoryManagement />;
+      case "admin_notifications":
+        return <AdminNotifications />;
       default:
         return <AdminOverview />;
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { API_URL } from '../config/api';
-import Swal from 'sweetalert2';
+import { showConfirm } from '../utils/swalHelpers';
 
 export function useNotifications({ isAdmin = false, section = null } = {}) {
     const [notifications, setNotifications]   = useState([]);
@@ -70,15 +70,7 @@ export function useNotifications({ isAdmin = false, section = null } = {}) {
 
     const markAllRead = useCallback(async () => {
         if (section === 'all') {
-            const result = await Swal.fire({
-                title: '¿Marcar todas como leídas?',
-                text: 'Esto afectará las notificaciones de TODAS las secciones.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#2563EB',
-                confirmButtonText: 'Sí, marcar todas',
-                cancelButtonText: 'Cancelar',
-            });
+            const result = await showConfirm('¿Marcar todas como leídas?', 'Esto afectará las notificaciones de TODAS las secciones.', 'Sí, marcar todas');
             if (!result.isConfirmed) return;
         }
 
@@ -101,15 +93,7 @@ export function useNotifications({ isAdmin = false, section = null } = {}) {
 
     const clearAll = useCallback(async () => {
         if (section === 'all') {
-            const result = await Swal.fire({
-                title: '¿Eliminar todas las notificaciones?',
-                text: 'Esta acción no se puede deshacer.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#DC2626',
-                confirmButtonText: 'Sí, eliminar todas',
-                cancelButtonText: 'Cancelar',
-            });
+            const result = await showConfirm('¿Eliminar todas las notificaciones?', 'Esta acción no se puede deshacer.', 'Sí, eliminar todas');
             if (!result.isConfirmed) return;
         }
 

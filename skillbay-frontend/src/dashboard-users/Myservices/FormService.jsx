@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { API_URL } from "../../config/api";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showInfo } from "../../utils/swalHelpers";
 
 export default function FormService({ onCancel, onSuccess, editingService = null, categories: initialCategories = [] }) {
     const [categories, setCategories] = useState(initialCategories);
@@ -119,12 +119,7 @@ export default function FormService({ onCancel, onSuccess, editingService = null
         const idCategoria = formData.subcategoria || formData.categoria;
         
         if (!formData.titulo || !formData.precio || !idCategoria || !formData.modo_trabajo) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Campos requeridos',
-                text: 'Por favor completa el título, precio, selecciona una subcategoría y el modo de trabajo.',
-                confirmButtonColor: '#2563EB'
-            });
+            showInfo('Campos requeridos', 'Por favor completa el título, precio, selecciona una subcategoría y el modo de trabajo.');
             return;
         }
 
@@ -169,19 +164,13 @@ export default function FormService({ onCancel, onSuccess, editingService = null
                 throw new Error(data.message || "Error al guardar el servicio");
             }
 
-            Swal.fire({
-                icon: 'success',
-                title: editingService ? 'Servicio actualizado' : 'Servicio creado',
-                text: editingService 
+            showSuccess(editingService ? 'Servicio actualizado' : 'Servicio creado', editingService 
                     ? 'Tu servicio ha sido actualizado correctamente.' 
-                    : 'Tu servicio ha sido publicado correctamente.',
-                timer: 2000,
-                showConfirmButton: false,
-            });
+                    : 'Tu servicio ha sido publicado correctamente.');
 
             if (onSuccess) onSuccess();
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         } finally {
             setSubmitting(false);
         }

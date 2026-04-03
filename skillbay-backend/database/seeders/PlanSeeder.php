@@ -7,32 +7,36 @@ use Illuminate\Database\Seeder;
 
 class PlanSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $planes = [
             [
                 'id_Plan' => 'Free',
                 'nombre' => 'Free',
-                'beneficios' => 'Puede tener hasta 3 servicios propios. Límite mensual de servicios: 3.',
+                'beneficios' => 'Hasta 3 servicios activos. Publica hasta 3 oportunidades/servicios por mes. Acceso básico a la plataforma.',
                 'precioMensual' => 0,
                 'limiteServiciosMes' => 3,
             ],
             [
                 'id_Plan' => 'Plus',
                 'nombre' => 'Plus',
-                'beneficios' => 'Puede tener hasta 5 servicios propios. Límite mensual de servicios: 5.',
+                'beneficios' => 'Hasta 5 servicios activos. Publica hasta 5 oportunidades/servicios por mes. Soporte prioritario. Visibilidad avanzada.',
                 'precioMensual' => 15000,
                 'limiteServiciosMes' => 5,
             ],
             [
                 'id_Plan' => 'Ultra',
                 'nombre' => 'Ultra',
-                'beneficios' => 'Puede tener hasta 10 servicios propios. Límite mensual de servicios: 10.',
+                'beneficios' => 'Hasta 10 servicios activos. Publica hasta 10 oportunidades/servicios por mes. Soporte VIP. Máxima visibilidad. Badges exclusivos.',
                 'precioMensual' => 30000,
                 'limiteServiciosMes' => 10,
+            ],
+            [
+                'id_Plan' => 'Enterprise',
+                'nombre' => 'Enterprise',
+                'beneficios' => 'Servicios ilimitados. Publicaciones ilimitadas por mes. Manager de cuenta dedicado. API access. Analíticas avanzadas.',
+                'precioMensual' => 75000,
+                'limiteServiciosMes' => null,
             ],
         ];
 

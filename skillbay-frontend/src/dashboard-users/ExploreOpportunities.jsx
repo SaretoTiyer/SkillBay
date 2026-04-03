@@ -1,51 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
-import { Briefcase, DollarSign, MapPin, Search, Star, Filter, X, User, Flag, Send, Eye, Clock, Calendar, Globe, CreditCard } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Briefcase, DollarSign, MapPin, Search, Star, Filter, X, User, Flag, Send, Eye, Clock, Calendar, Globe, CreditCard, ArrowDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
-import { resolveImageUrl } from "../utils/image";
-
-// Paletas de colores mejoradas para oportunidades
-const OPPORTUNITY_PALETTES = {
-  "Desarrollo Web": { start: "#0f766e", end: "#14b8a6", icon: "💻" },
-  "Diseno Grafico": { start: "#4c1d95", end: "#a855f7", icon: "🎨" },
-  "Diseño Grafico": { start: "#4c1d95", end: "#a855f7", icon: "🎨" },
-  "Marketing Digital": { start: "#854d0e", end: "#f59e0b", icon: "📢" },
-  "Consultoria": { start: "#1f2937", end: "#4b5563", icon: "💼" },
-  "Desarrollo Movil": { start: "#1e3a8a", end: "#3b82f6", icon: "📱" },
-  "Limpieza": { start: "#059669", end: "#34d399", icon: "🧹" },
-  "Jardineria": { start: "#65a30d", end: "#a3e635", icon: "🌱" },
-  "Plomeria": { start: "#0891b2", end: "#22d3ee", icon: "🔧" },
-  "Electricidad": { start: "#ea580c", end: "#fb923c", icon: "⚡" },
-  "Tutorias": { start: "#7c3aed", end: "#a78bfa", icon: "📚" },
-  "Idiomas": { start: "#db2777", end: "#f472b6", icon: "🌍" },
-  "Musica": { start: "#c026d3", end: "#e879f9", icon: "🎵" },
-  default: { start: "#0f172a", end: "#475569", icon: "💼" },
-};
-
-function buildCategoryFallback(label) {
-  const palette = OPPORTUNITY_PALETTES[label] || OPPORTUNITY_PALETTES.default;
-  const safeLabel = encodeURIComponent(label || "Oportunidad");
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='${palette.start}'/><stop offset='100%' stop-color='${palette.end}'/></linearGradient></defs><rect width='800' height='600' fill='url(#g)'/><text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-size='48' fill='white' font-weight='600'>${palette.icon}</text><text x='50%' y='58%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-size='24' fill='rgba(255,255,255,0.9)'>${decodeURIComponent(safeLabel)}</text></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function getOpportunityFallbackImage(categoryName) {
-  return buildCategoryFallback(categoryName || "Oportunidad");
-}
+import { getOpportunityImage } from "../utils/serviceImages";
+import { showSuccess, showError, showInputModal } from "../utils/swalHelpers";
 
 export default function ExploreOpportunities() {
   const [query, setQuery] = useState("");
   const [selectedGrupo, setSelectedGrupo] = useState("");
   const [selectedCategoria, setSelectedCategoria] = useState("");
-  const [selectedTipo, setSelectedTipo] = useState("oportunidad"); // 'servicio' o 'oportunidad' - por defecto oportunidades
+  const [selectedTipo] = useState("oportunidad");
   const [services, setServices] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("recientes");
   const [selectedItem, setSelectedItem] = useState(null);
+  const resultsRef = useRef(null);
+  const searchInputRef = useRef(null);
 
-  // Obtener categorías que tienen servicios
   const categoriasConServicios = useMemo(() => {
     const categoriasMap = new Map();
     services.forEach((service) => {
@@ -58,13 +31,11 @@ export default function ExploreOpportunities() {
     return Array.from(categoriasMap.values());
   }, [services]);
 
-  // Obtener grupos únicos de categorías que tienen servicios
   const grupos = useMemo(() => {
     const gruposSet = new Set(categoriasConServicios.map((c) => c.grupo).filter(Boolean));
     return Array.from(gruposSet).sort();
   }, [categoriasConServicios]);
 
-  // Obtener subcategorías del grupo seleccionado
   const subcategorias = useMemo(() => {
     if (!selectedGrupo) return [];
     return categoriasConServicios
@@ -72,11 +43,9 @@ export default function ExploreOpportunities() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [selectedGrupo, categoriasConServicios]);
 
-  // Filtrar servicios
   const filteredServices = useMemo(() => {
     let filtered = [...services];
 
-    // Filtrar por término de búsqueda
     if (query) {
       const term = query.toLowerCase();
       filtered = filtered.filter(
@@ -88,16 +57,12 @@ export default function ExploreOpportunities() {
       );
     }
 
-    // Filtrar por grupo (categoría principal) o categoría específica (subcategoría)
     if (selectedCategoria) {
-      // Si hay subcategoría seleccionada, filtrar por esa categoría específica
       filtered = filtered.filter((s) => s.id_Categoria === selectedCategoria);
     } else if (selectedGrupo) {
-      // Si hay grupo seleccionado pero no subcategoría, filtrar por el grupo
       filtered = filtered.filter((s) => s.categoria?.grupo === selectedGrupo);
     }
 
-    // Ordenar
     switch (sortBy) {
       case "precio_low":
         filtered.sort((a, b) => (a.precio || 0) - (b.precio || 0));
@@ -125,7 +90,6 @@ export default function ExploreOpportunities() {
         Accept: "application/json",
       };
 
-      // Construir URL con parámetro de tipo
       let url = `${API_URL}/servicios/explore`;
       if (selectedTipo) {
         url += `?tipo=${selectedTipo}`;
@@ -149,8 +113,18 @@ export default function ExploreOpportunities() {
     setQuery("");
     setSelectedGrupo("");
     setSelectedCategoria("");
-    setSelectedTipo("oportunidad"); // Volver a oportunidades por defecto
     setSortBy("recientes");
+  };
+
+  const scrollToResults = () => {
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    scrollToResults();
   };
 
   const openPublicProfile = (idCorreo) => {
@@ -161,23 +135,11 @@ export default function ExploreOpportunities() {
   };
 
   const postular = async (service) => {
-    const { value: mensaje } = await Swal.fire({
+    const { value: mensaje } = await showInputModal({
       title: "Enviar postulación",
-      input: "textarea",
       inputLabel: "Mensaje de postulación",
       inputPlaceholder: "Explica por qué eres una buena opción para esta oportunidad...",
-      inputAttributes: { maxlength: "2000" },
-      showCancelButton: true,
-      confirmButtonText: "Enviar",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        const text = String(value || "").trim();
-        if (!text) {
-          Swal.showValidationMessage("Debes escribir un mensaje para postularte.");
-          return false;
-        }
-        return text;
-      },
+      confirmText: "Enviar postulación",
     });
 
     if (!mensaje) return;
@@ -191,8 +153,6 @@ export default function ExploreOpportunities() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        // Tipo 'postulante': el usuario aplica a una oportunidad publicada por un cliente
-        // El cliente majdele postulación paga al postulante (ofertante seleccionado)
         body: JSON.stringify({ 
           id_Servicio: service.id_Servicio, 
           mensaje,
@@ -202,23 +162,22 @@ export default function ExploreOpportunities() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo registrar la postulación.");
-      Swal.fire("Enviado", "Tu postulación fue enviada.", "success");
+      showSuccess("Postulación enviada", "Tu postulación fue enviada correctamente.");
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la postulación.", "error");
+      showError("Error al enviar", error.message || "No se pudo enviar la postulación.");
     }
   };
 
   const reportService = async (service) => {
-    const { value: motivo } = await Swal.fire({
+    const { value: motivo } = await showInputModal({
       title: "Reportar servicio",
-      input: "textarea",
-      inputLabel: "Describe el motivo del reporte",
+      inputLabel: "Motivo del reporte",
       inputPlaceholder: "Ej: contenido inapropiado, fraude, suplantación...",
-      showCancelButton: true,
-      confirmButtonText: "Enviar reporte",
-      cancelButtonText: "Cancelar",
+      confirmText: "Enviar reporte",
+      minLength: 10,
     });
-    if (!motivo || motivo.trim().length < 10) return;
+
+    if (!motivo) return;
 
     try {
       const token = localStorage.getItem("access_token");
@@ -237,9 +196,9 @@ export default function ExploreOpportunities() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo enviar el reporte.");
-      Swal.fire("Enviado", "Reporte registrado correctamente.", "success");
+      showSuccess("Reporte enviado", "Tu reporte ha sido registrado y será revisado por el administrador.");
     } catch (error) {
-      Swal.fire("Error", error.message, "error");
+      showError("Error al reportar", error.message || "No se pudo enviar el reporte.");
     }
   };
 
@@ -257,29 +216,53 @@ export default function ExploreOpportunities() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 lg:p-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Explorar Oportunidades</h1>
         <p className="text-gray-500 mt-2 text-lg">Descubre oportunidades de trabajo publicadas por otros usuarios</p>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Input de búsqueda */}
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Buscar oportunidades por título, descripción o categoría..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  scrollToResults();
+                }
+              }}
+              className="w-full pl-12 pr-12 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
-          {/* Botón de filtros */}
           <button
+            type="submit"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-200 hover:shadow-xl"
+          >
+            <Search size={18} />
+            <span>Buscar</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border transition-all font-medium ${
               showFilters || selectedGrupo || selectedCategoria
@@ -295,27 +278,11 @@ export default function ExploreOpportunities() {
               </span>
             )}
           </button>
-        </div>
+        </form>
 
-        {/* Panel de filtros expandibles */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Filtro por tipo */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipo</label>
-                <select
-                  value={selectedTipo}
-                  onChange={(e) => setSelectedTipo(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todos</option>
-                  <option value="servicio">Servicios</option>
-                  <option value="oportunidad">Oportunidades</option>
-                </select>
-              </div>
-
-              {/* Filtro por grupo (categoría padre) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoría Principal</label>
                 <select
@@ -335,7 +302,6 @@ export default function ExploreOpportunities() {
                 </select>
               </div>
 
-              {/* Filtro por subcategoría */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   {selectedGrupo ? "Subcategoría" : "Selecciona una categoría primero"}
@@ -355,7 +321,6 @@ export default function ExploreOpportunities() {
                 </select>
               </div>
 
-              {/* Ordenar por */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Ordenar por</label>
                 <select
@@ -370,7 +335,6 @@ export default function ExploreOpportunities() {
               </div>
             </div>
 
-            {/* Botón limpiar filtros */}
             {(selectedGrupo || selectedCategoria || query || sortBy !== "recientes") && (
               <div className="mt-4 flex justify-end">
                 <button onClick={clearFilters} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors">
@@ -383,22 +347,31 @@ export default function ExploreOpportunities() {
        )}
       </div>
 
-      {/* Lista de oportunidades */}
+      <div ref={resultsRef} className="flex items-center justify-between mb-4">
+        <p className="text-slate-600">
+          <span className="font-semibold text-slate-800">{filteredServices.length}</span> oportunidad
+          {filteredServices.length !== 1 ? "es" : ""} encontrada
+          {filteredServices.length !== 1 ? "s" : ""}
+        </p>
+        <button
+          onClick={scrollToResults}
+          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+        >
+          <ArrowDown size={16} />
+          Ir a resultados
+        </button>
+      </div>
+
       {filteredServices.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredServices.map((service) => {
             const categoryName = service?.categoria?.nombre || "General";
-            const categoryImage = service?.categoria?.imagen;
-            const imageSrc = service.imagen
-              ? resolveImageUrl(service.imagen)
-              : categoryImage
-              ? resolveImageUrl(categoryImage)
-              : getOpportunityFallbackImage(categoryName);
+            const imageSrc = getOpportunityImage(service);
             
             return (
               <article
                 key={service.id_Servicio}
-                className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+                className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col relative"
               >
                 <div className="h-52 relative overflow-hidden">
                   <img
@@ -406,7 +379,7 @@ export default function ExploreOpportunities() {
                     alt={service.titulo}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     onError={(e) => {
-                      e.target.src = getOpportunityFallbackImage(categoryName);
+                      e.target.src = getOpportunityImage({ ...service, imagen: null, categoria: { ...service.categoria, imagen: null } });
                     }}
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
@@ -415,9 +388,8 @@ export default function ExploreOpportunities() {
                       {categoryName}
                     </span>
                   </div>
-                  {/* Badge de urgencia si existe */}
                   {service.urgencia && (
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 right-4 flex items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-md ${
                         service.urgencia === 'urgente' ? 'bg-red-500 text-white' :
                         service.urgencia === 'alta' ? 'bg-orange-500 text-white' :
@@ -428,7 +400,23 @@ export default function ExploreOpportunities() {
                          service.urgencia === 'alta' ? 'Alta' :
                          service.urgencia === 'media' ? 'Media' : 'Baja'}
                       </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); reportService(service); }}
+                        className="p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white hover:text-red-600 text-gray-500 transition-all"
+                        aria-label="Reportar oportunidad"
+                      >
+                        <Flag size={14} />
+                      </button>
                     </div>
+                  )}
+                  {!service.urgencia && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); reportService(service); }}
+                      className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white hover:text-red-600 text-gray-500 transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Reportar oportunidad"
+                    >
+                      <Flag size={14} />
+                    </button>
                   )}
                 </div>
                 
@@ -472,9 +460,7 @@ export default function ExploreOpportunities() {
                       Detalles
                     </button>
                     <button
-                      onClick={() => {
-                        setSelectedItem(service);
-                      }}
+                      onClick={() => postular(service)}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:shadow-xl"
                     >
                       <Send size={16} />
@@ -508,11 +494,9 @@ export default function ExploreOpportunities() {
         </div>
       )}
 
-      {/* Modal Detalles */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
-            {/* Botón cerrar */}
             <button
               onClick={() => setSelectedItem(null)}
               className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all p-2 rounded-full"
@@ -521,19 +505,13 @@ export default function ExploreOpportunities() {
             </button>
             
             <div className="flex flex-col lg:flex-row overflow-hidden">
-              {/* Imagen - Lado izquierdo en PC */}
               <div className="lg:w-1/2 h-64 lg:h-auto relative">
                 <img
-                  src={selectedItem.imagen 
-                    ? resolveImageUrl(selectedItem.imagen) 
-                    : selectedItem.categoria?.imagen 
-                      ? resolveImageUrl(selectedItem.categoria.imagen) 
-                      : getOpportunityFallbackImage(selectedItem.categoria?.nombre)}
+                  src={getOpportunityImage(selectedItem)}
                   alt={selectedItem.titulo}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
-                {/* Badge de categoría en móvil */}
                 <div className="absolute bottom-4 left-4 lg:hidden">
                   <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-sm font-semibold px-4 py-2 rounded-full shadow-lg">
                     {selectedItem.categoria?.nombre || "General"}
@@ -541,9 +519,7 @@ export default function ExploreOpportunities() {
                 </div>
               </div>
               
-              {/* Contenido - Lado derecho en PC */}
               <div className="lg:w-1/2 p-6 lg:p-8 overflow-y-auto max-h-[70vh] lg:max-h-[90vh]">
-                {/* Header */}
                 <div className="mb-6">
                   <div className="hidden lg:flex items-center gap-2 mb-3 flex-wrap">
                     <span className="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
@@ -575,7 +551,6 @@ export default function ExploreOpportunities() {
                   </p>
                 </div>
                 
-                {/* Presupuesto destacado */}
                 <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
                   <p className="text-sm text-gray-500 mb-1">Presupuesto disponible</p>
                   <p className="text-4xl font-bold text-blue-600">
@@ -584,7 +559,6 @@ export default function ExploreOpportunities() {
                   {selectedItem.precio && <p className="text-sm text-gray-500 mt-1">Pesos colombianos (COP)</p>}
                 </div>
                 
-                {/* Información detallada */}
                 <div className="space-y-4 mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Detalles de la oportunidad</h3>
                   
@@ -626,7 +600,7 @@ export default function ExploreOpportunities() {
                       <div>
                         <p className="text-xs text-gray-500">Publicado</p>
                         <p className="font-semibold text-gray-900">
-                          {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "最近"}
+                          {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "Fecha desconocida"}
                         </p>
                       </div>
                     </div>
@@ -671,7 +645,6 @@ export default function ExploreOpportunities() {
                   </div>
                 </div>
                 
-                {/* Acciones */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
                   <button
                     onClick={() => {

@@ -779,4 +779,36 @@ class UsuarioController extends Controller
             ];
         }
     }
+
+    /**
+     * Bloquear usuario por email (solo admin) - Endpoint alternativo.
+     */
+    public function bloquearAdmin(Request $request, string $email)
+    {
+        try {
+            $usuario = Usuario::where('id_CorreoUsuario', $email)->firstOrFail();
+
+            $usuario->bloqueado = true;
+            $usuario->save();
+
+            Notificacion::create([
+                'mensaje' => 'Tu cuenta ha sido bloqueada por administracion debido a contenido inapropiado.',
+                'estado' => 'No leido',
+                'tipo' => 'cuenta',
+                'id_CorreoUsuario' => $usuario->id_CorreoUsuario,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario bloqueado correctamente',
+                'usuario' => $usuario,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al bloquear el usuario',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

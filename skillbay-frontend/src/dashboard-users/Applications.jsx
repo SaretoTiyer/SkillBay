@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showConfirm } from "../utils/swalHelpers";
 import { 
   AlertCircle, 
   Calendar, 
@@ -16,7 +16,7 @@ import {
   Star
 } from "lucide-react";
 import { API_URL } from "../config/api";
-import { resolveImageUrl } from "../utils/image";
+import { getServiceImage } from "../utils/serviceImages";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -155,9 +155,9 @@ export default function Applications({ defaultTab }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "Error al actualizar estado.");
       fetchSolicitudesRecibidas();
-      Swal.fire('¡Estado actualizado!', `La solicitud ha sido marcada como ${newStatus}.`, 'success');
+      showSuccess('¡Estado actualizado!', `La solicitud ha sido marcada como ${newStatus}.`);
     } catch (error) {
-      Swal.fire('Error', error.message, 'error');
+      showError('Error', error.message);
     }
   };
 
@@ -213,7 +213,7 @@ export default function Applications({ defaultTab }) {
       <div className="grid md:grid-cols-[180px_1fr] gap-5">
         <div className="h-44 md:h-auto relative">
           <ImageWithFallback 
-            src={resolveImageUrl(application.servicio?.imagen)} 
+            src={getServiceImage(application.servicio)} 
             alt={application.servicio?.titulo || "Servicio"} 
             className="w-full h-full object-cover" 
           />
@@ -289,9 +289,9 @@ export default function Applications({ defaultTab }) {
                       const data = await response.json();
                       if (!response.ok) throw new Error(data?.message || "Error al cobrar.");
                       fetchApplications();
-                      Swal.fire('¡Cobrado!', 'El pago ha sido cobrado exitosamente.', 'success');
+                      showSuccess('¡Cobrado!', 'El pago ha sido cobrado exitosamente.');
                     } catch (error) {
-                      Swal.fire('Error', error.message, 'error');
+                      showError('Error', error.message);
                     }
                   }}
                 >
@@ -368,14 +368,7 @@ export default function Applications({ defaultTab }) {
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={async () => {
-                  const confirm = await Swal.fire({
-                    title: '¿Marcar trabajo como completado?',
-                    text: 'Esto habilitará el pago del servicio.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Sí, está completado',
-                    cancelButtonText: 'Cancelar',
-                  });
+                  const confirm = await showConfirm('¿Marcar trabajo como completado?', 'Esto habilitará el pago del servicio.', 'Sí, está completado');
                   if (!confirm.isConfirmed) return;
                   try {
                     const response = await fetch(`${API_URL}/postulaciones/${request.id}/completar`, {
@@ -385,9 +378,9 @@ export default function Applications({ defaultTab }) {
                     const data = await response.json();
                     if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
                     fetchSolicitudesRecibidas();
-                    Swal.fire('¡Completado!', 'El trabajo ha sido marcado como completado.', 'success');
+                    showSuccess('¡Completado!', 'El trabajo ha sido marcado como completado.');
                   } catch (error) {
-                    Swal.fire('Error', error.message, 'error');
+                    showError('Error', error.message);
                   }
                 }}
               >
@@ -403,14 +396,7 @@ export default function Applications({ defaultTab }) {
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                   onClick={async () => {
-                    const confirm = await Swal.fire({
-                      title: '¿Proceder con el pago?',
-                      text: 'El pago será realizado al proveedor (ofertante seleccionado) de esta oportunidad.',
-                      icon: 'question',
-                      showCancelButton: true,
-                      confirmButtonText: 'Sí, pagar al proveedor',
-                      cancelButtonText: 'Cancelar',
-                    });
+                    const confirm = await showConfirm('¿Proceder con el pago?', 'El pago será realizado al proveedor (ofertante seleccionado) de esta oportunidad.', 'Sí, pagar al proveedor');
                     if (!confirm.isConfirmed) return;
                     try {
                       const response = await fetch(`${API_URL}/pagos/servicio`, {
@@ -429,9 +415,9 @@ export default function Applications({ defaultTab }) {
                       const data = await response.json();
                       if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
                       fetchSolicitudesRecibidas();
-                      Swal.fire('¡Pago exitoso!', 'El pago ha sido procesado.', 'success');
+                      showSuccess('¡Pago exitoso!', 'El pago ha sido procesado.');
                     } catch (error) {
-                      Swal.fire('Error', error.message, 'error');
+                      showError('Error', error.message);
                     }
                   }}
                 >
@@ -457,7 +443,7 @@ export default function Applications({ defaultTab }) {
                     );
 
                     if (contexto.error) {
-                      Swal.fire('Error', contexto.error, 'error');
+                      showError('Error', contexto.error);
                       return;
                     }
 
@@ -622,9 +608,9 @@ export default function Applications({ defaultTab }) {
             const data = await response.json();
             if (!response.ok) throw new Error(data?.message || "Error al calificar.");
             fetchSolicitudesRecibidas();
-            Swal.fire('¡Gracias!', 'Tu calificación ha sido registrada.', 'success');
+            showSuccess('¡Gracias!', 'Tu calificación ha sido registrada.');
           } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
           } finally {
             setShowRatingModal(false);
             setRatingService(null);

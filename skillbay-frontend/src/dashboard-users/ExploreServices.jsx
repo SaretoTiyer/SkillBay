@@ -1,37 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
-import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye, Calendar, Globe, CreditCard } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Briefcase, MapPin, User, Search, Filter, X, ChevronDown, Star, Clock, ChevronRight, Eye, Calendar, Globe, CreditCard, Flag, ArrowDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { API_URL } from "../config/api";
-import { resolveImageUrl } from "../utils/image";
-
-// Paletas de colores para categorías sin imagen
-const CATEGORY_PALETTES = {
-  "Desarrollo Web": { start: "#0f766e", end: "#14b8a6", icon: "💻" },
-  "Diseno Grafico": { start: "#4c1d95", end: "#a855f7", icon: "🎨" },
-  "Diseño Grafico": { start: "#4c1d95", end: "#a855f7", icon: "🎨" },
-  "Marketing Digital": { start: "#854d0e", end: "#f59e0b", icon: "📢" },
-  "Consultoria": { start: "#1f2937", end: "#4b5563", icon: "💼" },
-  "Desarrollo Movil": { start: "#1e3a8a", end: "#3b82f6", icon: "📱" },
-  "Limpieza": { start: "#059669", end: "#34d399", icon: "🧹" },
-  "Jardineria": { start: "#65a30d", end: "#a3e635", icon: "🌱" },
-  "Plomeria": { start: "#0891b2", end: "#22d3ee", icon: "🔧" },
-  "Electricidad": { start: "#ea580c", end: "#fb923c", icon: "⚡" },
-  "Tutorias": { start: "#7c3aed", end: "#a78bfa", icon: "📚" },
-  "Idiomas": { start: "#db2777", end: "#f472b6", icon: "🌍" },
-  "Musica": { start: "#c026d3", end: "#e879f9", icon: "🎵" },
-  "default": { start: "#0f172a", end: "#475569", icon: "🛠️" },
-};
-
-function buildCategoryFallback(label) {
-  const palette = CATEGORY_PALETTES[label] || CATEGORY_PALETTES.default;
-  const safeLabel = encodeURIComponent(label || "Servicio");
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='${palette.start}'/><stop offset='100%' stop-color='${palette.end}'/></linearGradient></defs><rect width='800' height='600' fill='url(#g)'/><text x='50%' y='45%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-size='48' fill='white' font-weight='600'>${palette.icon}</text><text x='50%' y='58%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui, -apple-system, sans-serif' font-size='24' fill='rgba(255,255,255,0.9)'>${decodeURIComponent(safeLabel)}</text></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function getCategoryFallbackImage(categoryName) {
-  return buildCategoryFallback(categoryName || "Servicio");
-}
+import { getServiceImage } from "../utils/serviceImages";
+import { showSuccess, showError, showInputModal } from "../utils/swalHelpers";
 
 export default function ExploreServices() {
   const [services, setServices] = useState([]);
@@ -43,8 +15,9 @@ export default function ExploreServices() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("recientes");
   const [selectedItem, setSelectedItem] = useState(null);
+  const resultsRef = useRef(null);
+  const searchInputRef = useRef(null);
 
-  // Obtener categorías que tienen servicios asociados
   const categoriasConServicios = useMemo(() => {
     const categoriasMap = new Map();
     services.forEach((service) => {
@@ -57,13 +30,11 @@ export default function ExploreServices() {
     return Array.from(categoriasMap.values());
   }, [services]);
 
-  // Obtener grupos únicos de categorías que tienen servicios
   const grupos = useMemo(() => {
     const gruposSet = new Set(categoriasConServicios.map((c) => c.grupo).filter(Boolean));
     return Array.from(gruposSet).sort();
   }, [categoriasConServicios]);
 
-  // Obtener subcategorías del grupo seleccionado (solo las que tienen servicios)
   const subcategorias = useMemo(() => {
     if (!selectedGrupo) return [];
     return categoriasConServicios
@@ -71,11 +42,9 @@ export default function ExploreServices() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [selectedGrupo, categoriasConServicios]);
 
-  // Filtrar servicios
   const filteredServices = useMemo(() => {
     let filtered = [...services];
 
-    // Filtrar por término de búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -87,12 +56,12 @@ export default function ExploreServices() {
       );
     }
 
-    // Filtrar por categoría específica
     if (selectedCategoria) {
       filtered = filtered.filter((s) => s.id_Categoria === selectedCategoria);
+    } else if (selectedGrupo) {
+      filtered = filtered.filter((s) => s.categoria?.grupo === selectedGrupo);
     }
 
-    // Ordenar
     switch (sortBy) {
       case "precio_low":
         filtered.sort((a, b) => (a.precio || 0) - (b.precio || 0));
@@ -106,7 +75,7 @@ export default function ExploreServices() {
     }
 
     return filtered;
-  }, [services, searchTerm, selectedCategoria, sortBy]);
+  }, [services, searchTerm, selectedCategoria, selectedGrupo, sortBy]);
 
   useEffect(() => {
     fetchData();
@@ -120,12 +89,10 @@ export default function ExploreServices() {
         Accept: "application/json",
       };
 
-      // Fetch servicios - siempre filtrar solo servicios
       const servicesRes = await fetch(`${API_URL}/servicios/explore?tipo=servicio`, { headers });
       const servicesData = servicesRes.ok ? await servicesRes.json() : [];
       setServices(Array.isArray(servicesData) ? servicesData : []);
 
-      // Fetch categorías
       const categoriasRes = await fetch(`${API_URL}/categorias`, { headers });
       const categoriasData = categoriasRes.ok ? await categoriasRes.json() : [];
       setCategorias(categoriasData.categorias || []);
@@ -143,6 +110,17 @@ export default function ExploreServices() {
     setSortBy("recientes");
   };
 
+  const scrollToResults = () => {
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    scrollToResults();
+  };
+
   const openPublicProfile = (idCorreo) => {
     if (!idCorreo) return;
     localStorage.setItem("profile_target_user", idCorreo);
@@ -151,23 +129,11 @@ export default function ExploreServices() {
   };
 
   const requestService = async (service) => {
-    const { value: mensaje } = await Swal.fire({
+    const { value: mensaje } = await showInputModal({
       title: "Solicitar servicio",
-      input: "textarea",
       inputLabel: "Mensaje para el ofertante",
       inputPlaceholder: "Describe lo que necesitas para este servicio...",
-      inputAttributes: { maxlength: "2000" },
-      showCancelButton: true,
-      confirmButtonText: "Enviar solicitud",
-      cancelButtonText: "Cancelar",
-      preConfirm: (value) => {
-        const text = String(value || "").trim();
-        if (!text) {
-          Swal.showValidationMessage("Debes escribir un mensaje para solicitar el servicio.");
-          return false;
-        }
-        return text;
-      },
+      confirmText: "Enviar solicitud",
     });
 
     if (!mensaje) return;
@@ -181,8 +147,6 @@ export default function ExploreServices() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        // Tipo 'solicitante': el usuario solicita un servicio a un ofertante
-        // El solicitante paga al proveedor (ofertante del servicio)
         body: JSON.stringify({ 
           id_Servicio: service.id_Servicio, 
           mensaje,
@@ -192,12 +156,45 @@ export default function ExploreServices() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data?.message || "No se pudo enviar la solicitud.");
-      Swal.fire("Enviado", "Tu solicitud de servicio fue enviada.", "success");
+      showSuccess("Solicitud enviada", "Tu solicitud de servicio fue enviada correctamente.");
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo enviar la solicitud.", "error");
+      showError("Error al enviar", error.message || "No se pudo enviar la solicitud.");
     }
   };
 
+  const reportService = async (service) => {
+    const { value: motivo } = await showInputModal({
+      title: "Reportar servicio",
+      inputLabel: "Motivo del reporte",
+      inputPlaceholder: "Ej: contenido inapropiado, fraude, suplantación...",
+      confirmText: "Enviar reporte",
+      minLength: 10,
+    });
+
+    if (!motivo) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`${API_URL}/reportes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id_Servicio: service.id_Servicio,
+          id_Reportado: service?.cliente_usuario?.id_CorreoUsuario,
+          motivo: motivo.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.message || "No se pudo enviar el reporte.");
+      showSuccess("Reporte enviado", "Tu reporte ha sido registrado y será revisado por el administrador.");
+    } catch (error) {
+      showError("Error al reportar", error.message || "No se pudo enviar el reporte.");
+    }
+  };
 
   if (loading) {
     return (
@@ -212,29 +209,53 @@ export default function ExploreServices() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 lg:p-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Explorar Servicios</h1>
         <p className="text-gray-500 mt-2 text-lg">Descubre servicios profesionales ofrecidos por la comunidad</p>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Input de búsqueda */}
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Buscar servicios por título, descripción o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  scrollToResults();
+                }
+              }}
+              className="w-full pl-12 pr-12 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-base"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
-          {/* Botón de filtros */}
           <button
+            type="submit"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-200 hover:shadow-xl"
+          >
+            <Search size={18} />
+            <span>Buscar</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border transition-all font-medium ${
               showFilters || selectedGrupo || selectedCategoria
@@ -250,13 +271,11 @@ export default function ExploreServices() {
               </span>
             )}
           </button>
-        </div>
+        </form>
 
-        {/* Panel de filtros expandibles */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Filtro por grupo (categoría padre) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoría Principal</label>
                 <select
@@ -276,7 +295,6 @@ export default function ExploreServices() {
                 </select>
               </div>
 
-              {/* Filtro por subcategoría */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   {selectedGrupo ? "Subcategoría" : "Selecciona una categoría primero"}
@@ -296,7 +314,6 @@ export default function ExploreServices() {
                 </select>
               </div>
 
-              {/* Ordenar por */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Ordenar por</label>
                 <select
@@ -311,7 +328,6 @@ export default function ExploreServices() {
               </div>
             </div>
 
-            {/* Botón limpiar filtros */}
             {(selectedGrupo || selectedCategoria || searchTerm || sortBy !== "recientes") && (
               <div className="mt-4 flex justify-end">
                 <button
@@ -327,54 +343,58 @@ export default function ExploreServices() {
         )}
       </div>
 
-      {/* Información de resultados */}
-      <div className="flex items-center justify-between mb-4">
+      <div ref={resultsRef} className="flex items-center justify-between mb-4">
         <p className="text-slate-600">
           <span className="font-semibold text-slate-800">{filteredServices.length}</span> servicio
           {filteredServices.length !== 1 ? "s" : ""} encontrado
           {filteredServices.length !== 1 ? "s" : ""}
         </p>
+        <button
+          onClick={scrollToResults}
+          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+        >
+          <ArrowDown size={16} />
+          Ir a resultados
+        </button>
       </div>
 
-      {/* Grid de servicios */}
        {filteredServices.length > 0 ? (
          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
            {filteredServices.map((service) => {
              const categoryName = service?.categoria?.nombre || "General";
-             const categoryImage = service?.categoria?.imagen;
-             const imageSrc = service.imagen
-               ? resolveImageUrl(service.imagen)
-               : categoryImage
-               ? resolveImageUrl(categoryImage)
-               : getCategoryFallbackImage(categoryName);
+             const imageSrc = getServiceImage(service);
              
               return (
                 <article
                   key={service.id_Servicio}
-                  className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
+                  className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col relative"
                 >
-                  {/* Imagen del servicio */}
                   <div className="h-52 relative overflow-hidden">
                     <img
                       src={imageSrc}
                       alt={service.titulo}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       onError={(e) => {
-                        e.target.src = getCategoryFallbackImage(categoryName);
+                        e.target.src = getServiceImage({ ...service, imagen: null, categoria: { ...service.categoria, imagen: null } });
                       }}
                     />
-                    {/* Overlay con gradiente */}
                     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
                     
-                    {/* Badge de categoría */}
                     <div className="absolute top-4 left-4">
                       <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-md">
                         {categoryName}
                       </span>
                     </div>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); reportService(service); }}
+                      className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white hover:text-red-600 text-gray-500 transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Reportar servicio"
+                    >
+                      <Flag size={16} />
+                    </button>
                   </div>
                   
-                  {/* Contenido */}
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-blue-600 transition-colors mb-2">
                       {service.titulo}
@@ -383,7 +403,6 @@ export default function ExploreServices() {
                       {service.descripcion || "Sin descripción."}
                     </p>
                     
-                    {/* Precio */}
                     <div className="mb-4">
                       <span className="text-2xl font-bold text-blue-600">
                         {service.precio ? `$${Number(service.precio).toLocaleString("es-CO")}` : "A convenir"}
@@ -391,7 +410,6 @@ export default function ExploreServices() {
                       {service.precio && <span className="text-sm text-gray-400 ml-1">COP</span>}
                     </div>
                     
-                    {/* Información del ofertante y ubicación */}
                     <div className="flex items-center justify-between text-sm mb-4 pb-4 border-b border-gray-100">
                       <div className="flex items-center gap-2 text-gray-500">
                         <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -408,7 +426,6 @@ export default function ExploreServices() {
                       </button>
                     </div>
                     
-                    {/* Botones de acción */}
                     <div className="flex gap-3 mt-auto">
                       <button
                         onClick={() => setSelectedItem(service)}
@@ -452,31 +469,9 @@ export default function ExploreServices() {
          </div>
        )
      }
-             {/* (
-               <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
-                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                   <Search size={28} className="text-slate-400" />
-                 </div>
-                 <h3 className="text-lg font-semibold text-slate-800 mb-2">No se encontraron servicios</h3>
-                 <p className="text-slate-500 mb-4">
-                   {searchTerm || selectedCategoria
-                     ? "Intenta ajustar los filtros de búsqueda"
-                     : "No hay servicios disponibles en este momento"}
-                 </p>
-                 {(searchTerm || selectedCategoria) && (
-                   <button
-                     onClick={clearFilters}
-                     className="text-blue-600 hover:text-blue-700 font-medium"
-                   >
-                     Limpiar filtros
-                   </button>
-                 )}
-               </div>
-             ) */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
-            {/* Botón cerrar */}
             <button
               onClick={() => setSelectedItem(null)}
               className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all p-2 rounded-full"
@@ -485,19 +480,13 @@ export default function ExploreServices() {
             </button>
             
             <div className="flex flex-col lg:flex-row overflow-hidden">
-              {/* Imagen - Lado izquierdo en PC */}
               <div className="lg:w-1/2 h-64 lg:h-auto relative">
                 <img
-                  src={selectedItem.imagen 
-                    ? resolveImageUrl(selectedItem.imagen) 
-                    : selectedItem.categoria?.imagen 
-                      ? resolveImageUrl(selectedItem.categoria.imagen) 
-                      : getCategoryFallbackImage(selectedItem.categoria?.nombre)}
+                  src={getServiceImage(selectedItem)}
                   alt={selectedItem.titulo}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
-                {/* Badge de categoría en móvil */}
                 <div className="absolute bottom-4 left-4 lg:hidden">
                   <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-sm font-semibold px-4 py-2 rounded-full shadow-lg">
                     {selectedItem.categoria?.nombre || "General"}
@@ -505,9 +494,7 @@ export default function ExploreServices() {
                 </div>
               </div>
               
-              {/* Contenido - Lado derecho en PC */}
               <div className="lg:w-1/2 p-6 lg:p-8 overflow-y-auto max-h-[70vh] lg:max-h-[90vh]">
-                {/* Header */}
                 <div className="mb-6">
                   <div className="hidden lg:flex items-center gap-2 mb-3">
                     <span className="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
@@ -527,7 +514,6 @@ export default function ExploreServices() {
                   </p>
                 </div>
                 
-                {/* Precio destacado */}
                 <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
                   <p className="text-sm text-gray-500 mb-1">Precio del servicio</p>
                   <p className="text-4xl font-bold text-blue-600">
@@ -536,7 +522,6 @@ export default function ExploreServices() {
                   {selectedItem.precio && <p className="text-sm text-gray-500 mt-1">Pesos colombianos (COP)</p>}
                 </div>
                 
-                {/* Información detallada */}
                 <div className="space-y-4 mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Detalles del servicio</h3>
                   
@@ -578,7 +563,7 @@ export default function ExploreServices() {
                       <div>
                         <p className="text-xs text-gray-500">Publicado</p>
                         <p className="font-semibold text-gray-900">
-                          {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "最近"}
+                          {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "Fecha desconocida"}
                         </p>
                       </div>
                     </div>
@@ -623,7 +608,6 @@ export default function ExploreServices() {
                   </div>
                 </div>
                 
-                {/* Acciones */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
                   <button
                     onClick={() => {

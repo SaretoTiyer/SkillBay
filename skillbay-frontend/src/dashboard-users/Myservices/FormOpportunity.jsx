@@ -25,7 +25,7 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { API_URL } from "../../config/api";
-import Swal from "sweetalert2";
+import { showSuccess, showError, showInfo } from "../../utils/swalHelpers";
 
 export default function FormOpportunity({ onCancel, onSuccess, editingOpportunity = null, categories: initialCategories = [] }) {
     const [categories, setCategories] = useState(initialCategories);
@@ -130,12 +130,7 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
         const idCategoria = formData.subcategoria || formData.categoria;
         
         if (!formData.titulo || !formData.precio || !idCategoria || !formData.modo_trabajo) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Campos requeridos',
-                text: 'Por favor completa el título, precio, selecciona una subcategoría y el modo de trabajo.',
-                confirmButtonColor: '#2563EB'
-            });
+            showInfo('Campos requeridos', 'Por favor completa el título, precio, selecciona una subcategoría y el modo de trabajo.');
             return;
         }
 
@@ -182,19 +177,13 @@ export default function FormOpportunity({ onCancel, onSuccess, editingOpportunit
                 throw new Error(data.message || "Error al guardar la oportunidad");
             }
 
-            Swal.fire({
-                icon: 'success',
-                title: editingOpportunity ? 'Oportunidad actualizada' : 'Oportunidad publicada',
-                text: editingOpportunity 
+            showSuccess(editingOpportunity ? 'Oportunidad actualizada' : 'Oportunidad publicada', editingOpportunity 
                     ? 'Tu oportunidad ha sido actualizada correctamente.' 
-                    : 'Tu oportunidad ha sido publicada correctamente.',
-                timer: 2000,
-                showConfirmButton: false,
-            });
+                    : 'Tu oportunidad ha sido publicada correctamente.');
 
             if (onSuccess) onSuccess();
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            showError('Error', error.message);
         } finally {
             setSubmitting(false);
         }

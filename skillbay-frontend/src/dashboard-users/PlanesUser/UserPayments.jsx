@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield, ExternalLink } from "lucide-react";
 import Swal from "sweetalert2";
+import { showSuccess, showError, showInfo } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
 import RatingModal from "../../components/RatingModal";
 import { determinarContextoCalificacion } from "../../utils/ratingContext";
@@ -116,13 +117,7 @@ export default function UserPayments() {
       if (data?.gratuito) {
         const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
         localStorage.setItem("usuario", JSON.stringify(updatedUser));
-        Swal.fire({
-          title: "¡Plan activado!",
-          text: `El plan ${plan?.nombre} ha sido activado exitosamente.`,
-          icon: "success",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        showSuccess("¡Plan activado!", `El plan ${plan?.nombre} ha sido activado exitosamente.`);
         await loadData();
         return;
       }
@@ -178,10 +173,10 @@ export default function UserPayments() {
               if (estadoData?.aprobado || estadoData?.estado === "Completado") {
                 const updatedUser = { ...currentUser, id_Plan: planForm.id_Plan };
                 localStorage.setItem("usuario", JSON.stringify(updatedUser));
-                Swal.fire({ title: "¡Plan activado!", icon: "success", timer: 2000, showConfirmButton: false });
+                showSuccess("¡Plan activado!");
                 await loadData();
               } else {
-                Swal.fire("Estado del pago", `Estado: ${estadoData?.estado || "Pendiente"}`, "info");
+                showInfo("Estado del pago", `Estado: ${estadoData?.estado || "Pendiente"}`);
               }
             } catch (err) {
               console.error("Error al verificar estado:", err);
@@ -190,7 +185,7 @@ export default function UserPayments() {
         });
       }
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo pagar el plan.", "error");
+      showError("Error", error.message || "No se pudo pagar el plan.");
     } finally {
       setProcessing(false);
     }
@@ -199,7 +194,7 @@ export default function UserPayments() {
   const submitServicePayment = async (e) => {
     e.preventDefault();
     if (!serviceForm.id_Servicio || !serviceForm.identificacionCliente) {
-      return Swal.fire("Campos requeridos", "Completa servicio e identificación.", "info");
+      return showInfo("Campos requeridos", "Completa servicio e identificación.");
     }
     setProcessing(true);
     try {
@@ -258,7 +253,7 @@ export default function UserPayments() {
       
       await loadData();
     } catch (error) {
-      Swal.fire("Error", error.message || "No se pudo registrar el pago.", "error");
+      showError("Error", error.message || "No se pudo registrar el pago.");
     } finally {
       setProcessing(false);
     }
@@ -506,7 +501,7 @@ export default function UserPayments() {
              setPendingRatingService(null);
            } catch (err) {
              console.error("Error submitting rating:", err);
-             Swal.fire('Error', 'No se pudo enviar la calificación.', 'error');
+             showError('Error', 'No se pudo enviar la calificación.');
            } finally {
              setRatingLoading(false);
            }

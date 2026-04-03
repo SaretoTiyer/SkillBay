@@ -8,10 +8,12 @@ import {
   ShieldAlert,
   ShieldCheck,
   UserCog,
+  Briefcase,
+  Menu,
+  X,
 } from "lucide-react";
 import { API_URL } from "../config/api";
 import logoFull from "../assets/IconoSkillBay.png";
-import NotificationCenter from "./NotificationCenter";
 
 export default function AdminDashboardLayout({
   children,
@@ -20,16 +22,17 @@ export default function AdminDashboardLayout({
   onLogout,
 }) {
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = useMemo(
     () => [
       { name: "Resumen", view: "admin_overview", icon: LayoutDashboard },
-      { name: "Gestion Users", view: "admin_users", icon: UserCog },
+      { name: "Gestion Usuarios", view: "admin_users", icon: UserCog },
       { name: "Gestion Planes", view: "admin_plans", icon: ShieldCheck },
-      { name: "Gestion Postulaciones", view: "admin_applications", icon: BarChart3 },
+      { name: "Gestion Servicios", view: "admin_services", icon: Briefcase },
       { name: "Gestion Reportes", view: "admin_reports", icon: ShieldAlert },
       { name: "Gestion Categorias", view: "admin_categories", icon: FolderTree },
+      { name: "Notificaciones", view: "admin_notifications", icon: Bell },
     ],
     []
   );
@@ -61,41 +64,49 @@ export default function AdminDashboardLayout({
     <div className="min-h-screen bg-slate-100">
       <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 h-16 px-4 lg:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={logoFull} alt="SkillBay" className="h-8" />
-          <span className="text-sm font-semibold text-slate-700">Panel Admin</span>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-700 transition-colors"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <img src={logoFull} alt="SkillBay" className="h-9" />
+          <span className="text-sm font-semibold text-slate-700 hidden sm:inline">Panel Admin</span>
         </div>
 
-        <div className="relative flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative p-2 rounded-lg hover:bg-slate-100 text-slate-700"
+            onClick={() => onNavigate("admin_notifications")}
+            className={`relative p-2 rounded-lg transition-colors ${
+              currentView === "admin_notifications"
+                ? "bg-blue-100 text-blue-600"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 text-xs bg-red-600 text-white rounded-full flex items-center justify-center">
-                {unreadCount}
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 text-xs bg-red-600 text-white rounded-full flex items-center justify-center animate-pulse">
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </button>
 
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut size={18} />
             <span className="hidden sm:inline">Salir</span>
           </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 top-12">
-              <NotificationCenter isAdmin onActionComplete={fetchNotifications} />
-            </div>
-          )}
         </div>
       </header>
 
-      <aside className="fixed top-16 left-0 bottom-0 w-64 bg-slate-900 text-slate-100 p-4">
-        <nav className="space-y-2">
+      <aside
+        className={`fixed top-16 left-0 bottom-0 z-30 bg-slate-900 text-slate-100 p-4 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? "w-64 translate-x-0" : "w-16 -translate-x-full lg:w-20 lg:translate-x-0"
+        }`}
+      >
+        <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = currentView === item.view;
@@ -103,19 +114,36 @@ export default function AdminDashboardLayout({
               <button
                 key={item.view}
                 onClick={() => onNavigate(item.view)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition ${
-                  active ? "bg-blue-600 text-white" : "hover:bg-slate-800"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all text-sm ${
+                  active
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
+                title={!sidebarOpen ? item.name : undefined}
               >
-                <Icon size={18} />
-                <span>{item.name}</span>
+                <Icon size={18} className="shrink-0" />
+                {sidebarOpen && <span>{item.name}</span>}
+                {!sidebarOpen && (
+                  <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible whitespace-nowrap z-50">
+                    {item.name}
+                  </span>
+                )}
+                {item.view === "admin_notifications" && unreadCount > 0 && sidebarOpen && (
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full min-w-5 text-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
       </aside>
 
-      <main className="pt-16 pl-0 lg:pl-64">
+      <main
+        className={`pt-16 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? "lg:pl-64" : "lg:pl-20"
+        }`}
+      >
         <div className="p-4 lg:p-8">{children}</div>
       </main>
     </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PaymentMethodSelector, PaymentForm, PaymentStatus } from '../../components/Payment';
-import Swal from 'sweetalert2';
+import { showSuccess, showError } from '../../utils/swalHelpers';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 
 const API_URL = '/api';
@@ -92,7 +92,7 @@ export default function Checkout({
   const iniciarPago = async (metodo) => {
     const headers = getAuthHeaders();
     if (!headers) {
-      Swal.fire('Error', 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.', 'error');
+      showError('Error', 'Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
       return;
     }
 
@@ -149,7 +149,7 @@ export default function Checkout({
   const procesarPago = async (datosPago = {}) => {
     const headers = getAuthHeaders();
     if (!headers) {
-      Swal.fire('Error', 'Tu sesión ha expirado.', 'error');
+      showError('Error', 'Tu sesión ha expirado.');
       return;
     }
 
@@ -217,7 +217,7 @@ export default function Checkout({
     setUploadingComprobante(true);
     const headers = getAuthHeaders();
     if (!headers) {
-      Swal.fire('Error', 'Tu sesión ha expirado.', 'error');
+      showError('Error', 'Tu sesión ha expirado.');
       setUploadingComprobante(false);
       return;
     }
@@ -241,10 +241,10 @@ export default function Checkout({
       }
       
       setComprobanteUploaded(true);
-      Swal.fire('Éxito', 'Comprobante subido correctamente', 'success');
+      showSuccess('Éxito', 'Comprobante subido correctamente');
     } catch (error) {
       console.error('Error uploading comprobante:', error);
-      Swal.fire('Error', error.message || 'No se pudo subir el comprobante', 'error');
+      showError('Error', error.message || 'No se pudo subir el comprobante');
     } finally {
       setUploadingComprobante(false);
     }

@@ -19,6 +19,10 @@ class DatabaseSeeder extends Seeder
             PostulacionSeeder::class,
             PagoServicioSeeder::class,
             ResenaSeeder::class,
+            PagoPlanSeeder::class,
+            ReporteSeeder::class,
+            NotificacionSeeder::class,
+            MensajeSeeder::class,
         ]);
     }
 }
