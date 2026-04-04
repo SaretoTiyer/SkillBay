@@ -219,8 +219,8 @@ function App() {
          return <ForgotPassword onNavigate={setCurrentView} />;
        case "register":
          return <Register onNavigate={setCurrentView} />;
-        case "terms":
-          return <TermsAndConditions />;
+         case "terms":
+           return <TermsAndConditions onNavigate={setCurrentView} />;
         default:
          return <Home onNavigate={setCurrentView} />;
      }

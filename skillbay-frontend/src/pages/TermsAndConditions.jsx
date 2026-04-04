@@ -7,14 +7,40 @@ import {
   Lock,
   AlertTriangle,
   Ban,
-  Scale
+  Scale,
+  ArrowLeft,
+  Home
 } from 'lucide-react';
 
-const TermsAndConditions = () => {
+const TermsAndConditions = ({ onNavigate }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Navigation Bar */}
+      <nav className="bg-[#1E3A5F] text-white border-b border-[#2B6CB0]/40" role="navigation" aria-label="Navegación de términos">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => onNavigate ? onNavigate("home") : window.history.back()}
+              className="flex items-center gap-2 text-[#A0AEC0] hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-lg px-3 py-2 -ml-2"
+              aria-label="Volver al inicio"
+            >
+              <ArrowLeft size={20} />
+              <span className="font-medium">Volver</span>
+            </button>
+            <button
+              onClick={() => onNavigate ? onNavigate("home") : window.location.href = "/"}
+              className="flex items-center gap-2 text-[#A0AEC0] hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-lg px-3 py-2 -mr-2"
+              aria-label="Ir al inicio de SkillBay"
+            >
+              <Home size={18} />
+              <span className="font-medium">Inicio</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
       {/* Header */}
-      <header className="bg-[#1E3A5F] text-white py-12">
+      <header className="bg-white border-b border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-center">
             Términos y Condiciones
@@ -252,12 +278,24 @@ const TermsAndConditions = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-8 text-center text-gray-500">
-          <p>&copy; 2026 SkillBay. Todos los derechos reservados.</p>
-          <p className="mt-2">
-            <a href="/privacidad" className="text-[#2B6CB0] hover:underline">Política de Privacidad</a>
-          </p>
+      <footer className="border-t border-gray-200 bg-white mt-auto">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">
+              &copy; 2026 SkillBay. Todos los derechos reservados.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => onNavigate ? onNavigate("home") : window.history.back()}
+                className="text-[#2B6CB0] hover:text-[#1E3A5F] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B6CB0] rounded px-2 py-1"
+              >
+                ← Volver
+              </button>
+              <a href="/privacidad" className="text-[#2B6CB0] hover:text-[#1E3A5F] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B6CB0] rounded px-2 py-1">
+                Política de Privacidad
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
