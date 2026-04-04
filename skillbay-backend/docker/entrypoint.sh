@@ -23,6 +23,12 @@ fi
 echo "📦 Running migrations..."
 php artisan migrate --force --no-interaction
 
+# Run seeders in development mode only
+if [ "$APP_ENV" != "production" ]; then
+    echo "🌱 Running seeders (development mode)..."
+    php artisan db:seed --force --no-interaction 2>&1 || echo "   Seeders already ran or skipped"
+fi
+
 # Create storage symlink
 echo "🔗 Creating storage symlink..."
 php artisan storage:link 2>/dev/null || echo "   Storage link already exists"
