@@ -154,7 +154,7 @@ function App() {
       case "config":
         return <UserConfig />;
       case "plans":
-        return <PlanesUser />;
+        return <PlanesUser onNavigate={setCurrentView} />;
       case "checkout": {
         const checkoutData = getCheckoutData();
         if (!checkoutData) {
@@ -166,10 +166,13 @@ function App() {
             idItem={checkoutData.idItem}
             monto={checkoutData.monto}
             descripcion={checkoutData.descripcion}
-            onNavigate={setCurrentView}
+            onNavigate={(view) => {
+              clearCheckoutData();
+              setCurrentView(view);
+            }}
             onComplete={() => {
               clearCheckoutData();
-              setCurrentView("explore");
+              setCurrentView("profile");
             }}
           />
         );

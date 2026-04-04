@@ -262,7 +262,13 @@ export default function Checkout({
         if (data?.usuario) {
           localStorage.setItem('usuario', JSON.stringify(data.usuario));
         }
-        window.location.reload();
+        // Clear checkout data and navigate to profile with success
+        localStorage.removeItem('checkout_data');
+        if (onNavigate) {
+          onNavigate('profile');
+        } else {
+          window.location.reload();
+        }
         return;
       } catch (error) {
         console.error('Error updating user:', error);

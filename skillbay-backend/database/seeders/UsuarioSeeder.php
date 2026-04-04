@@ -25,7 +25,7 @@ class UsuarioSeeder extends Seeder
             'password' => Hash::make('password123'),
             'rol' => 'admin',
             'bloqueado' => false,
-            'id_Plan' => 'Enterprise',
+            'id_Plan' => 'Ultra',
             'imagen_perfil' => 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
         ];
 
@@ -102,7 +102,7 @@ class UsuarioSeeder extends Seeder
             'id_Plan' => 'Plus',
         ];
 
-        // Cliente 5 - Enterprise
+        // Cliente 5 - Ultra
         $usuarios[] = [
             'id_CorreoUsuario' => 'cliente5@skillbay.com',
             'nombre' => 'Roberto',
@@ -115,7 +115,7 @@ class UsuarioSeeder extends Seeder
             'password' => Hash::make('password123'),
             'rol' => 'cliente',
             'bloqueado' => false,
-            'id_Plan' => 'Enterprise',
+            'id_Plan' => 'Ultra',
             'imagen_perfil' => 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
             'nequi_numero' => '3210000003',
             'nequi_nombre' => 'Roberto Sanchez',
@@ -193,7 +193,7 @@ class UsuarioSeeder extends Seeder
             'id_Plan' => 'Plus',
         ];
 
-        // Ofertante 5 - Enterprise
+        // Ofertante 5 - Ultra
         $usuarios[] = [
             'id_CorreoUsuario' => 'ofertante5@skillbay.com',
             'nombre' => 'Elena',
@@ -206,7 +206,7 @@ class UsuarioSeeder extends Seeder
             'password' => Hash::make('password123'),
             'rol' => 'ofertante',
             'bloqueado' => false,
-            'id_Plan' => 'Enterprise',
+            'id_Plan' => 'Ultra',
             'imagen_perfil' => 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
             'nequi_numero' => '3210000006',
             'nequi_nombre' => 'Elena Castillo',

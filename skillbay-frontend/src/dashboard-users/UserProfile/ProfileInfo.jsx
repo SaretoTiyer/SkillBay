@@ -145,12 +145,12 @@ export default function ProfileInfo({ profileData, profileImage, servicesOffered
                                 {profileData.name.charAt(0).toUpperCase()}
                             </div>
                             <button
-                                className="absolute bottom-0 right-0 bg-white p-2 rounded-lg shadow-md border border-gray-200 opacity-0 hover:opacity-100 transition-all hover:scale-110 active:scale-95"
+                                className="absolute bottom-0 right-0 bg-white p-2.5 rounded-full shadow-lg border-2 border-gray-100 hover:border-blue-300 hover:shadow-xl hover:scale-110 active:scale-95 transition-all"
                                 onClick={handleProfileImageClick}
                                 aria-label="Cambiar foto de perfil"
                                 title="Cambiar foto de perfil"
                             >
-                                <Camera size={14} className="text-blue-600" />
+                                <Camera size={16} className="text-blue-600" />
                             </button>
                         </div>
                         <div className="flex-1 pb-1">

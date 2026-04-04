@@ -31,13 +31,6 @@ class PlanSeeder extends Seeder
                 'precioMensual' => 30000,
                 'limiteServiciosMes' => 10,
             ],
-            [
-                'id_Plan' => 'Enterprise',
-                'nombre' => 'Enterprise',
-                'beneficios' => 'Servicios ilimitados. Publicaciones ilimitadas por mes. Manager de cuenta dedicado. API access. Analíticas avanzadas.',
-                'precioMensual' => 75000,
-                'limiteServiciosMes' => null,
-            ],
         ];
 
         foreach ($planes as $plan) {

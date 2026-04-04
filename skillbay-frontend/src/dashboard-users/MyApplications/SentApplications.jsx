@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
-import { 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  DollarSign, 
-  Loader2, 
+import { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Loader2,
   Send,
   Star,
   User,
   XCircle,
   Briefcase,
-  FileCheck
+  FileCheck,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { showSuccess, showError, showConfirm } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
@@ -21,11 +26,144 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import RatingModal from "../../components/RatingModal";
 import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
+// ============================================
+// STATUS CONFIG (CENTRALIZED)
+// ============================================
+
+const STATUS_CONFIG = {
+  pendiente: {
+    label: "Pendiente",
+    color: "amber",
+    bg: "bg-amber-500",
+    border: "border-l-amber-500",
+    badge: "bg-amber-100 text-amber-700",
+    icon: Clock,
+  },
+  aceptada: {
+    label: "Aceptada",
+    color: "emerald",
+    bg: "bg-emerald-500",
+    border: "border-l-emerald-500",
+    badge: "bg-emerald-100 text-emerald-700",
+    icon: CheckCircle,
+  },
+  en_progreso: {
+    label: "En Progreso",
+    color: "blue",
+    bg: "bg-blue-500",
+    border: "border-l-blue-500",
+    badge: "bg-blue-100 text-blue-700",
+    icon: Briefcase,
+  },
+  completada: {
+    label: "Completada",
+    color: "purple",
+    bg: "bg-purple-500",
+    border: "border-l-purple-500",
+    badge: "bg-purple-100 text-purple-700",
+    icon: FileCheck,
+  },
+  pagada: {
+    label: "Pagada",
+    color: "green",
+    bg: "bg-green-500",
+    border: "border-l-green-500",
+    badge: "bg-green-100 text-green-700",
+    icon: DollarSign,
+  },
+  rechazada: {
+    label: "Rechazada",
+    color: "red",
+    bg: "bg-red-500",
+    border: "border-l-red-500",
+    badge: "bg-red-100 text-red-700",
+    icon: XCircle,
+  },
+  cancelada: {
+    label: "Cancelada",
+    color: "slate",
+    bg: "bg-slate-500",
+    border: "border-l-slate-500",
+    badge: "bg-slate-100 text-slate-700",
+    icon: XCircle,
+  },
+};
+
+const ACTIVE_STATES = ["pendiente", "aceptada", "en_progreso", "completada", "pagada"];
+const HISTORY_STATES = ["rechazada", "cancelada"];
+
+// ============================================
+// SKELETON
+// ============================================
+
+function ApplicationsSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="flex gap-4 p-4">
+            <div className="w-20 h-20 bg-gray-200 animate-pulse rounded-xl shrink-0" />
+            <div className="flex-1 space-y-3">
+              <div className="h-5 w-3/4 bg-gray-200 animate-pulse rounded" />
+              <div className="h-4 w-full bg-gray-200 animate-pulse rounded" />
+              <div className="flex gap-2">
+                <div className="h-6 w-16 bg-gray-200 animate-pulse rounded-full" />
+                <div className="h-6 w-20 bg-gray-200 animate-pulse rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================
+// COLLAPSIBLE MESSAGE COMPONENT
+// ============================================
+
+function CollapsibleMessage({ message }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = message && message.length > 100;
+  const displayText = isLong && !expanded ? message.slice(0, 100) + "..." : message;
+
+  return (
+    <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+      <div className="flex items-start gap-2">
+        <MessageSquare size={14} className="text-slate-400 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm text-slate-600 italic">"{displayText}"</p>
+          {isLong && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1.5 flex items-center gap-1"
+            >
+              {expanded ? (
+                <>
+                  <EyeOff size={12} /> Ver menos
+                </>
+              ) : (
+                <>
+                  <Eye size={12} /> Ver mensaje completo
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
 export default function SentApplications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("active"); // "active" by default, not "all"
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingData, setRatingData] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
@@ -38,15 +176,13 @@ export default function SentApplications() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchApplications(),
-        fetchCurrentUser()
-      ]);
+      await Promise.all([fetchApplications(), fetchCurrentUser()]);
     } finally {
       setLoading(false);
     }
@@ -73,67 +209,18 @@ export default function SentApplications() {
       const data = await response.json();
       setApplications(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Error de conexion");
-    }
-  };
-
-  // Función para determinar el rol del usuario en la relación
-  const getUserRole = (application) => {
-    if (!currentUserEmail || !application.servicio) return 'Postulador';
-    
-    // El cliente del servicio es quien creó la oportunidad/servicio
-    const clienteEmail = application.servicio.id_Dueno;
-    
-    if (currentUserEmail === clienteEmail) {
-      return 'Solicitante';  // El que publicó la oportunidad
-    }
-    return 'Postulador';     // El que respondió a la oportunidad
-  };
-
-  // Función para obtener el nombre completo del usuario junto con su rol
-  const getUserInfo = (application) => {
-    if (!application.servicio) {
-      return <span className="text-blue-600 text-xs">Postulador</span>;
-    }
-    
-    // Obtenemos el nombre del cliente/dueño del servicio (cliente_usuario)
-    const clienteDelServicio = application.servicio.cliente_usuario;
-    const nombreCliente = clienteDelServicio 
-      ? `${clienteDelServicio.nombre || ''} ${clienteDelServicio.apellido || ''}`.trim()
-      : (application.servicio.id_Dueno || 'Cliente');
-    
-    // Obtenemos el nombre del aplicante (usuario que realizó la postulación)
-    const aplicante = application.usuario;
-    const nombreAplicante = aplicante
-      ? `${aplicante.nombre || ''} ${aplicante.apellido || ''}`.trim()
-      : 'Aplicante';
-    
-    // Determinamos el rol según tipo_postulacion
-    const tipoPostulacion = application.tipo_postulacion || 'postulante';
-    
-    if (tipoPostulacion === 'solicitante') {
-      // El usuario solicitó un servicio -> muestra el nombre del ofertante (dueño del servicio)
-      return (
-        <span className="text-xs">
-          <span className="text-amber-600 font-medium">{nombreCliente}</span>
-          <span className="text-slate-400"> (Ofertante)</span>
-        </span>
-      );
-    } else {
-      // El usuario se postuló a una oportunidad -> muestra el nombre del cliente
-      return (
-        <span className="text-xs">
-          <span className="text-blue-600 font-medium">{nombreCliente}</span>
-          <span className="text-slate-400"> (Cliente)</span>
-        </span>
-      );
+      console.error("Error fetching applications:", err);
     }
   };
 
   const cancelProposal = async (application) => {
-    const result = await showConfirm("Cancelar postulación", "La propuesta pasará a estado cancelada.", "Cancelar postulación");
+    const result = await showConfirm(
+      "Cancelar postulación",
+      "La propuesta pasará a estado cancelada.",
+      "Cancelar postulación"
+    );
     if (!result.isConfirmed) return;
-    
+
     const response = await fetch(`${API_URL}/postulaciones/${application.id}`, {
       method: "DELETE",
       headers: authHeaders(),
@@ -145,175 +232,218 @@ export default function SentApplications() {
   };
 
   // ============================================
-  // CONFIGURACIÓN CENTRALIZADA DE ESTADOS
+  // FILTERING
   // ============================================
-  const ESTADOS = {
-    pendiente: { label: 'Pendientes', color: 'amber', key: 'pendiente' },
-    aceptada: { label: 'Aceptadas', color: 'emerald', key: 'aceptada' },
-    en_progreso: { label: 'En Progreso', color: 'blue', key: 'en_progreso' },
-    completada: { label: 'Completadas', color: 'purple', key: 'completada' },
-    pagada: { label: 'Pagadas', color: 'green', key: 'pagada' },
-    rechazada: { label: 'Rechazadas', color: 'red', key: 'rechazada' },
-    cancelada: { label: 'Canceladas', color: 'slate', key: 'cancelada' },
-  };
 
-  // Función reutilizable para filtrar por estado
-  const filterByEstado = (apps, estado) => apps.filter((a) => a.estado === estado);
+  const activeApplications = useMemo(
+    () => applications.filter((a) => ACTIVE_STATES.includes(a.estado)),
+    [applications]
+  );
 
-  // Función reutilizable para obtener conteos
-  const getCounts = (apps) => {
-    const counts = {};
-    Object.keys(ESTADOS).forEach((key) => {
-      counts[key] = filterByEstado(apps, key).length;
+  const historyApplications = useMemo(
+    () => applications.filter((a) => HISTORY_STATES.includes(a.estado)),
+    [applications]
+  );
+
+  const filteredApplications = useMemo(() => {
+    if (filter === "active") return activeApplications;
+    if (filter === "history") return historyApplications;
+    if (filter === "all") return applications;
+    return applications.filter((a) => a.estado === filter);
+  }, [filter, applications, activeApplications, historyApplications]);
+
+  const counts = useMemo(() => {
+    const c = { all: applications.length, active: 0, history: 0 };
+    applications.forEach((a) => {
+      if (ACTIVE_STATES.includes(a.estado)) c.active++;
+      if (HISTORY_STATES.includes(a.estado)) c.history++;
     });
-    return counts;
-  };
+    Object.keys(STATUS_CONFIG).forEach((key) => {
+      c[key] = applications.filter((a) => a.estado === key).length;
+    });
+    return c;
+  }, [applications]);
 
-  // Obtener aplicaciones filtradas según el estado seleccionado
-  const filteredApplications = filter === 'all' 
-    ? applications 
-    : filterByEstado(applications, filter);
-
-  // Calcular conteos
-  const counts = getCounts(applications);
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      pendiente: { bg: "bg-amber-500", icon: Clock, label: "Pendiente" },
-      aceptada: { bg: "bg-emerald-500", icon: CheckCircle, label: "Aceptada" },
-      en_progreso: { bg: "bg-blue-500", icon: Clock, label: "En Progreso" },
-      completada: { bg: "bg-purple-500", icon: CheckCircle, label: "Completada" },
-      pagada: { bg: "bg-green-500", icon: DollarSign, label: "Pagada" },
-      rechazada: { bg: "bg-red-500", icon: XCircle, label: "Rechazada" },
-      cancelada: { bg: "bg-slate-500", icon: XCircle, label: "Cancelada" },
-    };
-    const config = statusConfig[status] || { bg: "bg-slate-500", icon: Clock, label: status };
+  const getStatusBadge = useCallback((status) => {
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.pendiente;
     const Icon = config.icon;
-    
     return (
       <Badge className={`${config.bg} text-white border-0 px-2 py-0.5 text-xs`}>
         <Icon size={12} className="inline mr-1" />
         {config.label}
       </Badge>
     );
-  };
+  }, []);
 
-  const getStatusColor = (status) => {
-    const colors = {
-      pendiente: "border-l-amber-500",
-      aceptada: "border-l-emerald-500",
-      en_progreso: "border-l-blue-500",
-      completada: "border-l-purple-500",
-      pagada: "border-l-green-500",
-      rechazada: "border-l-red-500",
-      cancelada: "border-l-slate-500",
-    };
-    return colors[status] || "border-l-gray-300";
-  };
+  const getUserInfo = useCallback(
+    (application) => {
+      if (!application.servicio) {
+        return <span className="text-blue-600 text-xs">Postulador</span>;
+      }
 
-  // Componente Card para postulación enviada
-  const ApplicationCard = ({ application }) => (
-    <div className={`bg-white rounded-2xl border border-gray-100 border-l-4 ${getStatusColor(application.estado)} overflow-hidden hover:shadow-lg transition-shadow`}>
-      <div className="grid md:grid-cols-[180px_1fr] gap-5">
-        <div className="h-44 md:h-auto relative">
-          <ImageWithFallback 
-            src={getServiceImage(application.servicio)} 
-            alt={application.servicio?.titulo || "Servicio"} 
-            className="w-full h-full object-cover" 
+      const clienteDelServicio = application.servicio.cliente_usuario;
+      const nombreCliente = clienteDelServicio
+        ? `${clienteDelServicio.nombre || ""} ${clienteDelServicio.apellido || ""}`.trim()
+        : application.servicio.id_Dueno || "Cliente";
+
+      const tipoPostulacion = application.tipo_postulacion || "postulante";
+
+      if (tipoPostulacion === "solicitante") {
+        return (
+          <span className="text-xs">
+            <span className="text-amber-600 font-medium">{nombreCliente}</span>
+            <span className="text-slate-400"> (Ofertante)</span>
+          </span>
+        );
+      }
+      return (
+        <span className="text-xs">
+          <span className="text-blue-600 font-medium">{nombreCliente}</span>
+          <span className="text-slate-400"> (Cliente)</span>
+        </span>
+      );
+    },
+    []
+  );
+
+  // ============================================
+  // APPLICATION CARD (COMPACT DESIGN)
+  // ============================================
+
+  const ApplicationCard = ({ application, isHistory = false }) => (
+    <div
+      className={`bg-white rounded-2xl border border-gray-100 border-l-4 shadow-sm transition-all ${
+        STATUS_CONFIG[application.estado]?.border || "border-l-gray-300"
+      } ${isHistory ? "opacity-60 hover:opacity-80" : "hover:shadow-md"}`}
+    >
+      <div className="flex flex-col sm:flex-row gap-4 p-4">
+        {/* Service Image Thumbnail */}
+        <div className="relative w-full sm:w-24 h-20 sm:h-auto shrink-0 rounded-xl overflow-hidden">
+          <ImageWithFallback
+            src={getServiceImage(application.servicio)}
+            alt={application.servicio?.titulo || "Servicio"}
+            className="w-full h-full object-cover"
           />
-          <div className="absolute top-3 right-3">
-            {getStatusBadge(application.estado)}
-          </div>
         </div>
-        <div className="p-5">
-          <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1">
-            {application.servicio?.titulo}
-          </h3>
-          <p className="text-slate-500 text-sm line-clamp-2 mb-4">
-            {application.servicio?.descripcion}
-          </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
-            <div className="flex items-center gap-2">
-              <User size={14} className="text-blue-500" />
-              <span className="text-slate-400 text-xs">Usuario:</span>
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {/* Header Row */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-slate-800 truncate">
+                {application.servicio?.titulo}
+              </h3>
+              <p className="text-sm text-slate-500 truncate">
+                {application.servicio?.descripcion}
+              </p>
+            </div>
+            <div className="shrink-0">{getStatusBadge(application.estado)}</div>
+          </div>
+
+          {/* Info Row */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
+            <div className="flex items-center gap-1.5">
+              <User size={12} className="text-blue-500" />
+              <span className="text-slate-400">:</span>
               {getUserInfo(application)}
             </div>
-            <div className="flex items-center gap-2">
-              <DollarSign size={14} className="text-emerald-500" />
-              <span className="text-slate-600">
+            <div className="flex items-center gap-1.5">
+              <DollarSign size={12} className="text-emerald-500" />
+              <span className="text-slate-600 font-medium">
                 ${Number(application.servicio?.precio || 0).toLocaleString("es-CO")}
               </span>
             </div>
-            <div className="flex items-center gap-2 col-span-2">
-              <Calendar size={14} className="text-indigo-500" />
-              <span className="text-slate-500 text-xs">
-                {application.created_at ? new Date(application.created_at).toLocaleDateString("es-CO") : "Fecha no disponible"}
+            <div className="flex items-center gap-1.5">
+              <Calendar size={12} className="text-indigo-500" />
+              <span className="text-slate-500">
+                {application.created_at
+                  ? new Date(application.created_at).toLocaleDateString("es-CO")
+                  : "—"}
               </span>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {application.estado === "pendiente" && (
+          {/* Collapsible Message */}
+          {application.mensaje && <CollapsibleMessage message={application.mensaje} />}
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-100">
+            {!isHistory && application.estado === "pendiente" && (
               <Button
                 size="sm"
                 variant="outline"
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-red-600 border-red-200 hover:bg-red-50 h-8"
                 onClick={() => cancelProposal(application)}
               >
                 <XCircle size={14} className="mr-1" /> Cancelar
               </Button>
             )}
-            {application.estado === "aceptada" && (
-              <Badge className="bg-emerald-100 text-emerald-700 border-0">
+            {application.estado === "aceptada" && !isHistory && (
+              <Badge className="bg-emerald-100 text-emerald-700 border-0 h-7">
                 <CheckCircle size={12} className="mr-1" /> Aceptado
               </Badge>
             )}
-            {application.estado === "en_progreso" && (
-              application.tipo_postulacion === 'solicitante' ? (
+            {application.estado === "en_progreso" && !isHistory && (
+              application.tipo_postulacion === "solicitante" ? (
                 <div className="flex gap-2 flex-wrap">
-                  <Badge className="bg-blue-100 text-blue-700 border-0">
+                  <Badge className="bg-blue-100 text-blue-700 border-0 h-7">
                     <Briefcase size={12} className="mr-1" /> En Progreso
                   </Badge>
                   <Button
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    className="bg-purple-600 hover:bg-purple-700 text-white h-8"
                     onClick={async () => {
-                      const confirm = await showConfirm('¿Marcar trabajo como completado?', 'Esto notificará al ofertante para que espere el pago.', 'Sí, está completado');
+                      const confirm = await showConfirm(
+                        "¿Marcar trabajo como completado?",
+                        "Esto notificará al ofertante para que espere el pago.",
+                        "Sí, está completado"
+                      );
                       if (!confirm.isConfirmed) return;
                       try {
-                        const response = await fetch(`${API_URL}/postulaciones/${application.id}/completar`, {
-                          method: "PATCH",
-                          headers: authHeaders(true),
-                        });
+                        const response = await fetch(
+                          `${API_URL}/postulaciones/${application.id}/completar`,
+                          {
+                            method: "PATCH",
+                            headers: authHeaders(true),
+                          }
+                        );
                         const data = await response.json();
-                        if (!response.ok) throw new Error(data?.message || "Error al marcar como completado.");
+                        if (!response.ok)
+                          throw new Error(data?.message || "Error al marcar como completado.");
                         fetchApplications();
-                        showSuccess('¡Completado!', 'El trabajo ha sido marcado como completado. El ofertante será notificado.');
+                        showSuccess(
+                          "¡Completado!",
+                          "El trabajo ha sido marcado como completado. El ofertante será notificado."
+                        );
                       } catch (error) {
-                        showError('Error', error.message);
+                        showError("Error", error.message);
                       }
                     }}
                   >
-                    <FileCheck size={14} className="mr-1" /> ✓ Marcar Completado
+                    <FileCheck size={14} className="mr-1" /> Completado
                   </Button>
                 </div>
               ) : (
-                <Badge className="bg-blue-100 text-blue-700 border-0">
+                <Badge className="bg-blue-100 text-blue-700 border-0 h-7">
                   <Briefcase size={12} className="mr-1" /> En Progreso
                 </Badge>
               )
             )}
-            {application.estado === "completada" && application.tipo_postulacion === 'solicitante' && (
+            {application.estado === "completada" && application.tipo_postulacion === "solicitante" && !isHistory && (
               <div className="flex gap-2 flex-wrap">
-                <Badge className="bg-purple-100 text-purple-700 border-0">
-                  <FileCheck size={12} className="mr-1" /> Trabajo completado - Paga al proveedor
+                <Badge className="bg-purple-100 text-purple-700 border-0 h-7">
+                  <FileCheck size={12} className="mr-1" /> Esperando pago
                 </Badge>
                 <Button
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
                   onClick={async () => {
-                    const confirm = await showConfirm('¿Proceder con el pago?', 'El pago será realizado al proveedor/prestador del servicio.', 'Sí, pagar al proveedor');
+                    const confirm = await showConfirm(
+                      "¿Proceder con el pago?",
+                      "El pago será realizado al proveedor/prestador del servicio.",
+                      "Sí, pagar al proveedor"
+                    );
                     if (!confirm.isConfirmed) return;
                     try {
                       const response = await fetch(`${API_URL}/pagos/servicio`, {
@@ -321,179 +451,253 @@ export default function SentApplications() {
                         headers: authHeaders(true),
                         body: JSON.stringify({
                           id_Servicio: application.servicio.id_Servicio,
-                          modalidadPago: 'virtual',
-                          modalidadServicio: 'presencial',
-                          identificacionCliente: '12345678',
-                          origenSolicitud: 'postulacion',
+                          modalidadPago: "virtual",
+                          modalidadServicio: "presencial",
+                          identificacionCliente: "12345678",
+                          origenSolicitud: "postulacion",
                           id_Postulacion: application.id,
-                          monto: application.presupuesto || application.servicio?.precio || 0
+                          monto:
+                            application.presupuesto || application.servicio?.precio || 0,
                         }),
                       });
                       const data = await response.json();
-                      if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
+                      if (!response.ok)
+                        throw new Error(data?.message || "Error al procesar el pago.");
                       fetchApplications();
-                      showSuccess('¡Pago exitoso!', 'El pago ha sido procesado y el proveedor será notificado.');
+                      showSuccess(
+                        "¡Pago exitoso!",
+                        "El pago ha sido procesado y el proveedor será notificado."
+                      );
                     } catch (error) {
-                      showError('Error', error.message);
+                      showError("Error", error.message);
                     }
                   }}
                 >
-                  <DollarSign size={14} className="mr-1" /> Pagar al proveedor
+                  <DollarSign size={14} className="mr-1" /> Pagar
                 </Button>
               </div>
             )}
-            {application.estado === "completada" && application.tipo_postulacion === 'postulante' && (
+            {application.estado === "completada" && application.tipo_postulacion === "postulante" && !isHistory && (
               <div className="flex gap-2 flex-wrap">
-                <Badge className="bg-amber-100 text-amber-700 border-0">
-                  <Clock size={12} className="mr-1" /> Esperando que el cliente complete el pago
+                <Badge className="bg-amber-100 text-amber-700 border-0 h-7">
+                  <Clock size={12} className="mr-1" /> Esperando pago del cliente
                 </Badge>
               </div>
             )}
-             {application.estado === "pagada" && (
-               <div className="flex gap-2 flex-wrap items-center">
-                 <Badge className="bg-green-500 text-white border-0">
-                   <DollarSign size={12} className="mr-1" /> Pagada
-                 </Badge>
-                 {application.tipo_postulacion === 'solicitante' && (
-                   <>
-                       {application.ya_califico ? (
-                         <Badge className="bg-slate-500 text-slate-600 border-0 px-3 py-1">
-                           ⭐ Calificado
-                         </Badge>
-                       ) : (
-                         <Button
-                           size="sm"
-                           className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                           onClick={() => {
-                             // Determinar contexto de calificación usando la utilidad centralizada
-                             const contexto = determinarContextoCalificacion(
-                               application.servicio?.tipo || 'servicio',
-                               currentUserEmail,
-                               application.servicio?.id_Dueno,
-                               application.usuario?.id_CorreoUsuario
-                             );
+            {application.estado === "pagada" && !isHistory && (
+              <div className="flex gap-2 flex-wrap items-center">
+                <Badge className="bg-green-500 text-white border-0 h-7">
+                  <DollarSign size={12} className="mr-1" /> Pagada
+                </Badge>
+                {application.tipo_postulacion === "solicitante" && (
+                  <>
+                    {application.ya_califico ? (
+                      <Badge className="bg-slate-200 text-slate-600 border-0 h-7 px-3">
+                        <Star size={12} className="mr-1" /> Calificado
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white h-8"
+                        onClick={() => {
+                          const contexto = determinarContextoCalificacion(
+                            application.servicio?.tipo || "servicio",
+                            currentUserEmail,
+                            application.servicio?.id_Dueno,
+                            application.usuario?.id_CorreoUsuario
+                          );
 
-                             if (contexto.error) {
-                               showError('Error', contexto.error);
-                               return;
-                             }
+                          if (contexto.error) {
+                            showError("Error", contexto.error);
+                            return;
+                          }
 
-                             setRatingData({
-                               id_Servicio: application.servicio.id_Servicio,
-                               id_Postulacion: application.id,
-                               tipo: application.servicio?.tipo || 'servicio',
-                               servicio: application.servicio,
-                               usuarioCalificado: contexto.usuarioCalificado,
-                               rolCalificado: contexto.rolCalificado,
-                               showServiceRating: contexto.showServiceRating,
-                             });
-                             setShowRatingModal(true);
-                           }}
-                         >
-                          <Star size={14} className="mr-1" /> Calificar
-                        </Button>
-                      )}
-                   </>
-                 )}
-               </div>
-             )}
+                          setRatingData({
+                            id_Servicio: application.servicio.id_Servicio,
+                            id_Postulacion: application.id,
+                            tipo: application.servicio?.tipo || "servicio",
+                            servicio: application.servicio,
+                            usuarioCalificado: contexto.usuarioCalificado,
+                            rolCalificado: contexto.rolCalificado,
+                            showServiceRating: contexto.showServiceRating,
+                          });
+                          setShowRatingModal(true);
+                        }}
+                      >
+                        <Star size={14} className="mr-1" /> Calificar
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {isHistory && (
+              <span className="text-xs text-gray-400 italic flex items-center gap-1 h-8">
+                <Clock size={12} />
+                Sin acciones disponibles
+              </span>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
+    return <ApplicationsSkeleton />;
   }
 
   return (
     <div className="space-y-4">
-      {/* Sub-filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          size="sm"
-          className="rounded-full"
-          onClick={() => setFilter("all")}
+      {/* Compact Filter Pills */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilter("active")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            filter === "active"
+              ? "bg-blue-600 text-white shadow-md"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
         >
-          Todas ({applications.length})
-        </Button>
-        {Object.entries(ESTADOS).map(([key, config]) => (
-          <Button
-            key={key}
-            variant={filter === key ? "default" : "outline"}
-            size="sm"
-            className="rounded-full"
-            onClick={() => setFilter(key)}
+          <span className="flex items-center gap-1.5">
+            <CheckCircle size={12} />
+            Activas
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">
+              {counts.active}
+            </span>
+          </span>
+        </button>
+        <button
+          onClick={() => setFilter("all")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            filter === "all"
+              ? "bg-blue-600 text-white shadow-md"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Send size={12} />
+            Todas
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">
+              {counts.all}
+            </span>
+          </span>
+        </button>
+
+        {/* Collapsible History Toggle */}
+        {counts.history > 0 && (
+          <button
+            onClick={() => {
+              if (filter === "history") {
+                setFilter("active");
+              } else {
+                setFilter("history");
+              }
+            }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              filter === "history"
+                ? "bg-red-600 text-white shadow-md"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
           >
-            {config.label} ({counts[key]})
-          </Button>
-        ))}
+            <span className="flex items-center gap-1.5">
+              {filter === "history" ? (
+                <ChevronUp size={12} />
+              ) : (
+                <ChevronDown size={12} />
+              )}
+              Historial
+              <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">
+                {counts.history}
+              </span>
+            </span>
+          </button>
+        )}
       </div>
 
+      {/* Applications Grid */}
       {filteredApplications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-center">
-          <div className="bg-white p-6 rounded-full shadow-sm mb-6">
-            <Send size={48} className="text-slate-300" />
+        <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+          <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+            <Send size={32} className="text-slate-300" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">{filter === 'all' ? 'No tienes solicitudes enviadas' : 'No hay solicitudes con este estado'}</h3>
-          <p className="text-slate-500 max-w-md">
-            {filter === 'all' ? 'Explora las oportunidades disponibles y postula a los servicios que te interesen.' : 'Prueba seleccionando otro filtro o explorando más servicios.'}
+          <h3 className="text-lg font-semibold text-slate-800 mb-1">
+            {filter === "active"
+              ? "No hay solicitudes activas"
+              : filter === "history"
+              ? "No hay historial"
+              : "No tienes solicitudes enviadas"}
+          </h3>
+          <p className="text-slate-500 text-sm max-w-xs">
+            {filter === "active"
+              ? "Explora las oportunidades disponibles y postula a los servicios que te interesen."
+              : filter === "history"
+              ? "¡Genial! No tienes postulaciones rechazadas ni canceladas."
+              : "Prueba seleccionando otro filtro o explorando más servicios."}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {filteredApplications.map((application) => (
-            <ApplicationCard key={application.id} application={application} />
+            <ApplicationCard
+              key={application.id}
+              application={application}
+              isHistory={HISTORY_STATES.includes(application.estado)}
+            />
           ))}
         </div>
       )}
 
-         <RatingModal
-           isOpen={showRatingModal}
-           onClose={() => {
-             setShowRatingModal(false);
-             setRatingData(null);
-           }}
-           onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
-             setRatingLoading(true);
-             try {
-               const response = await fetch(`${API_URL}/resenas`, {
-                 method: "POST",
-                 headers: authHeaders(true),
-                 body: JSON.stringify({
-                   id_Postulacion: ratingData?.id_Postulacion,
-                   id_Servicio: ratingData?.id_Servicio,
-                   calificacion_usuario: ratingUsuario,
-                   calificacion_servicio: ratingServicio,
-                   comentario: comment || ''
-                 }),
-               });
-               const data = await response.json();
-               if (!response.ok) throw new Error(data?.message || "Error al calificar.");
-               setApplications(prev => prev.map(a => a.id === ratingData?.id_Postulacion ? {...a, ya_califico: true} : a));
-               setShowRatingModal(false);
-               setRatingData(null);
-               showSuccess('¡Gracias!', 'Tu calificación ha sido registrada.');
-             } catch (error) {
-               showError('Error', error.message);
-             } finally {
-               setRatingLoading(false);
-             }
-           }}
-           subtitle={`¿Cómo fue tu experiencia con ${ratingData?.servicio?.titulo || 'este servicio'}?`}
-           tipo={ratingData?.tipo || "servicio"}
-           rolCalificado={ratingData?.rolCalificado || "ofertante"}
-           usuarioCalificador={currentUserEmail}
-           usuarioCalificado={ratingData?.usuarioCalificado}
-           loading={ratingLoading}
-         />
+      {/* Rating Modal */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setRatingData(null);
+        }}
+        onSubmit={async ({ ratingUsuario, ratingServicio, comment }) => {
+          setRatingLoading(true);
+          try {
+            const response = await fetch(`${API_URL}/resenas`, {
+              method: "POST",
+              headers: authHeaders(true),
+              body: JSON.stringify({
+                id_Postulacion: ratingData?.id_Postulacion,
+                id_Servicio: ratingData?.id_Servicio,
+                calificacion_usuario: ratingUsuario,
+                calificacion_servicio: ratingServicio,
+                comentario: comment || "",
+              }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data?.message || "Error al calificar.");
+            setApplications((prev) =>
+              prev.map((a) =>
+                a.id === ratingData?.id_Postulacion ? { ...a, ya_califico: true } : a
+              )
+            );
+            setShowRatingModal(false);
+            setRatingData(null);
+            showSuccess("¡Gracias!", "Tu calificación ha sido registrada.");
+          } catch (error) {
+            showError("Error", error.message);
+          } finally {
+            setRatingLoading(false);
+          }
+        }}
+        subtitle={`¿Cómo fue tu experiencia con ${
+          ratingData?.servicio?.titulo || "este servicio"
+        }?`}
+        tipo={ratingData?.tipo || "servicio"}
+        rolCalificado={ratingData?.rolCalificado || "ofertante"}
+        usuarioCalificador={currentUserEmail}
+        usuarioCalificado={ratingData?.usuarioCalificado}
+        loading={ratingLoading}
+      />
     </div>
   );
 }
-

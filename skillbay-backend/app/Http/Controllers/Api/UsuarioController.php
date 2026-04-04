@@ -468,6 +468,7 @@ class UsuarioController extends Controller
                 'ciudad',
                 'departamento',
                 'id_Plan',
+                'imagen_perfil',
                 'fechaRegistro',
             ])->findOrFail($id);
 
