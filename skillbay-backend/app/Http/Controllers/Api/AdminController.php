@@ -129,7 +129,9 @@ class AdminController extends Controller
                 'email' => $item->id_CorreoUsuario_Calificado,
                 'nombre' => $usuario?->nombre ?? '',
                 'apellido' => $usuario?->apellido ?? '',
-                'imagen_perfil' => $usuario?->imagen_perfil ? asset('storage/'.$usuario->imagen_perfil) : null,
+                'imagen_perfil' => $usuario?->imagen_perfil
+                    ? (str_starts_with($usuario->imagen_perfil, 'http') ? $usuario->imagen_perfil : asset('storage/'.$usuario->imagen_perfil))
+                    : null,
                 'promedio' => round($item->promedio, 1),
                 'total_resenas' => $item->total_resenas,
             ];

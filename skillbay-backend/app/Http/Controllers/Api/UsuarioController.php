@@ -489,7 +489,11 @@ class UsuarioController extends Controller
                     'tipo',
                 ])
                 ->map(function ($s) {
-                    $s->imagen = $s->imagen ? asset('storage/'.$s->imagen) : null;
+                    if ($s->imagen) {
+                        $s->imagen = str_starts_with($s->imagen, 'http')
+                            ? $s->imagen
+                            : asset('storage/'.$s->imagen);
+                    }
 
                     return $s;
                 });
@@ -511,7 +515,11 @@ class UsuarioController extends Controller
                     'tipo',
                 ])
                 ->map(function ($s) {
-                    $s->imagen = $s->imagen ? asset('storage/'.$s->imagen) : null;
+                    if ($s->imagen) {
+                        $s->imagen = str_starts_with($s->imagen, 'http')
+                            ? $s->imagen
+                            : asset('storage/'.$s->imagen);
+                    }
 
                     return $s;
                 });
