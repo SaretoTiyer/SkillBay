@@ -318,7 +318,7 @@ export default function UserProfile({ onNavigate }) {
                             <div className="relative -mt-14 mb-5">
                                 {profileImage ? (
                                     <img
-                                        src={`${API_URL.replace('/api', '')}/storage/${profileImage}`}
+                                        src={profileImage.startsWith('http') ? profileImage : `${API_URL.replace('/api', '')}/storage/${profileImage}`}
                                         alt={profileData.name}
                                         className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-lg"
                                         onError={(e) => {
