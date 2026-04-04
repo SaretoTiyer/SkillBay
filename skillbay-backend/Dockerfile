@@ -10,9 +10,8 @@ WORKDIR /app
 # Copy composer files first for layer caching
 COPY composer.json composer.lock ./
 
-# Install production dependencies only
+# Install dependencies (dev for local development, use --no-dev for production)
 RUN composer install \
-    --no-dev \
     --no-interaction \
     --no-scripts \
     --prefer-dist \
@@ -26,9 +25,9 @@ FROM node:20-alpine AS npm-build
 WORKDIR /app
 
 # Copy package files first for layer caching
-COPY package.json package-lock.json ./
+COPY package.json ./
 
-RUN npm ci
+RUN npm install
 
 # Copy all source files
 COPY . .
@@ -66,9 +65,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     # Health check
     wait-for-it \
+    # GD configuration
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
+# Note: tokenizer, ctype, xml, mbstring, curl, fileinfo, exif are built-in or pre-installed
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
@@ -76,22 +78,12 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     mysqli \
     gd \
     zip \
-    xml \
-    mbstring \
-    curl \
-    tokenizer \
-    ctype \
     bcmath \
-    exif \
-    fileinfo
+    opcache
 
 # Install Redis extension
 RUN pecl install redis \
     && docker-php-ext-enable redis
-
-# Install OPcache
-RUN docker-php-ext-install opcache \
-    && docker-php-ext-enable opcache
 
 # Set working directory
 WORKDIR /var/www/html

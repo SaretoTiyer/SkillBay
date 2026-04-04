@@ -50,6 +50,3 @@ Homestead.json
 Homestead.yaml
 auth.json
 .phpactor.json
-
-# Docker (avoid recursive copy)
-/docker

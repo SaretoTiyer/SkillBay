@@ -26,6 +26,3 @@
 # Misc
 .DS_Store
 npm-debug.log*
-
-# Docker (avoid recursive copy)
-/docker

@@ -3,14 +3,20 @@ set -e
 
 echo "🚀 Starting SkillBay Backend..."
 
-# Wait for database to be ready
+# Wait for database to be ready using PHP PDO
 if [ -n "$DB_HOST" ]; then
     echo "⏳ Waiting for database at $DB_HOST:$DB_PORT..."
-    until php artisan db:show --database="${DB_CONNECTION:-mysql}" > /dev/null 2>&1; do
-        echo "   Database not ready yet, retrying in 2s..."
+    RETRIES=30
+    until php -r "try { new PDO('mysql:host=$DB_HOST;port=$DB_PORT', '$DB_USERNAME', '$DB_PASSWORD'); exit(0); } catch(Exception \$e) { exit(1); }" 2>/dev/null || [ $RETRIES -eq 0 ]; do
+        echo "   Database not ready yet, retrying in 2s... ($RETRIES retries left)"
+        RETRIES=$((RETRIES - 1))
         sleep 2
     done
-    echo "✅ Database is ready!"
+    if [ $RETRIES -eq 0 ]; then
+        echo "❌ Database connection failed after 60s. Continuing anyway..."
+    else
+        echo "✅ Database is ready!"
+    fi
 fi
 
 # Run migrations (safe to run multiple times)
