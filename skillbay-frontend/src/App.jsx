@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import Invoice from "./pages/Invoice";
 
 import ExploreOpportunities from "./dashboard-users/ExploreOpportunities";
 import ExploreServices from "./dashboard-users/ExploreServices";
@@ -52,10 +53,19 @@ function detectTermsView() {
   return null;
 }
 
+/**
+ * Detecta si la URL actual corresponde a la página de factura
+ */
+function detectInvoiceView() {
+  if (window.location.pathname === '/invoice') return 'invoice';
+  return null;
+}
+
 function App() {
   const termsView = detectTermsView();
+  const invoiceView = detectInvoiceView();
   const [currentView, setCurrentView] = useState(
-    () => termsView || localStorage.getItem("currentView") || "home"
+    () => invoiceView || termsView || localStorage.getItem("currentView") || "home"
   );
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const token = localStorage.getItem("access_token");
@@ -225,6 +235,10 @@ function App() {
          return <Home onNavigate={setCurrentView} />;
      }
    };
+
+  if (currentView === "invoice") {
+    return <Invoice />;
+  }
 
   if (isAuthenticated && isAdmin) {
     return (

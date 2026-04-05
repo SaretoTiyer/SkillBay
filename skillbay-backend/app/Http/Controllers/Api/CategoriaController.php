@@ -168,6 +168,67 @@ class CategoriaController extends Controller
     }
 
     /**
+     * KPIs de categorias para el dashboard admin.
+     */
+    public function kpis(Request $request)
+    {
+        try {
+            if (! $this->validarAdmin($request)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                ], 403);
+            }
+
+            $categorias = Categoria::withCount('servicios')->get();
+
+            $total = $categorias->count();
+            $conImagen = $categorias->whereNotNull('imagen')->count();
+            $sinImagen = $total - $conImagen;
+
+            // Agregar por grupo
+            $porGrupo = $categorias
+                ->groupBy('grupo')
+                ->map(fn ($items, $grupo) => [
+                    'grupo' => $grupo ?: 'Sin grupo',
+                    'total_categorias' => $items->count(),
+                    'total_servicios' => $items->sum('servicios_count'),
+                ])
+                ->values();
+
+            // Top categorias por cantidad de servicios
+            $topPorServicios = $categorias
+                ->sortByDesc('servicios_count')
+                ->take(10)
+                ->map(fn ($c) => [
+                    'id_Categoria' => $c->id_Categoria,
+                    'nombre' => $c->nombre,
+                    'grupo' => $c->grupo,
+                    'servicios_count' => $c->servicios_count,
+                ])
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'kpis' => [
+                    'total' => $total,
+                    'con_imagen' => $conImagen,
+                    'sin_imagen' => $sinImagen,
+                    'grupos' => $categorias->pluck('grupo')->filter()->unique()->count(),
+                    'por_grupo' => $porGrupo,
+                    'top_por_servicios' => $topPorServicios,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los KPIs',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Eliminar categoria (solo admin).
      */
     public function eliminar(Request $request, $id)

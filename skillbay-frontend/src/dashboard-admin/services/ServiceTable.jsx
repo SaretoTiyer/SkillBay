@@ -172,8 +172,16 @@ export default function ServiceManagement() {
                   <tr key={service.id_Servicio} className="border-t border-gray-50 hover:bg-gray-50/50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                          {imageUrl ? <img src={imageUrl} alt={service.titulo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Package className="text-gray-400" size={20} /></div>}
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {imageUrl
+                            ? <img
+                                src={imageUrl}
+                                alt={service.titulo}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.onerror = null; e.target.src = getServiceImage({ categoria: service.categoria }); }}
+                              />
+                            : <Package className="text-gray-400" size={20} />
+                          }
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 truncate max-w-[200px]">{service.titulo}</p>

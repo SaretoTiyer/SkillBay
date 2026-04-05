@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Mensaje;
 use App\Models\Notificacion;
 use App\Models\PagoPlan;
 use App\Models\PagoServicio;
@@ -164,6 +165,21 @@ class PagoController extends Controller
             'id_CorreoUsuario' => $idClientePaga,
         ]);
 
+        // Mensaje automático en el chat de la postulación
+        if ($postulacion->id) {
+            $montoFormateado = number_format((float) $monto, 0, ',', '.');
+            $mensajeChat = $estado === 'Completado'
+                ? '✅ Pago completado por $'.$montoFormateado.' COP. Referencia: '.$pago->referenciaPago.'. ¡Gracias por usar SkillBay!'
+                : '⏳ Pago en efectivo registrado por $'.$montoFormateado.' COP. Referencia: '.$pago->referenciaPago.'. Recuerda acordar la entrega del pago en persona.';
+
+            Mensaje::create([
+                'id_Postulacion' => $postulacion->id,
+                'id_Emisor' => $idClientePaga,
+                'mensaje' => $mensajeChat,
+                'expiraEn' => null,
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pago de servicio simulado exitosamente.',
@@ -206,6 +222,64 @@ class PagoController extends Controller
             'success' => true,
             'pagos_plan' => $planes,
             'pagos_servicio' => $servicios,
+        ]);
+    }
+
+    /**
+     * Obtener detalle de un pago específico para generar factura.
+     * GET /api/pagos/historial/{tipo}/{id}
+     */
+    public function detalle(Request $request, string $tipo, string $id)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        if (! in_array($tipo, ['plan', 'servicio'])) {
+            return response()->json(['message' => 'Tipo de pago inválido. Use "plan" o "servicio".'], 400);
+        }
+
+        if ($tipo === 'plan') {
+            $pago = PagoPlan::with('plan:id_Plan,nombre,descripcion,precioMensual')
+                ->find($id);
+
+            if (! $pago) {
+                return response()->json(['message' => 'Pago de plan no encontrado.'], 404);
+            }
+
+            // Verificar que el usuario es el dueño del pago
+            if ($pago->id_CorreoUsuario !== $user->id_CorreoUsuario) {
+                return response()->json(['message' => 'No tienes permiso para ver este pago.'], 403);
+            }
+
+            return response()->json([
+                'success' => true,
+                'pago' => $pago,
+                'tipo' => 'plan',
+            ]);
+        }
+
+        // Servicio
+        $pago = PagoServicio::with([
+            'servicio:id_Servicio,titulo',
+            'pagador:id_CorreoUsuario,nombre,apellido',
+            'receptor:id_CorreoUsuario,nombre,apellido',
+        ])->find($id);
+
+        if (! $pago) {
+            return response()->json(['message' => 'Pago de servicio no encontrado.'], 404);
+        }
+
+        // Verificar que el usuario es pagador o receptor
+        if ($pago->id_Pagador !== $user->id_CorreoUsuario && $pago->id_Receptor !== $user->id_CorreoUsuario) {
+            return response()->json(['message' => 'No tienes permiso para ver este pago.'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'pago' => $pago,
+            'tipo' => 'servicio',
         ]);
     }
 }

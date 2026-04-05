@@ -62,7 +62,7 @@ const ICONS = {
 
 function buildSVG(theme, width = 400, height = 300) {
   const iconSvg = ICONS[theme.icon] || ICONS.star;
-  return `data:image/svg+xml,${encodeURIComponent(
+  const svgString =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
     `<defs>` +
     `<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">` +
@@ -73,8 +73,8 @@ function buildSVG(theme, width = 400, height = 300) {
     `<rect width="${width}" height="${height}" fill="url(#bg)"/>` +
     `<g color="${theme.accent}" transform="translate(${width/2 - 50}, ${height/2 - 70}) scale(1.2)">${iconSvg}</g>` +
     `<text x="${width/2}" y="${height - 30}" text-anchor="middle" fill="${theme.accent}" font-family="system-ui,sans-serif" font-size="14" font-weight="600" opacity="0.8">${theme.label}</text>` +
-    `</svg>`
-  )}`;
+    `</svg>`;
+  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
 }
 
 function adjustColor(hex, amount) {

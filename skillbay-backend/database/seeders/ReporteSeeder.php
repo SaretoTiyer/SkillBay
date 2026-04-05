@@ -8,11 +8,16 @@ use App\Models\Servicio;
 use App\Models\Usuario;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ReporteSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Reporte::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
         $faker = Faker::create('es_CO');
 
         $estados = [
@@ -38,8 +43,13 @@ class ReporteSeeder extends Seeder
         $servicios = Servicio::where('estado', 'Activo')->get();
         $postulaciones = Postulacion::all();
         
-        $reportadores = Usuario::where('bloqueado', false)->where('rol', '!=', 'admin')->get();
-        $reportados = Usuario::where('bloqueado', false)->get();
+        $reportadores = Usuario::where('bloqueado', false)
+            ->where('rol', '!=', 'admin')
+            ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
+            ->get();
+        $reportados = Usuario::where('bloqueado', false)
+            ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
+            ->get();
 
         if ($reportadores->isEmpty() || $reportados->isEmpty()) {
             $this->command->info('No hay usuarios para crear reportes.');

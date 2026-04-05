@@ -7,11 +7,16 @@ use App\Models\Servicio;
 use App\Models\Usuario;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class PostulacionSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Postulacion::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
         $faker = Faker::create('es_CO');
 
         // Estados con distribución realista
@@ -39,11 +44,13 @@ class PostulacionSeeder extends Seeder
                 $usuarios = Usuario::where('rol', 'ofertante')
                     ->where('id_CorreoUsuario', '!=', $servicio->id_Dueno)
                     ->where('bloqueado', false)
+                    ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
                     ->get();
             } else {
                 $usuarios = Usuario::where('rol', 'cliente')
                     ->where('id_CorreoUsuario', '!=', $servicio->id_Dueno)
                     ->where('bloqueado', false)
+                    ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
                     ->get();
             }
 

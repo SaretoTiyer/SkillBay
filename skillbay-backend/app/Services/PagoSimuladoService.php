@@ -68,7 +68,10 @@ class PagoSimuladoService
     ): array {
         $postulacion = Postulacion::with(['servicio', 'usuario'])->findOrFail($idPostulacion);
         $servicio = $postulacion->servicio;
-        $receptor = $postulacion->usuario;
+        // Determinamos el receptor correctamente según el tipo de postulación:
+        // - 'solicitante': id_Usuario = CLIENTE (pagador), servicio->id_Dueno = OFERTANTE (receptor)
+        // - 'postulante':  id_Usuario = OFERTANTE (receptor), servicio->id_Dueno = CLIENTE (pagador)
+        $idReceptor = $postulacion->getUsuarioQueRecibe();
 
         $pago = PagoServicio::create([
             'monto' => $postulacion->presupuesto ?? $servicio->precio,
@@ -83,7 +86,7 @@ class PagoSimuladoService
             'id_Postulacion' => $postulacion->id,
             'id_Servicio' => $servicio->id_Servicio,
             'id_Pagador' => $idPagador,
-            'id_Receptor' => $receptor->id_CorreoUsuario,
+            'id_Receptor' => $idReceptor,
         ]);
 
         return [
@@ -325,13 +328,13 @@ class PagoSimuladoService
                     }
                 }
 
-                // Notificar al ofertante que recibió el pago
-                if ($postulacion->usuario) {
+                // Notificar al receptor (ofertante o postulante según tipo_postulacion) que recibió el pago
+                if ($pago->id_Receptor) {
                     Notificacion::create([
                         'mensaje' => 'Has recibido el pago por "'.$postulacion->servicio?->titulo.'" de $'.number_format($pago->monto, 0, ',', '.').' COP.',
                         'estado' => 'No leido',
                         'tipo' => 'pago',
-                        'id_CorreoUsuario' => $postulacion->usuario->id_CorreoUsuario,
+                        'id_CorreoUsuario' => $pago->id_Receptor,
                     ]);
                 }
 

@@ -182,15 +182,38 @@ class AdminController extends Controller
             ->get();
 
         $results = $top->map(function ($item) {
-            $servicio = Servicio::where('id_Servicio', $item->id_Servicio)
-                ->select('id_Servicio', 'titulo', 'tipo', 'id_Dueno', 'imagen')
+            $servicio = Servicio::with('categoria:id_Categoria,nombre,imagen')
+                ->where('id_Servicio', $item->id_Servicio)
+                ->select('id_Servicio', 'titulo', 'tipo', 'id_Dueno', 'imagen', 'id_Categoria')
                 ->first();
+
+            // Resolver imagen: propia del servicio > imagen de categoría > null
+            $imagenUrl = null;
+            if ($servicio?->imagen) {
+                $imagenUrl = str_starts_with($servicio->imagen, 'http')
+                    ? $servicio->imagen
+                    : asset('storage/'.$servicio->imagen);
+            } elseif ($servicio?->categoria?->imagen) {
+                $catImg = $servicio->categoria->imagen;
+                $imagenUrl = str_starts_with($catImg, 'http')
+                    ? $catImg
+                    : asset('storage/'.$catImg);
+            }
+
             return [
                 'id' => $item->id_Servicio,
                 'titulo' => $servicio?->titulo ?? '',
                 'tipo' => $servicio?->tipo ?? '',
                 'id_Dueno' => $servicio?->id_Dueno ?? '',
-                'imagen' => $servicio?->imagen ? (str_starts_with($servicio->imagen, 'http') ? $servicio->imagen : asset('storage/'.$servicio->imagen)) : null,
+                'imagen' => $imagenUrl,
+                'categoria' => $servicio?->categoria ? [
+                    'nombre' => $servicio->categoria->nombre,
+                    'imagen' => $servicio->categoria->imagen
+                        ? (str_starts_with($servicio->categoria->imagen, 'http')
+                            ? $servicio->categoria->imagen
+                            : asset('storage/'.$servicio->categoria->imagen))
+                        : null,
+                ] : null,
                 'promedio' => round($item->promedio, 1),
                 'total_resenas' => $item->total_resenas,
             ];

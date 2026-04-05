@@ -57,6 +57,13 @@ class ResenaSeeder extends Seeder
                 continue;
             }
 
+            // Validar que la postulación existe en la DB (evita FK violation)
+            $postulacionIdValido = null;
+            if ($pago->id_Postulacion) {
+                $postulacionExiste = Postulacion::where('id', $pago->id_Postulacion)->exists();
+                $postulacionIdValido = $postulacionExiste ? $pago->id_Postulacion : null;
+            }
+
             if ($servicio->tipo === 'servicio') {
                 // ========== SERVICIO ==========
                 // CLIENTE (pagador) califica al OFERTANTE (dueno del servicio)
@@ -73,7 +80,7 @@ class ResenaSeeder extends Seeder
                     'id_CorreoUsuario' => $pago->id_Pagador,
                     'id_CorreoUsuario_Calificado' => $servicio->id_Dueno,
                     'rol_calificado' => 'ofertante',
-                    'id_Postulacion' => $pago->id_Postulacion,
+                    'id_Postulacion' => $postulacionIdValido,
                 ]);
                 $count++;
 
@@ -91,7 +98,7 @@ class ResenaSeeder extends Seeder
                         'id_CorreoUsuario' => $pago->id_Receptor,
                         'id_CorreoUsuario_Calificado' => $pago->id_Pagador,
                         'rol_calificado' => 'cliente',
-                        'id_Postulacion' => $pago->id_Postulacion,
+                        'id_Postulacion' => $postulacionIdValido,
                     ]);
                     $count++;
                 }
@@ -99,8 +106,8 @@ class ResenaSeeder extends Seeder
                 // ========== OPORTUNIDAD ==========
                 // CLIENTE (dueno del servicio) califica al OFERTANTE (postulante)
                 $calificacionUsuario = $this->weightedRating([1, 2, 3, 4, 5], [5, 8, 15, 35, 37]);
-                
-                $postulacion = Postulacion::find($pago->id_Postulacion);
+
+                $postulacion = $postulacionIdValido ? Postulacion::find($postulacionIdValido) : null;
                 $calificado = $postulacion?->id_Usuario ?? $pago->id_Receptor;
 
                 $comentario = $this->getComentario($calificacionUsuario, $comentariosPositivos, $comentariosNeutrales, $comentariosNegativos);
@@ -113,7 +120,7 @@ class ResenaSeeder extends Seeder
                     'id_CorreoUsuario' => $servicio->id_Dueno,
                     'id_CorreoUsuario_Calificado' => $calificado,
                     'rol_calificado' => 'ofertante',
-                    'id_Postulacion' => $pago->id_Postulacion,
+                    'id_Postulacion' => $postulacionIdValido,
                 ]);
                 $count++;
 
@@ -131,7 +138,7 @@ class ResenaSeeder extends Seeder
                         'id_CorreoUsuario' => $calificado,
                         'id_CorreoUsuario_Calificado' => $servicio->id_Dueno,
                         'rol_calificado' => 'cliente',
-                        'id_Postulacion' => $pago->id_Postulacion,
+                        'id_Postulacion' => $postulacionIdValido,
                     ]);
                     $count++;
                 }

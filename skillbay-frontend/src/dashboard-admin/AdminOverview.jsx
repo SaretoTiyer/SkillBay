@@ -6,6 +6,7 @@ import { API_URL } from "../config/api";
 import { showSuccess, showError } from "../utils/swalHelpers";
 import StatCard from "./shared/StatCard";
 import StarRating from "./shared/StarRating";
+import { getServiceImage } from "../utils/serviceImages";
 
 const COLORS = {
   admin: "#dc2626",
@@ -321,7 +322,7 @@ export default function AdminOverview() {
                   {i + 1}
                 </div>
                 <div className="w-9 h-9 rounded-lg overflow-hidden bg-gray-100">
-                  {service.imagen ? <img src={service.imagen} alt={service.titulo} className="w-full h-full object-cover" /> : <Package className="text-gray-400 w-full h-full flex items-center justify-center" size={16} />}
+                  {getServiceImage(service) ? <img src={getServiceImage(service)} alt={service.titulo} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = getServiceImage({ categoria: service.categoria }); }} /> : <Package className="text-gray-400 w-full h-full flex items-center justify-center" size={16} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{service.titulo}</p>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CreditCard, Loader2, ReceiptText, CheckCircle, Clock, Shield,
   Wallet, Smartphone, Banknote, QrCode, ChevronDown, ChevronUp,
-  ArrowLeft, AlertCircle, X
+  ArrowLeft, AlertCircle, X, FileText, ExternalLink
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { showSuccess, showError, showInfo } from "../../utils/swalHelpers";
@@ -319,6 +319,17 @@ export default function UserPayments() {
     finally { setProcessing(false); }
   };
 
+  // ---- Open invoice in new tab ----
+  const openInvoice = (tipo, pago) => {
+    const invoiceData = {
+      tipo,
+      pago,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem("invoice_data", JSON.stringify(invoiceData));
+    window.open("/invoice", "_blank");
+  };
+
   const currentPlan = plans.find(p => p.id_Plan === currentPlanId);
   const planSeleccionado = plans.find(p => p.id_Plan === planForm.id_Plan);
   const precioPlan = Number(planSeleccionado?.precioMensual ?? 0);
@@ -619,11 +630,21 @@ export default function UserPayments() {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0 ml-3">
-                              <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
-                              <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${estadoClass}`}>
-                                {pago.estado}
-                              </span>
+                            <div className="flex items-center gap-3 shrink-0 ml-3">
+                              <button
+                                onClick={() => openInvoice("plan", pago)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium hover:bg-blue-100 transition-colors"
+                                title="Ver detalle / factura"
+                              >
+                                <FileText size={14} />
+                                <span className="hidden sm:inline">Ver detalle</span>
+                              </button>
+                              <div className="text-right">
+                                <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
+                                <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${estadoClass}`}>
+                                  {pago.estado}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         );
@@ -661,11 +682,21 @@ export default function UserPayments() {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right shrink-0 ml-3">
-                              <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
-                              <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${estadoClass}`}>
-                                {pago.estado}
-                              </span>
+                            <div className="flex items-center gap-3 shrink-0 ml-3">
+                              <button
+                                onClick={() => openInvoice("servicio", pago)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 text-xs font-medium hover:bg-green-100 transition-colors"
+                                title="Ver detalle / factura"
+                              >
+                                <FileText size={14} />
+                                <span className="hidden sm:inline">Ver detalle</span>
+                              </button>
+                              <div className="text-right">
+                                <p className="font-semibold text-slate-800">${Number(pago.monto || 0).toLocaleString("es-CO")}</p>
+                                <span className={`inline-block text-xs px-2 py-0.5 rounded-full mt-1 ${estadoClass}`}>
+                                  {pago.estado}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         );

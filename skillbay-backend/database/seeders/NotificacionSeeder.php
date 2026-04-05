@@ -6,11 +6,16 @@ use App\Models\Notificacion;
 use App\Models\Usuario;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class NotificacionSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Notificacion::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
         $faker = Faker::create('es_CO');
 
         $tipos = [
@@ -59,7 +64,9 @@ class NotificacionSeeder extends Seeder
             ],
         ];
 
-        $usuarios = Usuario::where('rol', '!=', 'admin')->get();
+        $usuarios = Usuario::where('rol', '!=', 'admin')
+            ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
+            ->get();
 
         if ($usuarios->isEmpty()) {
             $this->command->info('No hay usuarios para crear notificaciones.');

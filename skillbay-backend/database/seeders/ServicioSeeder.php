@@ -6,11 +6,16 @@ use App\Models\Categoria;
 use App\Models\Servicio;
 use App\Models\Usuario;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ServicioSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Servicio::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
         $faker = \Faker\Factory::create('es_CO');
 
         $metodosPagoComunes = ['tarjeta', 'nequi', 'bancolombia_qr', 'efectivo'];
@@ -184,8 +189,14 @@ class ServicioSeeder extends Seeder
             return;
         }
 
-        $ofertantes = Usuario::where('rol', 'ofertante')->where('bloqueado', false)->get();
-        $clientes = Usuario::where('rol', 'cliente')->where('bloqueado', false)->get();
+        $ofertantes = Usuario::where('rol', 'ofertante')
+            ->where('bloqueado', false)
+            ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
+            ->get();
+        $clientes = Usuario::where('rol', 'cliente')
+            ->where('bloqueado', false)
+            ->where('id_CorreoUsuario', 'like', '%@skillbay.com')
+            ->get();
 
         if ($ofertantes->isEmpty()) {
             $this->command->info('No hay ofertantes para crear servicios.');

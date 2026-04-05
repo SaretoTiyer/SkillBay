@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pagos/plan', [PagoController::class, 'pagarPlan']);
     Route::post('/pagos/servicio', [PagoController::class, 'pagarServicio']);
     Route::get('/pagos/historial', [PagoController::class, 'historial']);
+    Route::get('/pagos/historial/{tipo}/{id}', [PagoController::class, 'detalle']);
 
     // Pago simulado
     Route::get('/pagos/metodos', [PagoSimuladoController::class, 'metodosPago']);
@@ -131,6 +132,7 @@ Route::middleware(['auth:sanctum', 'es.admin'])->group(function () {
     Route::patch('/admin/reportes/{id}/estado', [ReporteController::class, 'cambiarEstado']);
 
     Route::get('/admin/categorias', [CategoriaController::class, 'listar']);
+    Route::get('/admin/categorias/kpis', [CategoriaController::class, 'kpis']);
     Route::post('/admin/categorias', [CategoriaController::class, 'crear']);
     Route::put('/admin/categorias/{id}', [CategoriaController::class, 'actualizar']);
     Route::delete('/admin/categorias/{id}', [CategoriaController::class, 'eliminar']);
