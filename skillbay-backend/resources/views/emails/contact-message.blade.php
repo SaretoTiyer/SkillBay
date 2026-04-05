@@ -35,7 +35,7 @@
                                         </p>
                                         <p style="margin: 0 0 16px;">
                                             <strong style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Asunto</strong><br>
-                                            <span style="color: #111827; font-size: 16px;">{{ $subject }}</span>
+                                            <span style="color: #111827; font-size: 16px;">{{ $contactSubject }}</span>
                                         </p>
                                         <p style="margin: 0;">
                                             <strong style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Mensaje</strong><br>

@@ -68,7 +68,7 @@ class AuthRecoveryController extends Controller
         ]);
     }
 
-    public function restablecerContraseña(Request $request)
+    public function restablecerContrasena(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email|max:191',

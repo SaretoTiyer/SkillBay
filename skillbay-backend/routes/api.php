@@ -76,7 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Pago simulado
     Route::get('/pagos/metodos', [PagoSimuladoController::class, 'metodosPago']);
     Route::post('/pagos/plan/simulado', [PagoSimuladoController::class, 'iniciarPagoPlan']);
-    Route::post('/pagos/servicio/simulado', [PagoSimuladoController::class, 'iniciarPagoServicio']);
+    Route::post('/pagos/servicio/simulado', [PagoSimuladoController::class, 'iniciarPagoServicioDirecto']);
+    Route::post('/pagos/servicio/simulado-postulacion', [PagoSimuladoController::class, 'iniciarPagoServicio']);
     Route::post('/pagos/procesar', [PagoSimuladoController::class, 'procesarPago']);
     Route::post('/pagos/aprobar-auto', [PagoSimuladoController::class, 'aprobarAutomatico']);
     Route::get('/pagos/estado', [PagoSimuladoController::class, 'obtenerEstado']);

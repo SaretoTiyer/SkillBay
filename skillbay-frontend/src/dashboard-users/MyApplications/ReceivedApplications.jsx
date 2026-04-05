@@ -24,6 +24,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import RatingModal from "../../components/RatingModal";
+import PaymentCheckoutModal from "../../components/PaymentCheckoutModal";
 import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
 // ============================================
@@ -183,6 +184,8 @@ export default function ReceivedApplications() {
   const [ratingService, setRatingService] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [showPaymentCheckout, setShowPaymentCheckout] = useState(false);
+  const [paymentPostulacion, setPaymentPostulacion] = useState(null);
 
   const authHeaders = (json = false) => ({
     Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -355,12 +358,6 @@ export default function ReceivedApplications() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <DollarSign size={12} className="text-emerald-500" />
-                <span className="text-slate-600 font-medium">
-                  ${Number(precio).toLocaleString("es-CO")}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
                 <Calendar size={12} className="text-indigo-500" />
                 <span className="text-slate-500">
                   {request.created_at
@@ -446,34 +443,9 @@ export default function ReceivedApplications() {
                     <Button
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                      onClick={async () => {
-                        const confirm = await showConfirm(
-                          "¿Pagar al postulante?",
-                          "El pago será realizado al postulante que completó el trabajo.",
-                          "Sí, pagar"
-                        );
-                        if (!confirm.isConfirmed) return;
-                        try {
-                          const response = await fetch(`${API_URL}/pagos/servicio`, {
-                            method: "POST",
-                            headers: authHeaders(true),
-                            body: JSON.stringify({
-                              id_Servicio: request.servicio.id_Servicio,
-                              modalidadPago: "virtual",
-                              modalidadServicio: "presencial",
-                              identificacionCliente: "12345678",
-                              origenSolicitud: "postulacion",
-                              id_Postulacion: request.id,
-                              monto: precio,
-                            }),
-                          });
-                          const data = await response.json();
-                          if (!response.ok) throw new Error(data?.message || "Error al procesar el pago.");
-                          fetchSolicitudesRecibidas();
-                          showSuccess("¡Pago exitoso!", "El pago ha sido procesado.");
-                        } catch (error) {
-                          showError("Error", error.message);
-                        }
+                      onClick={() => {
+                        setPaymentPostulacion(request);
+                        setShowPaymentCheckout(true);
                       }}
                     >
                       <DollarSign size={14} className="mr-1" /> Pagar
@@ -619,6 +591,18 @@ export default function ReceivedApplications() {
           </div>
         </section>
       )}
+
+      <PaymentCheckoutModal
+        isOpen={showPaymentCheckout}
+        onClose={() => { setShowPaymentCheckout(false); setPaymentPostulacion(null); }}
+        service={paymentPostulacion?.servicio}
+        postulacionId={paymentPostulacion?.id}
+        monto={paymentPostulacion?.presupuesto || paymentPostulacion?.servicio?.precio || 0}
+        authHeaders={authHeaders}
+        onPaymentSuccess={async () => {
+          await fetchSolicitudesRecibidas();
+        }}
+      />
 
       <RatingModal
         isOpen={showRatingModal}

@@ -495,111 +495,121 @@ export default function ExploreOpportunities() {
       )}
 
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full sm:max-w-4xl sm:rounded-2xl bg-white shadow-2xl flex flex-col sm:max-h-[90vh] max-h-[95dvh] overflow-hidden">
+            {/* Mobile drag handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+            </div>
+            
             <button
               onClick={() => setSelectedItem(null)}
-              className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all p-2 rounded-full"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all p-2 rounded-full"
             >
               <X size={24} />
             </button>
             
-            <div className="flex flex-col lg:flex-row overflow-hidden">
-              <div className="lg:w-1/2 h-64 lg:h-auto relative">
+            <div className="flex flex-col overflow-y-auto overscroll-contain">
+              {/* Image section */}
+              <div className="relative w-full h-48 sm:h-64 sm:w-1/2 lg:h-auto lg:absolute lg:top-0 lg:left-0 lg:bottom-0 lg:w-1/2">
                 <img
                   src={getOpportunityImage(selectedItem)}
                   alt={selectedItem.titulo}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent lg:hidden"></div>
-                <div className="absolute bottom-4 left-4 lg:hidden">
-                  <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-sm font-semibold px-4 py-2 rounded-full shadow-lg">
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent sm:hidden"></div>
+                <div className="absolute bottom-3 left-3 sm:hidden">
+                  <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
                     {selectedItem.categoria?.nombre || "General"}
                   </span>
                 </div>
               </div>
               
-              <div className="lg:w-1/2 p-6 lg:p-8 overflow-y-auto max-h-[70vh] lg:max-h-[90vh]">
-                <div className="mb-6">
-                  <div className="hidden lg:flex items-center gap-2 mb-3 flex-wrap">
-                    <span className="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
-                      {selectedItem.categoria?.nombre || "General"}
+              {/* Content section */}
+              <div className="p-5 sm:p-6 lg:p-8 lg:w-1/2 lg:ml-auto">
+                {/* Badges */}
+                <div className="hidden sm:flex items-center gap-2 mb-3 flex-wrap">
+                  <span className="bg-blue-50 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
+                    {selectedItem.categoria?.nombre || "General"}
+                  </span>
+                  {selectedItem.urgencia && (
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedItem.urgencia === 'urgente' ? 'bg-red-100 text-red-700' :
+                      selectedItem.urgencia === 'alta' ? 'bg-orange-100 text-orange-700' :
+                      selectedItem.urgencia === 'media' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {selectedItem.urgencia === 'urgente' ? 'Urgente' :
+                       selectedItem.urgencia === 'alta' ? 'Alta prioridad' :
+                       selectedItem.urgencia === 'media' ? 'Media prioridad' : 'Baja prioridad'}
                     </span>
-                    {selectedItem.urgencia && (
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        selectedItem.urgencia === 'urgente' ? 'bg-red-100 text-red-700' :
-                        selectedItem.urgencia === 'alta' ? 'bg-orange-100 text-orange-700' :
-                        selectedItem.urgencia === 'media' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {selectedItem.urgencia === 'urgente' ? 'Urgente' :
-                         selectedItem.urgencia === 'alta' ? 'Alta prioridad' :
-                         selectedItem.urgencia === 'media' ? 'Media prioridad' : 'Baja prioridad'}
-                      </span>
-                    )}
-                    {selectedItem.estado && (
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        selectedItem.estado === 'Activo' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'
-                      }`}>
-                        {selectedItem.estado}
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">{selectedItem.titulo}</h2>
-                  <p className="text-gray-500 text-base leading-relaxed">
-                    {selectedItem.descripcion || "Sin descripción disponible."}
-                  </p>
+                  )}
+                  {selectedItem.estado && (
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedItem.estado === 'Activo' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-600'
+                    }`}>
+                      {selectedItem.estado}
+                    </span>
+                  )}
                 </div>
                 
-                <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
-                  <p className="text-sm text-gray-500 mb-1">Presupuesto disponible</p>
-                  <p className="text-4xl font-bold text-blue-600">
+                {/* Title */}
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight">{selectedItem.titulo}</h2>
+                <p className="text-sm sm:text-base text-gray-500 leading-relaxed mb-5">
+                  {selectedItem.descripcion || "Sin descripción disponible."}
+                </p>
+                
+                {/* Budget */}
+                <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6 border border-blue-100">
+                  <p className="text-xs sm:text-sm text-gray-500 mb-1">Presupuesto disponible</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-blue-600">
                     {selectedItem.precio ? `$${Number(selectedItem.precio).toLocaleString("es-CO")}` : "A convenir"}
                   </p>
-                  {selectedItem.precio && <p className="text-sm text-gray-500 mt-1">Pesos colombianos (COP)</p>}
+                  {selectedItem.precio && <p className="text-xs sm:text-sm text-gray-500 mt-1">Pesos colombianos (COP)</p>}
                 </div>
                 
-                <div className="space-y-4 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Detalles de la oportunidad</h3>
+                {/* Details grid */}
+                <div className="space-y-3 sm:space-y-4 mb-5 sm:mb-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Detalles de la oportunidad</h3>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
                         <Clock size={18} className="text-blue-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs text-gray-500">Fecha límite</p>
-                        <p className="font-semibold text-gray-900">{selectedItem.tiempo_entrega || "A convenir"}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">{selectedItem.tiempo_entrega || "A convenir"}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
                         <MapPin size={18} className="text-green-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs text-gray-500">Ubicación</p>
-                        <p className="font-semibold text-gray-900">{selectedItem.ubicacion || selectedItem.cliente_usuario?.ciudad || "Remoto"}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">{selectedItem.ubicacion || selectedItem.cliente_usuario?.ciudad || "Remoto"}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center shrink-0">
                         <User size={18} className="text-purple-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs text-gray-500">Publicado por</p>
-                        <p className="font-semibold text-gray-900">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">{selectedItem.cliente_usuario?.nombre || "Anónimo"}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
                         <Calendar size={18} className="text-amber-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs text-gray-500">Publicado</p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 text-sm truncate">
                           {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleDateString("es-CO", { day: 'numeric', month: 'short', year: 'numeric' }) : "Fecha desconocida"}
                         </p>
                       </div>
@@ -607,12 +617,12 @@ export default function ExploreOpportunities() {
 
                     {selectedItem.modo_trabajo && (
                       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
                           <Globe size={18} className="text-indigo-600" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs text-gray-500">Modo de trabajo</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-gray-900 text-sm truncate">
                             {selectedItem.modo_trabajo === 'virtual' ? 'Virtual' : 
                              selectedItem.modo_trabajo === 'presencial' ? 'Presencial' : 
                              selectedItem.modo_trabajo === 'mixto' ? 'Mixto' : selectedItem.modo_trabajo}
@@ -622,13 +632,13 @@ export default function ExploreOpportunities() {
                     )}
 
                     {selectedItem.metodos_pago && selectedItem.metodos_pago.length > 0 && (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl sm:col-span-2">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
                           <CreditCard size={18} className="text-green-600" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs text-gray-500">Métodos de pago</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-gray-900 text-sm">
                             {Array.isArray(selectedItem.metodos_pago) 
                               ? selectedItem.metodos_pago.map(m => {
                                 if (m === 'tarjeta') return 'Tarjeta';
@@ -645,13 +655,14 @@ export default function ExploreOpportunities() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                {/* Action buttons - sticky on mobile */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100 sm:pb-2">
                   <button
                     onClick={() => {
                       openPublicProfile(selectedItem?.cliente_usuario?.id_CorreoUsuario);
                       setSelectedItem(null);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl transition-colors border border-gray-200"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl transition-colors border border-gray-200 text-sm sm:text-base"
                   >
                     <User size={18} />
                     Ver perfil
@@ -661,7 +672,7 @@ export default function ExploreOpportunities() {
                       postular(selectedItem);
                       setSelectedItem(null);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-200"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-200 text-sm sm:text-base"
                   >
                     <Send size={18} />
                     Postularme

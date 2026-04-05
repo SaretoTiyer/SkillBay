@@ -15,14 +15,14 @@ class ContactMessage extends Mailable
     public function __construct(
         public readonly string $name,
         public readonly string $email,
-        public readonly string $subject,
+        public readonly string $contactSubject,
         public readonly string $messageBody,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "SkillBay - Contacto: {$this->subject}",
+            subject: "SkillBay - Contacto: {$this->contactSubject}",
         );
     }
 

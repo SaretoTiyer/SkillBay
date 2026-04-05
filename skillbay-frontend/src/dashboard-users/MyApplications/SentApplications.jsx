@@ -24,6 +24,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/Button";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import RatingModal from "../../components/RatingModal";
+import PaymentCheckoutModal from "../../components/PaymentCheckoutModal";
 import { determinarContextoCalificacion } from "../../utils/ratingContext";
 
 // ============================================
@@ -163,6 +164,8 @@ export default function SentApplications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [showPaymentCheckout, setShowPaymentCheckout] = useState(false);
+  const [paymentPostulacion, setPaymentPostulacion] = useState(null);
   const [filter, setFilter] = useState("active"); // "active" by default, not "all"
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingData, setRatingData] = useState(null);
@@ -438,39 +441,9 @@ export default function SentApplications() {
                 <Button
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                  onClick={async () => {
-                    const confirm = await showConfirm(
-                      "¿Proceder con el pago?",
-                      "El pago será realizado al proveedor/prestador del servicio.",
-                      "Sí, pagar al proveedor"
-                    );
-                    if (!confirm.isConfirmed) return;
-                    try {
-                      const response = await fetch(`${API_URL}/pagos/servicio`, {
-                        method: "POST",
-                        headers: authHeaders(true),
-                        body: JSON.stringify({
-                          id_Servicio: application.servicio.id_Servicio,
-                          modalidadPago: "virtual",
-                          modalidadServicio: "presencial",
-                          identificacionCliente: "12345678",
-                          origenSolicitud: "postulacion",
-                          id_Postulacion: application.id,
-                          monto:
-                            application.presupuesto || application.servicio?.precio || 0,
-                        }),
-                      });
-                      const data = await response.json();
-                      if (!response.ok)
-                        throw new Error(data?.message || "Error al procesar el pago.");
-                      fetchApplications();
-                      showSuccess(
-                        "¡Pago exitoso!",
-                        "El pago ha sido procesado y el proveedor será notificado."
-                      );
-                    } catch (error) {
-                      showError("Error", error.message);
-                    }
+                  onClick={() => {
+                    setPaymentPostulacion(application);
+                    setShowPaymentCheckout(true);
                   }}
                 >
                   <DollarSign size={14} className="mr-1" /> Pagar
@@ -651,6 +624,19 @@ export default function SentApplications() {
           ))}
         </div>
       )}
+
+      {/* Payment Checkout Modal */}
+      <PaymentCheckoutModal
+        isOpen={showPaymentCheckout}
+        onClose={() => { setShowPaymentCheckout(false); setPaymentPostulacion(null); }}
+        service={paymentPostulacion?.servicio}
+        postulacionId={paymentPostulacion?.id}
+        monto={paymentPostulacion?.presupuesto || paymentPostulacion?.servicio?.precio || 0}
+        authHeaders={authHeaders}
+        onPaymentSuccess={async () => {
+          await fetchApplications();
+        }}
+      />
 
       {/* Rating Modal */}
       <RatingModal

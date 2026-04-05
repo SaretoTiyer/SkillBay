@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Postulacion extends Model
 {
     protected $table = 'postulaciones';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $fillable = [
         'id_Servicio',

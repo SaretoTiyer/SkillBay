@@ -32,7 +32,7 @@ class ContactController extends Controller
                 new ContactMessageMailable(
                     name: $request->input('name'),
                     email: $request->input('email'),
-                    subject: $request->input('subject'),
+                    contactSubject: $request->input('subject'),
                     messageBody: $request->input('message'),
                 )
             );

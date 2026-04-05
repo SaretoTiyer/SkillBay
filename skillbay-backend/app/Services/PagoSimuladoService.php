@@ -71,7 +71,7 @@ class PagoSimuladoService
         $receptor = $postulacion->usuario;
 
         $pago = PagoServicio::create([
-            'monto' => $servicio->precio,
+            'monto' => $postulacion->presupuesto ?? $servicio->precio,
             'fechaPago' => now(),
             'estado' => self::ESTADO_PENDIENTE,
             'metodoPago' => $metodo,
@@ -80,7 +80,7 @@ class PagoSimuladoService
             'modalidadServicio' => $modalidadServicio,
             'identificacionCliente' => $idPagador,
             'origenSolicitud' => 'dashboard',
-            'id_Postulacion' => $postulacion->id_Postulacion,
+            'id_Postulacion' => $postulacion->id,
             'id_Servicio' => $servicio->id_Servicio,
             'id_Pagador' => $idPagador,
             'id_Receptor' => $receptor->id_CorreoUsuario,
@@ -157,6 +157,41 @@ class PagoSimuladoService
             'metodo' => $pago->metodoPago,
             'estado' => $pago->estado,
             'fecha' => $pago->fechaPago,
+        ];
+    }
+
+
+    public function iniciarPagoServicioDirecto(
+        string $idServicio,
+        string $idPagador,
+        string $metodo
+    ): array {
+        $servicio = \App\Models\Servicio::where('id_Servicio', $idServicio)->firstOrFail();
+        $monto = $servicio->precio ?? 0;
+
+        $pago = PagoServicio::create([
+            'monto' => $monto,
+            'fechaPago' => now(),
+            'estado' => self::ESTADO_PENDIENTE,
+            'metodoPago' => $metodo,
+            'referenciaPago' => $this->generarReferencia(),
+            'modalidadPago' => $this->getModalidadFromMetodo($metodo),
+            'modalidadServicio' => 'virtual',
+            'identificacionCliente' => $idPagador,
+            'origenSolicitud' => 'checkout',
+            'id_Servicio' => $servicio->id_Servicio,
+            'id_Pagador' => $idPagador,
+            'id_Receptor' => $servicio->id_Dueno,
+        ]);
+
+        return [
+            'id_pago' => $pago->id_PagoServicio,
+            'tipo' => self::TIPO_SERVICIO,
+            'referencia' => $pago->referenciaPago,
+            'monto' => $pago->monto,
+            'metodo' => $metodo,
+            'estado' => $pago->estado,
+            'descripcion' => "Pago por servicio: {$servicio->titulo}",
         ];
     }
 
@@ -268,6 +303,47 @@ class PagoSimuladoService
         $pago->update([
             'estado' => $resultado['estado'],
         ]);
+
+        // Si el pago está asociado a una postulación y fue completado,
+        // actualizar el estado de la postulación y notificar
+        if ($resultado['estado'] === self::ESTADO_COMPLETADO && $pago->id_Postulacion) {
+            $postulacion = Postulacion::with(['servicio', 'usuario'])->find($pago->id_Postulacion);
+
+            if ($postulacion && $postulacion->estado !== 'pagada') {
+                $postulacion->estado = 'pagada';
+                $postulacion->save();
+
+                // Marcar servicio como completado si no hay más postulaciones activas
+                if ($postulacion->servicio) {
+                    $postulacionesRestantes = Postulacion::where('id_Servicio', $postulacion->servicio->id_Servicio)
+                        ->whereNotIn('estado', ['completada', 'pagada', 'rechazada', 'cancelada'])
+                        ->count();
+
+                    if ($postulacionesRestantes === 0) {
+                        $postulacion->servicio->estado = 'Completado';
+                        $postulacion->servicio->save();
+                    }
+                }
+
+                // Notificar al ofertante que recibió el pago
+                if ($postulacion->usuario) {
+                    Notificacion::create([
+                        'mensaje' => 'Has recibido el pago por "'.$postulacion->servicio?->titulo.'" de $'.number_format($pago->monto, 0, ',', '.').' COP.',
+                        'estado' => 'No leido',
+                        'tipo' => 'pago',
+                        'id_CorreoUsuario' => $postulacion->usuario->id_CorreoUsuario,
+                    ]);
+                }
+
+                // Notificar al cliente que el pago fue procesado
+                Notificacion::create([
+                    'mensaje' => 'Tu pago por "'.$postulacion->servicio?->titulo.'" fue procesado exitosamente. Ya puedes dejar una calificación.',
+                    'estado' => 'No leido',
+                    'tipo' => 'pago',
+                    'id_CorreoUsuario' => $pago->id_Pagador,
+                ]);
+            }
+        }
 
         return [
             'id_pago' => $pago->id_PagoServicio,

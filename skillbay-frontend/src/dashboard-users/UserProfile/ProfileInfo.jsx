@@ -80,6 +80,16 @@ export default function ProfileInfo({ profileData, profileImage, servicesOffered
                 });
                 const data = await response.json();
                 if (response.ok) {
+                    // Update localStorage with new profile image
+                    const storedUser = JSON.parse(localStorage.getItem('usuario') || '{}');
+                    if (data.usuario?.imagen_perfil) {
+                        storedUser.imagen_perfil = data.usuario.imagen_perfil;
+                    } else if (data.path) {
+                        storedUser.imagen_perfil = data.path;
+                    }
+                    localStorage.setItem('usuario', JSON.stringify(storedUser));
+                    // Dispatch storage event so DashboardLayout updates immediately
+                    window.dispatchEvent(new Event('storage'));
                     onUpdate();
                     showSuccess('Foto actualizada', 'Tu foto de perfil ha sido actualizada.');
                 } else {

@@ -101,8 +101,13 @@ class UsuarioController extends Controller
                 'id_CorreoUsuario' => $user->id_CorreoUsuario,
             ]);
 
-            // Enviar email de bienvenida de forma asíncrona
-            Mail::to($user->id_CorreoUsuario)->queue(new BienvenidaMail($user));
+            // Enviar email de bienvenida
+            // En producción usar queue(), en desarrollo send() para entrega inmediata
+            if (app()->environment('production')) {
+                Mail::to($user->id_CorreoUsuario)->queue(new BienvenidaMail($user));
+            } else {
+                Mail::to($user->id_CorreoUsuario)->send(new BienvenidaMail($user));
+            }
 
             return response()->json([
                 'success' => true,
@@ -357,6 +362,7 @@ class UsuarioController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Imagen de perfil actualizada',
+                'usuario' => $user,
                 'path' => $path,
                 'imagen_perfil' => asset('storage/'.$path),
             ]);
@@ -475,7 +481,7 @@ class UsuarioController extends Controller
             // Obtener servicios (tipo=servicio) del usuario
             $servicios = Servicio::where('id_Dueno', $usuario->id_CorreoUsuario)
                 ->where('tipo', 'servicio')
-                ->with('categoria:id_Categoria,nombre,grupo')
+                ->with('categoria:id_Categoria,nombre,grupo,imagen')
                 ->orderBy('created_at', 'desc')
                 ->get([
                     'id_Servicio',
@@ -493,6 +499,10 @@ class UsuarioController extends Controller
                         $s->imagen = str_starts_with($s->imagen, 'http')
                             ? $s->imagen
                             : asset('storage/'.$s->imagen);
+                    } elseif ($s->categoria?->imagen) {
+                        $s->imagen = str_starts_with($s->categoria->imagen, 'http')
+                            ? $s->categoria->imagen
+                            : asset('storage/'.$s->categoria->imagen);
                     }
 
                     return $s;
@@ -501,7 +511,7 @@ class UsuarioController extends Controller
             // Obtener oportunidades (tipo=oportunidad) del usuario
             $oportunidades = Servicio::where('id_Dueno', $usuario->id_CorreoUsuario)
                 ->where('tipo', 'oportunidad')
-                ->with('categoria:id_Categoria,nombre,grupo')
+                ->with('categoria:id_Categoria,nombre,grupo,imagen')
                 ->orderBy('created_at', 'desc')
                 ->get([
                     'id_Servicio',
@@ -519,6 +529,10 @@ class UsuarioController extends Controller
                         $s->imagen = str_starts_with($s->imagen, 'http')
                             ? $s->imagen
                             : asset('storage/'.$s->imagen);
+                    } elseif ($s->categoria?->imagen) {
+                        $s->imagen = str_starts_with($s->categoria->imagen, 'http')
+                            ? $s->categoria->imagen
+                            : asset('storage/'.$s->categoria->imagen);
                     }
 
                     return $s;

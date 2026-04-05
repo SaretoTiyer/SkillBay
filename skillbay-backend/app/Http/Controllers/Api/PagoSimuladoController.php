@@ -42,16 +42,42 @@ class PagoSimuladoController extends Controller
         $validated = $request->validate([
             'id_postulacion' => 'required|integer|exists:postulaciones,id',
             'metodo' => 'required|string|in:tarjeta,efectivo,nequi,bancolombia_qr',
-            'modalidad_servicio' => 'required|string|in:virtual,presencial',
+            'modalidad_servicio' => 'nullable|string|in:virtual,presencial,mixto',
         ]);
 
         $usuario = $request->user();
+
+        // Normalizar modalidad: 'mixto' → 'virtual' para el registro de pago
+        $modalidad = $validated['modalidad_servicio'] ?? 'virtual';
+        if ($modalidad === 'mixto') $modalidad = 'virtual';
 
         $resultado = $this->pagoService->iniciarPagoServicio(
             $validated['id_postulacion'],
             $usuario->id_CorreoUsuario,
             $validated['metodo'],
-            $validated['modalidad_servicio']
+            $modalidad
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $resultado,
+        ]);
+    }
+
+
+    public function iniciarPagoServicioDirecto(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'id_Servicio' => 'required|string|exists:servicios,id_Servicio',
+            'metodo' => 'required|string|in:tarjeta,efectivo,nequi,bancolombia_qr',
+        ]);
+
+        $usuario = $request->user();
+
+        $resultado = $this->pagoService->iniciarPagoServicioDirecto(
+            $validated['id_Servicio'],
+            $usuario->id_CorreoUsuario,
+            $validated['metodo']
         );
 
         return response()->json([

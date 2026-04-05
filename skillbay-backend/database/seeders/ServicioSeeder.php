@@ -19,67 +19,168 @@ class ServicioSeeder extends Seeder
         $estados = ['Activo', 'Activo', 'Activo', 'Borrador', 'Inactivo'];
         $ciudades = ['Bogota', 'Medellin', 'Cali', 'Barranquilla', 'Cartagena', 'Bucaramanga', 'Pereira', 'Manizales'];
 
-        $imagenesServicios = [
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
-            'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
-            'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800',
-            'https://images.unsplash.com/photo-1559028012-481c04fa702d?w=800',
-            'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800',
-            'https://images.unsplash.com/photo-1522542550221-31fd8575f6a5?w=800',
-            'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800',
-            'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800',
+        // Servicios con categoria EXPLÍCITA para que la imagen coincida
+        // Cada servicio tiene: titulo, categoria_id, y descripcion coherente
+        $serviciosData = [
+            [
+                'titulo' => 'Desarrollo de Landing Page Profesional',
+                'cat' => 'tec_desarrollo_web',
+                'desc' => 'Creo landing pages modernas, responsivas y optimizadas para conversion. Incluye diseno personalizado, integracion con formularios y analitica.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Desarrollo de Tienda Virtual WooCommerce',
+                'cat' => 'tec_desarrollo_web',
+                'desc' => 'Tienda online completa con WooCommerce, pasarela de pagos, gestion de inventario y diseno profesional.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Diseno de Logotipo Corporativo',
+                'cat' => 'tec_diseno_grafico',
+                'desc' => 'Creacion de logotipos profesionales con manual de marca, paleta de colores y aplicaciones en diferentes formatos.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Diseno de Identidad Visual Completa',
+                'cat' => 'tec_diseno_grafico',
+                'desc' => 'Paquete completo de branding: logotipo, papeleria, redes sociales y guia de estilo para tu marca.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Diseno UI/UX para Aplicacion Movil',
+                'cat' => 'tec_diseno_ui_ux',
+                'desc' => 'Diseno de interfaces intuitivas y atractivas para apps moviles. Wireframes, prototipos interactivos y diseno final en Figma.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Desarrollo de Aplicacion React Native',
+                'cat' => 'tec_desarrollo_mobile',
+                'desc' => 'Desarrollo de aplicaciones moviles multiplataforma con React Native para iOS y Android con una sola base de codigo.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Marketing Digital Completo - SEO y Ads',
+                'cat' => 'tec_marketing_digital',
+                'desc' => 'Estrategia integral de marketing digital: SEO, Google Ads, Meta Ads, email marketing y analitica web.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Soporte Tecnico Remoto 24/7',
+                'cat' => 'tec_soporte_tecnico',
+                'desc' => 'Soporte tecnico remoto para empresas y particulares. Resolucion de problemas de hardware, software y redes.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Consultoria en Transformacion Digital',
+                'cat' => 'sg_consultoria',
+                'desc' => 'Asesoria especializada para digitalizar procesos empresariales, automatizar tareas y mejorar la productividad.',
+                'tipo' => 'servicio',
+            ],
+            [
+                'titulo' => 'Clases de Guitarra para Principiantes',
+                'cat' => 'edu_musica',
+                'desc' => 'Clases personalizadas de guitarra acustica y electrica. Desde nivel basico hasta intermedio, teoria musical incluida.',
+                'tipo' => 'servicio',
+            ],
         ];
 
-        $imagenesOportunidades = [
-            'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800',
-            'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800',
-            'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800',
-            'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800',
-            'https://images.unsplash.com/photo-1552581234-26160f608093?w=800',
-            'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800',
-            'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800',
-            'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800',
+        // Oportunidades con categoria EXPLICITA
+        $oportunidadesData = [
+            [
+                'titulo' => 'Se necesita Desarrollador Web React',
+                'cat' => 'tec_desarrollo_web',
+                'desc' => 'Empresa de tecnologia busca desarrollador React con experiencia en Next.js para proyecto de 3 meses.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Disenador Grafico Freelancer',
+                'cat' => 'tec_diseno_grafico',
+                'desc' => 'Startup busca disenador grafico para crear material publicitario y contenido para redes sociales.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Necesito Marketing Digital para Startup',
+                'cat' => 'tec_marketing_digital',
+                'desc' => 'Startup fintech necesita experto en marketing digital para lanzamiento de producto y crecimiento de usuarios.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Tutor de Programacion Python',
+                'cat' => 'edu_tutorias',
+                'desc' => 'Estudiante universitario busca tutor de Python para preparacion de examen de programacion avanzada.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Se busca Disenador UI/UX Senior',
+                'cat' => 'tec_diseno_ui_ux',
+                'desc' => 'Agencia digital busca disenador UI/UX senior con portafolio comprobable en proyectos SaaS.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Empresa busca Community Manager',
+                'cat' => 'tec_marketing_digital',
+                'desc' => 'Restaurante cadena busca community manager para gestion de redes sociales y creacion de contenido.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Desarrollador Mobile Flutter',
+                'cat' => 'tec_desarrollo_mobile',
+                'desc' => 'Empresa de logistica necesita app movil en Flutter para gestion de entregas en tiempo real.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Necesito Asesor Legal Empresarial',
+                'cat' => 'sg_asesoria_legal',
+                'desc' => 'PYME necesita asesoria legal para constitucion de sociedad, contratos laborales y propiedad intelectual.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Se busca Traductor Ingles-Espanol',
+                'cat' => 'sg_traduccion',
+                'desc' => 'Editorial busca traductor profesional para traduccion de 3 libros de negocios del ingles al espanol.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Contador Publico para Startup',
+                'cat' => 'sg_contabilidad',
+                'desc' => 'Startup tecnologica necesita contador publico para gestion tributaria, nomina y estados financieros.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Empresa requiere Organizador de Eventos',
+                'cat' => 'eve_organizacion',
+                'desc' => 'Corporacion necesita organizador de eventos para conferencia anual de 500 personas en Cartagena.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Fotografo para Evento Corporativo',
+                'cat' => 'eve_fotografia',
+                'desc' => 'Empresa necesita fotografo profesional para cubrir evento de lanzamiento de producto con 200 invitados.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Se necesita Carpintero para Muebles a Medida',
+                'cat' => 'ofi_carpinteria',
+                'desc' => 'Familia busca carpintero experimentado para fabricar cocina integral y closets a medida.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Busco Pintor para Casa Completa',
+                'cat' => 'ofi_pintura',
+                'desc' => 'Propietario busca pintor profesional para pintar casa de 3 pisos, interiores y exteriores.',
+                'tipo' => 'oportunidad',
+            ],
+            [
+                'titulo' => 'Necesito Servicio de Limpieza Profunda',
+                'cat' => 'hog_limpieza',
+                'desc' => 'Oficina de 200m2 necesita servicio de limpieza profunda despues de remodelacion.',
+                'tipo' => 'oportunidad',
+            ],
         ];
 
-        $titulosServicios = [
-            'Desarrollo de Landing Page Profesional',
-            'Diseño de Logotipo Corporativo',
-            'Diseño UI/UX para Aplicación Móvil',
-            'Marketing Digital Completo - SEO y Ads',
-            'Soporte Técnico Remoto 24/7',
-            'Desarrollo de Tienda Virtual WooCommerce',
-            'Diseño de Identidad Visual Completa',
-            'Desarrollo de API REST y Backend',
-            'Creación de Contenido para Redes Sociales',
-            'Consultoría en Transformación Digital',
-            'Desarrollo de Aplicación React Native',
-            'Diseño de Presentaciones Corporativas',
-            'Edición de Video Profesional',
-            'Desarrollo de Chatbot con IA',
-            'Implementación de CRM Empresarial',
-        ];
-
-        $titulosOportunidades = [
-            'Se necesita Desarrollador Web React',
-            'Busco Diseñador Gráfico Freelancer',
-            'Necesito Marketing Digital paraStartup',
-            'Busco Tutor de Programación Python',
-            'Se busca Diseñador UI/UX Senior',
-            'Empresa busca Community Manager',
-            'Busco Desarrollador Mobile Flutter',
-            'Necesito Asesor Legal Empresarial',
-            'Se busca Traductor Ingles-Español',
-            'Busco Contador Público para Startup',
-            'Empresa requiere Desarrollador FullStack',
-            'Busco Freelancer para Proyecto SEO',
-            'Se necesita Consultor de Datos',
-            'Busco Editor de Video para YouTube',
-            'Empresa busca Gestor de Proyectos Ágil',
-        ];
-
-        $categorias = Categoria::all();
+        $categorias = Categoria::all()->keyBy('id_Categoria');
         if ($categorias->isEmpty()) {
-            $this->command->info('No hay categorías. Ejecuta CategoriaSeeder primero.');
+            $this->command->info('No hay categorias. Ejecuta CategoriaSeeder primero.');
             return;
         }
 
@@ -91,56 +192,56 @@ class ServicioSeeder extends Seeder
             return;
         }
 
-        // ========== SERVICIOS (tipo = 'servicio') ==========
-        $servicioIndex = 0;
-        foreach ($ofertantes as $ofertante) {
-            foreach (range(1, 2) as $servicioNum) {
-                $precioBase = $servicioNum === 1 ? $faker->numberBetween(100000, 1500000) : $faker->numberBetween(50000, 800000);
-                
-                Servicio::create([
-                    'titulo' => $titulosServicios[$servicioIndex % count($titulosServicios)] ?? $faker->sentence(4),
-                    'descripcion' => $faker->paragraph(3),
-                    'id_Dueno' => $ofertante->id_CorreoUsuario,
-                    'estado' => $faker->randomElement($estados),
-                    'precio' => $precioBase,
-                    'tiempo_entrega' => $faker->numberBetween(1, 30).' días',
-                    'id_Categoria' => $categorias->random()->id_Categoria,
-                    'tipo' => 'servicio',
-                    'fechaPublicacion' => $faker->dateTimeBetween('-3 months', 'now'),
-                    'imagen' => $imagenesServicios[$servicioIndex % count($imagenesServicios)],
-                    'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
-                    'modo_trabajo' => $faker->randomElement($modoTrabajo),
-                    'urgencia' => $faker->randomElement($urgencias),
-                ]);
-                $servicioIndex++;
-            }
+        // ========== SERVICIOS ==========
+        foreach ($serviciosData as $index => $data) {
+            $ofertante = $ofertantes[$index % $ofertantes->count()];
+            $categoria = $categorias[$data['cat']] ?? null;
+            if (!$categoria) continue;
+
+            $precio = $faker->numberBetween(100000, 1500000);
+
+            Servicio::create([
+                'titulo' => $data['titulo'],
+                'descripcion' => $data['desc'],
+                'id_Dueno' => $ofertante->id_CorreoUsuario,
+                'estado' => $index < 7 ? 'Activo' : $faker->randomElement($estados),
+                'precio' => $precio,
+                'tiempo_entrega' => $faker->numberBetween(1, 30).' dias',
+                'id_Categoria' => $categoria->id_Categoria,
+                'tipo' => 'servicio',
+                'fechaPublicacion' => $faker->dateTimeBetween('-3 months', 'now'),
+                'imagen' => null, // Usa la imagen de la categoria
+                'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
+                'modo_trabajo' => $faker->randomElement($modoTrabajo),
+                'urgencia' => $faker->randomElement($urgencias),
+            ]);
         }
 
-        // ========== OPORTUNIDADES (tipo = 'oportunidad') ==========
-        $oportunidadIndex = 0;
+        // ========== OPORTUNIDADES ==========
         if (! $clientes->isEmpty()) {
-            foreach ($clientes as $cliente) {
-                foreach (range(1, 2) as $oportunidadNum) {
-                    $presupuestoBase = $oportunidadNum === 1 ? $faker->numberBetween(500000, 8000000) : $faker->numberBetween(200000, 3000000);
-                    
-                    Servicio::create([
-                        'titulo' => $titulosOportunidades[$oportunidadIndex % count($titulosOportunidades)] ?? 'Se busca: '.$faker->jobTitle(),
-                        'descripcion' => 'Empresa o particulares buscan profesional para proyecto importante. '.$faker->paragraph(2),
-                        'id_Dueno' => $cliente->id_CorreoUsuario,
-                        'estado' => $faker->randomElement($estados),
-                        'precio' => $presupuestoBase,
-                        'tiempo_entrega' => $faker->randomElement(['Proyecto único', 'Tiempo completo', 'Medio tiempo', 'Por contrato', 'Consultoría puntual']),
-                        'id_Categoria' => $categorias->random()->id_Categoria,
-                        'tipo' => 'oportunidad',
-                        'fechaPublicacion' => $faker->dateTimeBetween('-3 months', 'now'),
-                        'imagen' => $imagenesOportunidades[$oportunidadIndex % count($imagenesOportunidades)],
-                        'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
-                        'modo_trabajo' => $faker->randomElement($modoTrabajo),
-                        'ubicacion' => $faker->randomElement($ciudades),
-                        'urgencia' => $faker->randomElement($urgencias),
-                    ]);
-                    $oportunidadIndex++;
-                }
+            foreach ($oportunidadesData as $index => $data) {
+                $cliente = $clientes[$index % $clientes->count()];
+                $categoria = $categorias[$data['cat']] ?? null;
+                if (!$categoria) continue;
+
+                $presupuesto = $faker->numberBetween(500000, 8000000);
+
+                Servicio::create([
+                    'titulo' => $data['titulo'],
+                    'descripcion' => $data['desc'],
+                    'id_Dueno' => $cliente->id_CorreoUsuario,
+                    'estado' => $index < 10 ? 'Activo' : $faker->randomElement($estados),
+                    'precio' => $presupuesto,
+                    'tiempo_entrega' => $faker->randomElement(['Proyecto unico', 'Tiempo completo', 'Medio tiempo', 'Por contrato', 'Consultoria puntual']),
+                    'id_Categoria' => $categoria->id_Categoria,
+                    'tipo' => 'oportunidad',
+                    'fechaPublicacion' => $faker->dateTimeBetween('-3 months', 'now'),
+                    'imagen' => null, // Usa la imagen de la categoria
+                    'metodos_pago' => $faker->randomElements($metodosPagoComunes, $faker->numberBetween(2, 4)),
+                    'modo_trabajo' => $faker->randomElement($modoTrabajo),
+                    'ubicacion' => $faker->randomElement($ciudades),
+                    'urgencia' => $faker->randomElement($urgencias),
+                ]);
             }
         }
 

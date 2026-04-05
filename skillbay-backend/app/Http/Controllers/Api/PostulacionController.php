@@ -26,11 +26,20 @@ class PostulacionController extends Controller
 
         // Get applications made by the user, including service and service's client details
         $postulaciones = Postulacion::where('id_Usuario', $user->id_CorreoUsuario)
-            ->with(['servicio', 'servicio.cliente_usuario' => function ($query) {
-                $query->select('id_CorreoUsuario', 'nombre', 'apellido');
-            }, 'usuario' => function ($query) {
-                $query->select('id_CorreoUsuario', 'nombre', 'apellido');
-            }])
+            ->with([
+                'servicio' => function ($query) {
+                    $query->select('id_Servicio', 'titulo', 'descripcion', 'id_Dueno', 'id_Categoria', 'imagen', 'estado', 'tipo', 'precio', 'metodos_pago', 'modo_trabajo');
+                },
+                'servicio.categoria' => function ($query) {
+                    $query->select('id_Categoria', 'nombre', 'grupo', 'imagen');
+                },
+                'servicio.cliente_usuario' => function ($query) {
+                    $query->select('id_CorreoUsuario', 'nombre', 'apellido');
+                },
+                'usuario' => function ($query) {
+                    $query->select('id_CorreoUsuario', 'nombre', 'apellido');
+                },
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -60,8 +69,8 @@ class PostulacionController extends Controller
         }
 
         $solicitudes = Postulacion::with([
-            'servicio:id_Servicio,titulo,id_Dueno,id_Categoria,imagen,estado,tipo',
-            'servicio.categoria:id_Categoria,nombre,grupo',
+            'servicio:id_Servicio,titulo,id_Dueno,id_Categoria,imagen,estado,tipo,precio,metodos_pago,modo_trabajo',
+            'servicio.categoria:id_Categoria,nombre,grupo,imagen',
             'usuario:id_CorreoUsuario,nombre,apellido,ciudad',
         ])
             ->whereHas('servicio', function ($query) use ($user) {
@@ -292,7 +301,14 @@ class PostulacionController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $postulacion = Postulacion::with(['servicio', 'usuario'])
+        $postulacion = Postulacion::with([
+            'servicio' => function ($query) {
+                $query->select('id_Servicio', 'titulo', 'id_Dueno', 'id_Categoria', 'imagen', 'estado', 'tipo', 'precio', 'metodos_pago', 'modo_trabajo');
+            },
+            'usuario' => function ($query) {
+                $query->select('id_CorreoUsuario', 'nombre', 'apellido');
+            },
+        ])
             ->where('id', $id)
             ->first();
 
