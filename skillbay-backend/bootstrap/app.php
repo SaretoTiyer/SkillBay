@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Confiar en el reverse proxy de Azure App Service para que
+        // Laravel lea X-Forwarded-Proto y genere URLs HTTPS correctas.
+        $middleware->trustProxies(at: '*');
+        $middleware->alias(['es.admin' => \App\Http\Middleware\EsAdmin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
