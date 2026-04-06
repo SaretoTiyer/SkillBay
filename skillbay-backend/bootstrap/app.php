@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias(['es.admin' => \App\Http\Middleware\EsAdmin::class]);
+        // Azure termina SSL en el load balancer; confiar en todos los proxies
+        // para que Request::secure() y URL::forceScheme() funcionen correctamente.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
