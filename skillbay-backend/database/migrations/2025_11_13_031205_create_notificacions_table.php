@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('id_Notificacion');
             $table->text('mensaje');
             $table->dateTime('fecha')->useCurrent();
-            $table->string('estado', 50)->default('No leído');
+            $table->string('estado', 50)->default('No leido');
             $table->string('tipo', 50)->nullable();
             $table->string('id_CorreoUsuario', 191);
             $table->foreign('id_CorreoUsuario')->references('id_CorreoUsuario')->on('usuarios');
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('notificacions');
+        Schema::dropIfExists('notificaciones');
     }
 };

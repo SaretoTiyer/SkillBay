@@ -15,6 +15,8 @@ return new class extends Migration
             $table->string('id_Cliente', 191);
             $table->string('estado', 50)->default('Activo');
             $table->decimal('precio', 10, 2)->nullable();
+            $table->string('imagen')->nullable();
+            $table->string('tiempo_entrega')->nullable();
             $table->dateTime('fechaPublicacion')->useCurrent();
             $table->string('id_Contratista', 191)->nullable();
             $table->string('id_Categoria', 191)->nullable();

@@ -54,9 +54,7 @@ class PagoServicioSeeder extends Seeder
             $referencia = 'PAY-' . strtoupper($faker->regexify('[A-Z0-9]{8}'));
 
             // Para pagos completados, agregar más datos
-            // Usar picsum.photos (HTTPS) en vez de faker->imageUrl() que genera URLs HTTP
-            $seed = $faker->numberBetween(1, 1000);
-            $comprobante = $estadoPago === 'Completado' ? "https://picsum.photos/seed/{$seed}/400/300" : null;
+            $comprobante = $estadoPago === 'Completado' ? $faker->imageUrl(400, 300, 'payment') : null;
             $fechaComprobante = $comprobante ? $faker->dateTimeBetween($fechaPago, 'now') : null;
 
             PagoServicio::create([

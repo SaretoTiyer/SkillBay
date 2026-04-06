@@ -1,6 +1,6 @@
     import { useEffect,useState, useMemo } from 'react';
-    import { Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
-    import Swal from 'sweetalert2';
+    import { ArrowLeft, Eye, EyeOff, UserPlus, Phone } from 'lucide-react';
+    import { showSuccess, showError } from '../utils/swalHelpers';
     import { API_URL } from '../config/api';
     import { API_Departamentos } from '../config/api';
     import logoFull from '../assets/IconoSkillBay.png';
@@ -24,7 +24,7 @@
             setDepartments(data);
             } catch (error) {
             console.error('Error cargando departamentos', error);
-            Swal.fire('Error', 'No se pudieron cargar los departamentos', 'error');
+            showError('Error', 'No se pudieron cargar los departamentos');
             } finally {
             setLoadingDepartments(false);
             }
@@ -63,7 +63,7 @@
             setCities(cityNames);
         } catch (error) {
             console.error('Error cargando ciudades', error);
-            Swal.fire('Error', 'No se pudieron cargar las ciudades', 'error');
+            showError('Error', 'No se pudieron cargar las ciudades');
             setCities([]);
         }
     };
@@ -76,6 +76,7 @@
         genero: '',
         ciudad: '',
         departamento: '',
+        fechaNacimiento: '',
         password: '',
         confirmPassword: '',
         acceptTerms: false,
@@ -158,6 +159,7 @@
         'genero',
         'ciudad',
         'departamento',
+        'fechaNacimiento',
         'password',
         'confirmPassword',
         ];
@@ -219,6 +221,17 @@
         newErrors.confirmPassword = 'Las contraseñas no coinciden';
         }
 
+        if (formData.fechaNacimiento) {
+            const birth = new Date(formData.fechaNacimiento);
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+            if (age < 18) {
+                newErrors.fechaNacimiento = 'Debes ser mayor de 18 anos para registrarte';
+            }
+        }
+
         // accept terms (es un campo booleano)
         if (!formData.acceptTerms) {
         newErrors.acceptTerms = 'Debes aceptar los términos y condiciones';
@@ -250,6 +263,7 @@
             genero: formData.genero || null,
             ciudad: formData.ciudad || null,
             departamento: formData.departamento || null,
+            fechaNacimiento: formData.fechaNacimiento,
             password: formData.password,
             }),
         });
@@ -266,24 +280,19 @@
         }
 
         if (response.ok) {
-            Swal.fire({
-            icon: 'success',
-            title: 'Registro exitoso',
-            text: '¡Bienvenido a SkillBay!',
-            confirmButtonColor: '#2563eb',
-            }).then(() => onNavigate && onNavigate('login'));
+            showSuccess('Registro exitoso', '¡Bienvenido a SkillBay!').then(() => onNavigate && onNavigate('login'));
         } else {
             // Mostrar errores de validación del backend si vienen
             if (data && data.errors) {
             const messages = Object.values(data.errors).flat().join('\n');
-            Swal.fire('Error', messages, 'error');
+            showError('Error', messages);
             } else {
-            Swal.fire('Error', data.message || 'No se pudo completar el registro', 'error');
+            showError('Error', data.message || 'No se pudo completar el registro');
             }
         }
         } catch (error) {
         console.error(error);
-        Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+        showError('Error', 'Error de conexión con el servidor');
         } finally {
             setIsLoading(false); // apaga ciclo de carga
         }
@@ -298,6 +307,15 @@
 
             <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#1E3A5F] via-[#2B6CB0] to-[#1E3A5F] py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md lg:max-w-4xl w-full bg-white rounded-2xl shadow-2xl p-8 md:p-10">
+                <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate('home')}
+                    className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                >
+                    <ArrowLeft size={16} />
+                    Regresar
+                </button>
+
                 <div className="flex justify-center mb-8">
                 <img src={logoFull} alt="SkillBay" className="h-16" />
                 </div>
@@ -316,9 +334,6 @@
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
-                    required
-                    minLength={2}
-                    maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="Juan"
                     />
@@ -333,9 +348,6 @@
                     name="apellido"
                     value={formData.apellido}
                     onChange={handleChange}
-                    required
-                    minLength={2}
-                    maxLength={100}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="Pérez"
                     />
@@ -346,12 +358,10 @@
                 <div className="lg:col-span-2">
                     <label className="block text-[#1E3A5F]">Correo electrónico</label>
                     <input
-                    type="email"
+                    type="text"
                     name="id_CorreoUsuario"
                     value={formData.id_CorreoUsuario}
                     onChange={handleChange}
-                    required
-                    maxLength={191}
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     placeholder="correo@ejemplo.com"
                     />
@@ -370,12 +380,10 @@
                         </select>
 
                         <input
-                        type="tel"
+                        type="number"
                         name="telefono"
                         value={formData.telefono}
                         onChange={handleChange}
-                        required
-                        pattern="[0-9]{7,10}"
                         className="flex-1 border border-[#E2E8F0] rounded-md px-3 py-2"
                         placeholder="3001234567"
                         />
@@ -390,7 +398,6 @@
                     name="genero"
                     value={formData.genero}
                     onChange={handleChange}
-                    required
                     className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
                     <option value="">Selecciona tu género</option>
@@ -408,7 +415,6 @@
                         name="departamento"
                         value={formData.departamento}
                         onChange={handleDepartmentChange}
-                        required
                         disabled={loadingDepartments}
                         className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
@@ -432,7 +438,6 @@
                         name="ciudad"
                         value={formData.ciudad}
                         onChange={handleChange}
-                        required
                         disabled={!Array.isArray(cities) || cities.length === 0}
                         className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
                     >
@@ -450,6 +455,19 @@
                     {renderError('ciudad')}
                 </div>
 
+                {/* Fecha de nacimiento */}
+                <div className="lg:col-span-2">
+                    <label className="block text-[#1E3A5F]">Fecha de nacimiento (mayor de 18 años)</label>
+                    <input
+                        type="date"
+                        name="fechaNacimiento"
+                        value={formData.fechaNacimiento}
+                        onChange={handleChange}
+                        className="mt-2 w-full border border-[#E2E8F0] rounded-md px-3 py-2"
+                    />
+                    {renderError('fechaNacimiento')}
+                </div>
+
                 {/* Contraseña */}
                 <div className="lg:col-span-2">
                     <label className="block text-[#1E3A5F]">Contraseña</label>
@@ -459,9 +477,6 @@
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        required
-                        minLength={8}
-                        maxLength={15}
                         className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
                         placeholder="••••••••"
                         autoComplete="new-password"
@@ -506,9 +521,6 @@
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        required
-                        minLength={8}
-                        maxLength={15}
                         className="w-full border border-[#E2E8F0] rounded-md px-3 py-2 pr-10"
                         placeholder="••••••••"
                         autoComplete="new-password"
@@ -533,12 +545,12 @@
                     onChange={handleChange}
                     className="rounded text-[#2B6CB0]"
                     />
-                    <span className="text-[#A0AEC0] text-sm">
-                    Acepto los{' '}
-                    <button type="button" className="text-[#2B6CB0] hover:underline">
-                        términos y condiciones
-                    </button>
-                    </span>
+<span className="text-[#A0AEC0] text-sm">
+        Acepto los{' '}
+        <a href="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer" className="text-[#2B6CB0] hover:underline">
+            términos y condiciones
+        </a>
+    </span>
                 </div>
                 {renderError('acceptTerms')}
 

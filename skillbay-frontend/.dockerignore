@@ -1,0 +1,28 @@
+# Dependencies
+/node_modules
+
+# Environment
+.env
+.env.*
+!.env.production
+
+# Build output (will be generated in container)
+/dist
+
+# Git
+/.git
+/.github
+
+# IDE
+/.vscode
+/.idea
+
+# Documentation
+/README.md
+
+# Tests
+/testsprite_tests
+
+# Misc
+.DS_Store
+npm-debug.log*

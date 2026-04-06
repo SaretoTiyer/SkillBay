@@ -1,0 +1,18 @@
+plans/analisis-codigo-skillbay.md
+.kilocodemodes
+# Ignore skills and agents directories/files
+.agents/
+.claude/
+.windsurf/
+AGENTS.md
+skills/
+skill-lock.json
+skills-lock.json
+agents.md
+testsprite_tests/
+tmp
+standard_prd.json
+testsprite_frontend_test_plan.json
+test_app.py
+test_full.py
+nul

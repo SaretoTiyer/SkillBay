@@ -1,0 +1,52 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Git
+/.git
+/.github
+
+# IDE
+/.vscode
+/.idea
+/.fleet
+/.zed
+/.nova
+
+# Storage (will be created fresh in container)
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Public generated files
+/public/hot
+/public/storage
+/public/build
+
+# Database
+/database/database.sqlite
+
+# Tests
+/tests
+/phpunit.xml
+/.phpunit.result.cache
+/.phpunit.cache
+
+# Documentation
+/documentation
+/README.md
+
+# Misc
+.DS_Store
+Thumbs.db
+Homestead.json
+Homestead.yaml
+auth.json
+.phpactor.json

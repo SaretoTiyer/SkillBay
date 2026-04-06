@@ -1,0 +1,62 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # permite lanzarlo manualmente desde GitHub UI
+
+env:
+  REGISTRY: skillbayacr.azurecr.io
+
+jobs:
+  deploy-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./skillbay-backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/skillbay-backend:latest
+            ${{ env.REGISTRY }}/skillbay-backend:${{ github.sha }}
+      # ACR webhook notifica al App Service automáticamente al recibir :latest
+
+  deploy-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./skillbay-frontend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/skillbay-frontend:latest
+            ${{ env.REGISTRY }}/skillbay-frontend:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+      # ACR webhook notifica al App Service automáticamente al recibir :latest
