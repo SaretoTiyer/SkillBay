@@ -120,8 +120,8 @@ export default function AdminNotifications() {
   const filtered = notifications.filter((n) => {
     const matchesFilter =
       filter === "all" ||
-      (filter === "unread" && !n.leida) ||
-      (filter === "read" && n.leida);
+      (filter === "unread" && n.estado !== "Leido") ||
+      (filter === "read" && n.estado === "Leido");
     const matchesSearch =
       !search ||
       (n.mensaje || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -129,7 +129,7 @@ export default function AdminNotifications() {
     return matchesFilter && matchesSearch;
   });
 
-  const unreadCount = notifications.filter((n) => !n.leida).length;
+  const unreadCount = notifications.filter((n) => n.estado !== "Leido").length;
 
   const typeIcons = {
     admin: { icon: Shield, color: "text-blue-600", bg: "bg-blue-50" },
@@ -281,7 +281,7 @@ export default function AdminNotifications() {
             <div
               key={notif.id_Notificacion}
               className={`bg-white rounded-xl border p-4 transition-all hover:shadow-md ${
-                notif.leida ? "border-gray-100" : "border-blue-200 bg-blue-50/30"
+                notif.estado === "Leido" ? "border-gray-100" : "border-blue-200 bg-blue-50/30"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -290,10 +290,10 @@ export default function AdminNotifications() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    {!notif.leida && (
+                    {notif.estado !== "Leido" && (
                       <span className="w-2 h-2 bg-blue-600 rounded-full" />
                     )}
-                    <p className={`text-sm ${notif.leida ? "text-gray-600" : "text-gray-900 font-medium"}`}>
+                    <p className={`text-sm ${notif.estado === "Leido" ? "text-gray-600" : "text-gray-900 font-medium"}`}>
                       {notif.mensaje}
                     </p>
                   </div>
@@ -310,7 +310,7 @@ export default function AdminNotifications() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {!notif.leida && (
+                  {notif.estado !== "Leido" && (
                     <button
                       onClick={() => markAsRead(notif.id_Notificacion)}
                       className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
