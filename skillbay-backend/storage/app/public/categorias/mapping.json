@@ -1,0 +1,176 @@
+{
+  "tec_desarrollo_web": {
+    "nombre": "Desarrollo Web",
+    "grupo": "Tecnologia",
+    "filename": "desarrollo_web.jpg",
+    "local_path": "categorias/desarrollo_web.jpg"
+  },
+  "tec_desarrollo_mobile": {
+    "nombre": "Desarrollo Mobile",
+    "grupo": "Tecnologia",
+    "filename": "desarrollo_mobile.jpg",
+    "local_path": "categorias/desarrollo_mobile.jpg"
+  },
+  "tec_diseno_ui_ux": {
+    "nombre": "Diseno UI/UX",
+    "grupo": "Tecnologia",
+    "filename": "diseno_ui_ux.jpg",
+    "local_path": "categorias/diseno_ui_ux.jpg"
+  },
+  "tec_diseno_grafico": {
+    "nombre": "Diseno Grafico",
+    "grupo": "Tecnologia",
+    "filename": "diseno_grafico.jpg",
+    "local_path": "categorias/diseno_grafico.jpg"
+  },
+  "tec_soporte_tecnico": {
+    "nombre": "Soporte Tecnico",
+    "grupo": "Tecnologia",
+    "filename": "soporte_tecnico.jpg",
+    "local_path": "categorias/soporte_tecnico.jpg"
+  },
+  "tec_marketing_digital": {
+    "nombre": "Marketing Digital",
+    "grupo": "Tecnologia",
+    "filename": "marketing_digital.jpg",
+    "local_path": "categorias/marketing_digital.jpg"
+  },
+  "tec_redes_seguridad": {
+    "nombre": "Redes y Seguridad",
+    "grupo": "Tecnologia",
+    "filename": "redes_y_seguridad.jpg",
+    "local_path": "categorias/redes_y_seguridad.jpg"
+  },
+  "tec_data_science": {
+    "nombre": "Data Science",
+    "grupo": "Tecnologia",
+    "filename": "data_science.jpg",
+    "local_path": "categorias/data_science.jpg"
+  },
+  "hog_jardineria": {
+    "nombre": "Jardineria",
+    "grupo": "Cuidado del Hogar",
+    "filename": "jardineria.jpg",
+    "local_path": "categorias/jardineria.jpg"
+  },
+  "hog_plomeria": {
+    "nombre": "Plomeria",
+    "grupo": "Cuidado del Hogar",
+    "filename": "plomeria.jpg",
+    "local_path": "categorias/plomeria.jpg"
+  },
+  "hog_electricidad": {
+    "nombre": "Electricidad",
+    "grupo": "Cuidado del Hogar",
+    "filename": "electricidad.jpg",
+    "local_path": "categorias/electricidad.jpg"
+  },
+  "edu_tutorias": {
+    "nombre": "Tutorias",
+    "grupo": "Educacion",
+    "filename": "tutorias.jpg",
+    "local_path": "categorias/tutorias.jpg"
+  },
+  "edu_idiomas": {
+    "nombre": "Idiomas",
+    "grupo": "Educacion",
+    "filename": "idiomas.jpg",
+    "local_path": "categorias/idiomas.jpg"
+  },
+  "edu_musica": {
+    "nombre": "Musica",
+    "grupo": "Educacion",
+    "filename": "musica.jpg",
+    "local_path": "categorias/musica.jpg"
+  },
+  "edu_preparacion_examenes": {
+    "nombre": "Preparacion Examenes",
+    "grupo": "Educacion",
+    "filename": "preparacion_examenes.jpg",
+    "local_path": "categorias/preparacion_examenes.jpg"
+  },
+  "sg_consultoria": {
+    "nombre": "Consultoria",
+    "grupo": "Servicios Generales",
+    "filename": "consultoria.jpg",
+    "local_path": "categorias/consultoria.jpg"
+  },
+  "sg_asesoria_legal": {
+    "nombre": "Asesoria Legal",
+    "grupo": "Servicios Generales",
+    "filename": "asesoria_legal.jpg",
+    "local_path": "categorias/asesoria_legal.jpg"
+  },
+  "sg_contabilidad": {
+    "nombre": "Contabilidad",
+    "grupo": "Servicios Generales",
+    "filename": "contabilidad.jpg",
+    "local_path": "categorias/contabilidad.jpg"
+  },
+  "sg_recursos_humanos": {
+    "nombre": "Recursos Humanos",
+    "grupo": "Servicios Generales",
+    "filename": "recursos_humanos.jpg",
+    "local_path": "categorias/recursos_humanos.jpg"
+  },
+  "sg_traduccion": {
+    "nombre": "Traduccion",
+    "grupo": "Servicios Generales",
+    "filename": "traduccion.jpg",
+    "local_path": "categorias/traduccion.jpg"
+  },
+  "sg_ingenieria": {
+    "nombre": "Ingenieria",
+    "grupo": "Servicios Generales",
+    "filename": "ingenieria.jpg",
+    "local_path": "categorias/ingenieria.jpg"
+  },
+  "eve_organizacion": {
+    "nombre": "Organizacion",
+    "grupo": "Eventos",
+    "filename": "organizacion.jpg",
+    "local_path": "categorias/organizacion.jpg"
+  },
+  "eve_catering": {
+    "nombre": "Catering",
+    "grupo": "Eventos",
+    "filename": "catering.jpg",
+    "local_path": "categorias/catering.jpg"
+  },
+  "eve_fotografia": {
+    "nombre": "Fotografia",
+    "grupo": "Eventos",
+    "filename": "fotografia.jpg",
+    "local_path": "categorias/fotografia.jpg"
+  },
+  "eve_decoracion": {
+    "nombre": "Decoracion",
+    "grupo": "Eventos",
+    "filename": "decoracion.jpg",
+    "local_path": "categorias/decoracion.jpg"
+  },
+  "ofi_carpinteria": {
+    "nombre": "Carpinteria",
+    "grupo": "Oficios Manuales",
+    "filename": "carpinteria.jpg",
+    "local_path": "categorias/carpinteria.jpg"
+  },
+  "ofi_pintura": {
+    "nombre": "Pintura",
+    "grupo": "Oficios Manuales",
+    "filename": "pintura.jpg",
+    "local_path": "categorias/pintura.jpg"
+  },
+  "ofi_albanileria": {
+    "nombre": "Albanileria",
+    "grupo": "Oficios Manuales",
+    "filename": "albanileria.jpg",
+    "local_path": "categorias/albanileria.jpg"
+  },
+  "ofi_reparaciones": {
+    "nombre": "Reparaciones",
+    "grupo": "Oficios Manuales",
+    "filename": "reparaciones.jpg",
+    "local_path": "categorias/reparaciones.jpg"
+  }
+}

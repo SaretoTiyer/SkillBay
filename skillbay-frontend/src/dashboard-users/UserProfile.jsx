@@ -20,6 +20,7 @@ import {
     CreditCard,
 } from "lucide-react";
 import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 import { Button } from "../components/ui/Button";
 import ProfileInfo from "./UserProfile/ProfileInfo";
 import ProfileServices from "./UserProfile/ProfileServices";
@@ -318,7 +319,7 @@ export default function UserProfile({ onNavigate }) {
                             <div className="relative -mt-14 mb-5">
                                 {profileImage ? (
                                     <img
-                                        src={profileImage.startsWith('http') ? profileImage : `${API_URL.replace('/api', '')}/storage/${profileImage}`}
+                                        src={resolveImageUrl(profileImage)}
                                         alt={profileData.name}
                                         className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-lg"
                                         onError={(e) => {

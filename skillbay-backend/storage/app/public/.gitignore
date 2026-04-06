@@ -1,2 +1,5 @@
 *
 !.gitignore
+# Static seed images — tracked in git so Docker image includes them
+!categorias/
+!categorias/**
