@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { PaymentMethodSelector, PaymentForm, PaymentStatus } from '../../components/Payment';
 import { showSuccess, showError } from '../../utils/swalHelpers';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
-
-const API_URL = '/api';
+import { API_URL } from '../../config/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('access_token');
