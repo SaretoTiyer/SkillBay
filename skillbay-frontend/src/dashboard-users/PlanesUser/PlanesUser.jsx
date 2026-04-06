@@ -242,7 +242,7 @@ export default function PlanesUser({ onNavigate }) {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ id_Plan: idPlan }),
+          body: JSON.stringify({ id_Plan: idPlan, modalidadPago: 'virtual' }),
         });
 
         if (response.ok) {

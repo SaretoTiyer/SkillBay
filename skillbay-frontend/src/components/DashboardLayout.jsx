@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Briefcase, BriefcaseBusiness, ChevronDown, CreditCard, FileText, Home, LogOut, Menu, MessageSquare, User, Users, Wallet, X, Settings } from "lucide-react";
 import logoFull from "../assets/IconoSkillBay.png";
 import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 
 export default function DashboardLayout({ children, currentView, onNavigate, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -117,18 +118,11 @@ export default function DashboardLayout({ children, currentView, onNavigate, onL
                  className="flex items-center gap-2 px-3 py-2 hover:bg-[#E2E8F0] rounded-lg"
                >
                  {currentUser.imagen_perfil ? (
-                   <img
-                     src={
-                       (() => {
-                         if (!currentUser.imagen_perfil) return null;
-                         if (currentUser.imagen_perfil.startsWith('http')) return currentUser.imagen_perfil;
-                         const base = API_URL.replace('/api', '');
-                         return `${base}/storage/${currentUser.imagen_perfil}`;
-                       })()
-                     }
-                     alt={fullName}
-                     className="w-8 h-8 rounded-full object-cover"
-                   />
+                    <img
+                      src={resolveImageUrl(currentUser.imagen_perfil)}
+                      alt={fullName}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
                  ) : (
                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#2B6CB0] to-[#1E3A5F] flex items-center justify-center text-white text-sm">
                      {initials}

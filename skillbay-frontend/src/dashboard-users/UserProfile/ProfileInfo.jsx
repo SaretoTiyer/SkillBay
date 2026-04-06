@@ -2,19 +2,13 @@ import { useState, useCallback } from "react";
 import { Camera, Save, X, Mail, Phone, MapPin, Calendar, Award, Edit2 } from "lucide-react";
 import { showSuccess, showError } from "../../utils/swalHelpers";
 import { API_URL } from "../../config/api";
+import { resolveImageUrl } from "../../utils/image";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 
 export default function ProfileInfo({ profileData, profileImage, servicesOffered, onUpdate }) {
     const [isEditing, setIsEditing] = useState(false);
     const [localData, setLocalData] = useState(profileData);
-
-    const getImageUrl = (path) => {
-        if (!path) return null;
-        if (path.startsWith('http')) return path;
-        const base = API_URL.replace('/api', '');
-        return `${base}/storage/${path}`;
-    };
 
     const handleSave = async () => {
         try {
@@ -142,7 +136,7 @@ export default function ProfileInfo({ profileData, profileImage, servicesOffered
                         <div className="relative">
                             {profileImage ? (
                                 <img
-                                    src={getImageUrl(profileImage)}
+                                    src={resolveImageUrl(profileImage)}
                                     alt={profileData.name}
                                     className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
                                     onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { showSuccess, showError, showInputModal } from "../utils/swalHelpers";
 import { API_URL } from "../config/api";
+import { resolveImageUrl } from "../utils/image";
 import { getServiceImage, getOpportunityImage } from "../utils/serviceImages";
 import ReviewCard from "../components/ReviewCard";
 
@@ -289,14 +290,6 @@ export default function UserPublicProfile({ onBack }) {
   const [activeTab, setActiveTab] = useState('servicios');
   const [profileImageError, setProfileImageError] = useState(false);
 
-  // Helper to resolve profile image URL (handles both uploaded files and external URLs)
-  const getProfileImageUrl = (imagenPerfil) => {
-    if (!imagenPerfil) return null;
-    if (imagenPerfil.startsWith('http')) return imagenPerfil;
-    const base = API_URL.replace('/api', '');
-    return `${base}/storage/${imagenPerfil}`;
-  };
-
   useEffect(() => {
     const id = localStorage.getItem("profile_target_user");
     if (!id) {
@@ -559,7 +552,7 @@ export default function UserPublicProfile({ onBack }) {
                 <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg mx-auto relative overflow-hidden">
                   {user.imagen_perfil && !profileImageError ? (
                     <img
-                      src={getProfileImageUrl(user.imagen_perfil)}
+                      src={resolveImageUrl(user.imagen_perfil)}
                       alt={`${user.nombre}'s profile`}
                       className="w-full h-full object-cover"
                       onError={() => setProfileImageError(true)}
