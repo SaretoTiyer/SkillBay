@@ -6,10 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-
     public function up(): void
     {
-        Schema::create('reseñas', function (Blueprint $table) {
+        Schema::create('resenas', function (Blueprint $table) {
             $table->id('id_Reseña');
             $table->integer('calificacion');
             $table->text('comentario')->nullable();
@@ -23,6 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('reseñas');
+        Schema::dropIfExists('resenas');
     }
 };
