@@ -29,6 +29,10 @@
 
 ## 2. ARQUITECTURA DEL SISTEMA
 
+> 📐 **Diagramas UML:** Para los diagramas formales del sistema, ver:
+> - [Diagrama de Casos de Uso](uml/diagrama-casos-de-uso.md)
+> - [Diagrama de Despliegue](uml/diagrama-despliegue.md)
+
 ### 2.1 Visión General
 SkillBay sigue una arquitectura cliente-servidor con una API RESTful en el backend y una aplicación SPA (Single Page Application) en el frontend.
 

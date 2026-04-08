@@ -1,7 +1,9 @@
 plans/analisis-codigo-skillbay.md
 .kilocodemodes
-# Ignore skills and agents directories/files
+
+# ─── Herramientas de agentes / IA ───────────────────────────
 .agents/
+.atl/
 .claude/
 .windsurf/
 AGENTS.md
@@ -9,10 +11,38 @@ skills/
 skill-lock.json
 skills-lock.json
 agents.md
+sdd/
+
+# ─── TestSprite / Tests generados ───────────────────────────
 testsprite_tests/
-tmp
-standard_prd.json
 testsprite_frontend_test_plan.json
+standard_prd.json
 test_app.py
 test_full.py
+
+# ─── Logs y archivos de diagnóstico ─────────────────────────
+backend-logs/
+backend-logs.zip
+*.log
+tmp
+
+# ─── Scripts y archivos temporales de exploración ───────────
+download_category_images.py
+exploration_summary.txt
+payment_invoice_exploration_summary.md
+payment_invoice_proposal.md
+proposal.md
+sdd-proposal*.md
 nul
+
+# ─── Variables de entorno y secretos ────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Diagramas UML (internos, no para público) ──────────────
+docs/uml/
+
+# ─── Storage local (imágenes y archivos generados) ──────────
+storage/app/public/
+

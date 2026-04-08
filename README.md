@@ -819,15 +819,151 @@ Al ejecutar `php artisan migrate:fresh --seed` se crean:
 
 ---
 
+## 📋 Reglas de Negocio
+
+Las reglas de negocio describen las restricciones y comportamientos que rigen el funcionamiento de la plataforma.
+
+### RN-01: Roles de Usuario
+- Todo usuario registrado recibe por defecto el rol `ofertante`.
+- Un usuario que acepta una postulación sobre un servicio ajeno adquiere el rol `cliente` automáticamente si aún no lo tiene.
+- El rol `admin` solo puede ser asignado directamente en la base de datos; no se puede obtener por flujo normal.
+
+### RN-02: Publicación de Servicios y Oportunidades
+- Un usuario con plan **Free** puede publicar un máximo de servicios según el límite del plan (configurable por el administrador).
+- Los servicios de tipo `servicio` son publicados por ofertantes; los de tipo `oportunidad` son publicados por clientes.
+- Un servicio puede estar en los estados: `activo`, `en_proceso`, `completado` o `cancelado`.
+
+### RN-03: Sistema de Postulaciones
+- Un usuario no puede postularse a su propio servicio u oportunidad.
+- Solo se puede tener **una postulación activa** por servicio por usuario.
+- Las postulaciones tienen los estados: `pendiente`, `aceptada`, `rechazada`, `cancelada`, `en_progreso`, `completada`, `pagada`.
+- Solo el dueño del servicio puede aceptar o rechazar postulaciones.
+- El trabajo inicia solo cuando la postulación es aceptada (`aceptada → en_progreso`).
+
+### RN-04: Sistema de Pagos
+- Los pagos de servicios solo pueden realizarse cuando la postulación está en estado `completada`.
+- Los pagos son procesados por una pasarela simulada (`PagoSimuladoService`).
+- Tarjetas que comienzan con `4000`, `5000` o `6000` siempre son rechazadas (para pruebas de error).
+- Cualquier otra tarjeta tiene un 95% de probabilidad de aprobación.
+- Los métodos de pago disponibles son: tarjeta de crédito/débito, Nequi, QR Bancolombia y efectivo.
+
+### RN-05: Sistema de Reseñas
+- Solo se puede dejar una reseña por postulación completada y pagada.
+- Las reseñas son **bidireccionales**: el cliente califica al ofertante y viceversa.
+- Un usuario no puede calificarse a sí mismo.
+- La calificación es de 1 a 5 estrellas, con comentario opcional.
+
+### RN-06: Mensajería
+- La mensajería está vinculada a una postulación activa.
+- Los mensajes caducan automáticamente **15 días** después de que el trabajo es marcado como completado.
+- No se pueden adjuntar archivos; solo texto.
+
+### RN-07: Planes de Suscripción
+- Existen tres planes activos: **Free**, **Plus** y **Ultra** (más Enterprise para administradores).
+- El plan determina el límite máximo de servicios activos que puede publicar un usuario.
+- El pago de un plan es mensual y se registra en `PagoPlan`.
+
+### RN-08: Reportes y Moderación
+- Cualquier usuario autenticado puede reportar a otro usuario.
+- Los reportes son gestionados por el administrador con los estados: `pendiente`, `en_revision`, `resuelto`, `descartado`.
+- El administrador puede bloquear/desbloquear usuarios desde el panel de administración.
+
+### RN-09: Notificaciones
+- El sistema genera notificaciones automáticas para: nuevas postulaciones, aceptación/rechazo de postulaciones, pagos, reseñas y reportes.
+- El administrador puede enviar notificaciones globales a todos los usuarios.
+- Las notificaciones pueden marcarse como leídas individualmente o todas a la vez.
+
+---
+
+## 🔄 Flujo de Interacción del Sistema
+
+El siguiente flujo describe los pasos más comunes que realizan los usuarios en la plataforma:
+
+### Flujo Principal: Cliente contrata un servicio
+
+```
+1. REGISTRO / INICIO DE SESIÓN
+   ├── Usuario ingresa a SkillBay
+   ├── Se registra (correo, nombre, datos personales)
+   └── El sistema asigna rol "ofertante" por defecto
+
+2. EXPLORACIÓN
+   ├── Usuario navega la sección "Explorar Servicios"
+   ├── Filtra por categoría, precio o ubicación
+   └── Selecciona un servicio de interés
+
+3. POSTULACIÓN (como cliente que solicita un servicio)
+   ├── Hace clic en "Solicitar Servicio"
+   ├── Envía mensaje, presupuesto y tiempo estimado
+   └── El ofertante recibe notificación
+
+4. NEGOCIACIÓN Y ACEPTACIÓN
+   ├── Ofertante revisa la solicitud en "Solicitudes Recibidas"
+   ├── Acepta o rechaza la postulación
+   └── Si acepta: estado pasa a "en_progreso"
+
+5. EJECUCIÓN DEL TRABAJO
+   ├── Ambas partes se comunican por mensajería interna
+   ├── El ofertante marca el trabajo como "completado"
+   └── El cliente recibe notificación para revisar
+
+6. PAGO
+   ├── El cliente accede al flujo de pago
+   ├── Selecciona método: tarjeta, Nequi, QR o efectivo
+   ├── La pasarela simulada procesa el pago
+   └── El estado de la postulación pasa a "pagada"
+
+7. RESEÑA
+   ├── El cliente califica al ofertante (1-5 estrellas)
+   ├── El ofertante califica al cliente
+   └── Las reseñas quedan publicadas en los perfiles
+```
+
+### Flujo Alternativo: Ofertante publica un servicio
+
+```
+1. INICIO DE SESIÓN como ofertante
+2. Crea publicación tipo "Servicio" en "Mis Servicios"
+3. Completa: título, descripción, categoría, precio, tiempo de entrega
+4. El servicio queda visible en el catálogo público
+5. Clientes se postulan al servicio
+6. Ofertante acepta/rechaza postulaciones desde su dashboard
+7. Flujo continúa desde el paso 5 del flujo principal
+```
+
+### Flujo del Administrador
+
+```
+1. Accede al Panel de Administración (/admin)
+2. Visualiza métricas: usuarios, servicios, pagos, postulaciones
+3. Gestiona categorías, planes de suscripción
+4. Revisa y resuelve reportes de usuarios
+5. Bloquea/desbloquea usuarios problemáticos
+6. Envía notificaciones globales si es necesario
+```
+
+---
+
 ## 📚 Documentación del Proyecto
 
-### Manuales y Guías
+### Índice de Documentos
 
 | Documento | Descripción | Enlace |
 |-----------|-------------|--------|
+| **Manual de Instalación** | Guía paso a paso para instalar y configurar el proyecto localmente | [docs/manual-instalacion.md](docs/manual-instalacion.md) |
+| **Manual de Usuario** | Guía visual paso a paso para usuarios finales de la plataforma | [docs/manual-usuario.md](docs/manual-usuario.md) |
 | **Manual Técnico** | Arquitectura, endpoints API, modelos de datos, integraciones y estructura del sistema | [docs/manual-tecnico.md](docs/manual-tecnico.md) |
-| **Manual de Instalación** | Guía paso a paso para configurar el entorno de desarrollo, dependencias y despliegue | [docs/manual-instalacion.md](docs/manual-instalacion.md) |
+| **Informe de Requisitos** | Requisitos funcionales, no funcionales, de negocio y de interfaz | [docs/informe-requisitos.md](docs/informe-requisitos.md) |
+| **Informe de Pruebas** | Resultados de pruebas unitarias, funcionales, de estrés y de aceptación | [docs/informe-pruebas.md](docs/informe-pruebas.md) |
 | **PRD (Product Requirements Document)** | Requisitos del producto, casos de uso, cronograma, riesgos y dependencias | [docs/PRD.md](docs/PRD.md) |
+| **Lista de Chequeo** | Entregables del proyecto formativo SENA | [docs/Lista_de_Chequeo_Proyecto_Formativo.md](docs/Lista_de_Chequeo_Proyecto_Formativo.md) |
+
+### Diagramas UML
+
+| Diagrama | Descripción | Enlace |
+|----------|-------------|--------|
+| **Diagrama de Casos de Uso** | Actores y casos de uso del sistema | [docs/uml/diagrama-casos-de-uso.md](docs/uml/diagrama-casos-de-uso.md) |
+| **Diagrama de Despliegue** | Infraestructura y topología de despliegue | [docs/uml/diagrama-despliegue.md](docs/uml/diagrama-despliegue.md) |
 
 ### Estructura de Carpetas
 
